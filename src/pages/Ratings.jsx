@@ -1,16 +1,19 @@
 import { useRatings } from "../contexts/UserRatingsContext.jsx";
+import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
 import Rating from "../components/Rating.jsx";
+import BookRating from "../components/BookRating.jsx";
 import { useMemo, useState, useEffect, useCallback } from "react";
 
 function Ratings() {
   const { userRatings, userRatingsLoaded, updateRanking } = useRatings();
+  const { bookLogs, bookLogsLoaded, updateBookRanking } = useBookLogs();
   const [searchTerm, setSearchTerm] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [mediaTypeFilter, setMediaTypeFilter] = useState("all");
-  // Rank mode: none | movies | tv
+  // Rank mode: none | movies | tv | books
   const [rankModeType, setRankModeType] = useState("none");
 
-  // When rank mode is enabled, force rating filter to 10 and media filter appropriately
+  // When rank mode is enabled, force rating filter and media filter appropriately
   useEffect(() => {
     if (rankModeType === "movies") {
       setRatingFilter("10");
@@ -18,6 +21,9 @@ function Ratings() {
     } else if (rankModeType === "tv") {
       setRatingFilter("10");
       setMediaTypeFilter("tv");
+    } else if (rankModeType === "books") {
+      setRatingFilter("all");
+      setMediaTypeFilter("books");
     }
   }, [rankModeType]);
 
@@ -89,6 +95,45 @@ function Ratings() {
     });
   }, [filteredRatings, allTens, ratingFilter, rankSort]);
 
+  // Books: only those with a non-null rating
+  const filteredBooks = useMemo(() => {
+    return bookLogs.filter((bookLog) => {
+      if (!bookLog.book_rating || Number(bookLog.book_rating) === 0)
+        return false;
+      if (searchTerm.trim()) {
+        const title = (bookLog.title || "").toLowerCase();
+        const author = (bookLog.author || "").toLowerCase();
+        const search = searchTerm.toLowerCase();
+        if (!title.includes(search) && !author.includes(search)) return false;
+      }
+      if (ratingFilter !== "all") {
+        if (Number(bookLog.book_rating) !== Number(ratingFilter)) return false;
+      }
+      return true;
+    });
+  }, [bookLogs, searchTerm, ratingFilter]);
+
+  const bookSortDate = (b) =>
+    new Date(b.end_date || b.start_date || b.created_at);
+
+  const bookRankSort = useCallback((a, b) => {
+    const ra = a.ranking ?? Number.MAX_SAFE_INTEGER;
+    const rb = b.ranking ?? Number.MAX_SAFE_INTEGER;
+    if (ra !== rb) return ra - rb;
+    return bookSortDate(b) - bookSortDate(a);
+  }, []);
+
+  const sortedBooks = useMemo(() => {
+    if (rankModeType === "books") {
+      return filteredBooks
+        .filter((b) => b.end_date != null)
+        .sort(bookRankSort);
+    }
+    return filteredBooks
+      .slice()
+      .sort((a, b) => bookSortDate(b) - bookSortDate(a));
+  }, [filteredBooks, rankModeType, bookRankSort]);
+
   // Move rank up/down among 10s by swapping ranking values and normalizing
   // Note: normalization handled implicitly by applyRankOrder indices
 
@@ -130,6 +175,52 @@ function Ratings() {
     ids.push(moved);
     await applyRankOrder(ids);
   };
+
+  // Book rank handlers operate on book log ids and persist via updateBookRanking
+  const applyBookRankOrder = async (orderedIds) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await updateBookRanking(orderedIds[i], i + 1);
+    }
+  };
+
+  // Rank reorder operates on finished books only (the ones visible in Rank Books).
+  const finishedSortedForRank = () =>
+    bookLogs.filter((b) => b.end_date != null).sort(bookRankSort);
+
+  const handleBookMove = async (bookId, direction) => {
+    const sorted = finishedSortedForRank();
+    const index = sorted.findIndex((b) => b.id === bookId);
+    if (index === -1) return;
+    const swapWith = direction === "up" ? index - 1 : index + 1;
+    if (swapWith < 0 || swapWith >= sorted.length) return;
+    const ids = sorted.map((b) => b.id);
+    [ids[index], ids[swapWith]] = [ids[swapWith], ids[index]];
+    await applyBookRankOrder(ids);
+  };
+
+  const handleBookSendTop = async (bookId) => {
+    const sorted = finishedSortedForRank();
+    const index = sorted.findIndex((b) => b.id === bookId);
+    if (index <= 0) return;
+    const ids = sorted.map((b) => b.id);
+    const [moved] = ids.splice(index, 1);
+    ids.unshift(moved);
+    await applyBookRankOrder(ids);
+  };
+
+  const handleBookSendBottom = async (bookId) => {
+    const sorted = finishedSortedForRank();
+    const index = sorted.findIndex((b) => b.id === bookId);
+    if (index === -1 || index === sorted.length - 1) return;
+    const ids = sorted.map((b) => b.id);
+    const [moved] = ids.splice(index, 1);
+    ids.push(moved);
+    await applyBookRankOrder(ids);
+  };
+
+  const isBooksView = mediaTypeFilter === "books";
+  const displayCount = isBooksView ? sortedBooks.length : sortedRatings.length;
+  const isLoading = isBooksView ? !bookLogsLoaded : !userRatingsLoaded;
 
   return (
     <div
@@ -195,7 +286,7 @@ function Ratings() {
                 outline: "none",
               }}
             >
-              ✕
+              ×
             </button>
           )}
         </div>
@@ -218,6 +309,7 @@ function Ratings() {
           <option value="all">Movies & TV</option>
           <option value="movies">Movies</option>
           <option value="tv">TV</option>
+          <option value="books">Books</option>
         </select>
         <select
           value={ratingFilter}
@@ -294,6 +386,31 @@ function Ratings() {
           />
           Rank 10s TV
         </label>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            backgroundColor: "#3b3b3b",
+            color: "#ffffff",
+            padding: "6px 10px",
+            border: "1px solid #cccccc",
+            borderRadius: "6px",
+            margin: "6px",
+            fontSize: "0.85rem",
+            userSelect: "none",
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={rankModeType === "books"}
+            onChange={(e) =>
+              setRankModeType(e.target.checked ? "books" : "none")
+            }
+          />
+          Rank Books
+        </label>
         <span
           style={{
             fontWeight: "bold",
@@ -309,14 +426,16 @@ function Ratings() {
             margin: "6px",
           }}
         >
-          {sortedRatings.length}
+          {displayCount}
         </span>
       </div>
-      {!userRatingsLoaded ? (
+      {isLoading ? (
         <div style={{ textAlign: "center" }}>Loading...</div>
-      ) : sortedRatings.length === 0 ? (
+      ) : displayCount === 0 ? (
         <div style={{ textAlign: "center" }}>
-          No ratings found for "{searchTerm}"!
+          {isBooksView
+            ? `No rated books found${searchTerm ? ` for "${searchTerm}"` : ""}!`
+            : `No ratings found for "${searchTerm}"!`}
         </div>
       ) : null}
       <div
@@ -327,35 +446,60 @@ function Ratings() {
           alignItems: "center",
         }}
       >
-        {sortedRatings.map((rating) => (
-          <div
-            key={rating.id || rating.imdb_movie_id}
-            style={{
-              marginBottom: "1rem",
-              width: "100%",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            <div className="div-wrapper-rating-testing">
-              <Rating
-                movie_object={rating.movie_object}
-                ratingDate={rating.created_at}
-                rankNumber={
-                  Number(rating.rating) === 10 ? rating.ranking : null
-                }
-                showRankControls={
-                  rankModeType !== "none" && Number(rating.rating) === 10
-                }
-                onMoveUp={() => handleMove(rating.imdb_movie_id, "up")}
-                onMoveDown={() => handleMove(rating.imdb_movie_id, "down")}
-                onSendTop={() => handleSendTop(rating.imdb_movie_id)}
-                onSendBottom={() => handleSendBottom(rating.imdb_movie_id)}
-              />
-            </div>
-          </div>
-        ))}
+        {isBooksView
+          ? sortedBooks.map((bookLog) => (
+              <div
+                key={bookLog.id}
+                style={{
+                  marginBottom: "1rem",
+                  width: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                <div className="div-wrapper-rating-testing">
+                  <BookRating
+                    bookLog={bookLog}
+                    rankNumber={bookLog.ranking || null}
+                    showRankControls={rankModeType === "books"}
+                    onMoveUp={() => handleBookMove(bookLog.id, "up")}
+                    onMoveDown={() => handleBookMove(bookLog.id, "down")}
+                    onSendTop={() => handleBookSendTop(bookLog.id)}
+                    onSendBottom={() => handleBookSendBottom(bookLog.id)}
+                  />
+                </div>
+              </div>
+            ))
+          : sortedRatings.map((rating) => (
+              <div
+                key={rating.id || rating.imdb_movie_id}
+                style={{
+                  marginBottom: "1rem",
+                  width: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                <div className="div-wrapper-rating-testing">
+                  <Rating
+                    movie_object={rating.movie_object}
+                    ratingDate={rating.created_at}
+                    rankNumber={
+                      Number(rating.rating) === 10 ? rating.ranking : null
+                    }
+                    showRankControls={
+                      rankModeType !== "none" && Number(rating.rating) === 10
+                    }
+                    onMoveUp={() => handleMove(rating.imdb_movie_id, "up")}
+                    onMoveDown={() => handleMove(rating.imdb_movie_id, "down")}
+                    onSendTop={() => handleSendTop(rating.imdb_movie_id)}
+                    onSendBottom={() => handleSendBottom(rating.imdb_movie_id)}
+                  />
+                </div>
+              </div>
+            ))}
       </div>
     </div>
   );
