@@ -6,15 +6,30 @@ import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
 import AddBookLog from "../components/AddBookLog.jsx";
 import BookLogCard from "../components/BookLogCard.jsx";
 import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 //
 function Log() {
   const { userLogs, userLogsLoaded } = useLogs();
   const { bookLogs, bookLogsLoaded } = useBookLogs();
   const { userRatings } = useRatings();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [ratingFilter, setRatingFilter] = useState("all");
-  const [mediaTypeFilter, setMediaTypeFilter] = useState("all");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchTerm, setSearchTerm] = useState(
+    location.state?.searchTerm || "",
+  );
+  const [ratingFilter, setRatingFilter] = useState(
+    location.state?.ratingFilter || "all",
+  );
+  const [mediaTypeFilter, setMediaTypeFilter] = useState(
+    location.state?.mediaTypeFilter || "all",
+  );
   const [showAddBookLog, setShowAddBookLog] = useState(false);
+
+  const goToRatings = () => {
+    navigate("/ratings", {
+      state: { searchTerm, ratingFilter, mediaTypeFilter },
+    });
+  };
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -213,7 +228,7 @@ function Log() {
                 outline: "none",
               }}
             >
-              ✕
+              ×
             </button>
           )}
         </div>
@@ -288,6 +303,26 @@ function Log() {
             +
           </button>
         )}
+        <button
+          onClick={goToRatings}
+          title="View ratings with these filters"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+            margin: "6px",
+            display: "inline-flex",
+            alignItems: "center",
+            outline: "none",
+          }}
+        >
+          <img
+            src="/ratings.png"
+            alt="Go to Ratings"
+            style={{ width: 22, height: 22 }}
+          />
+        </button>
         <span
           style={{
             fontWeight: "bold",

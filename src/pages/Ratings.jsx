@@ -3,15 +3,30 @@ import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
 import Rating from "../components/Rating.jsx";
 import BookRating from "../components/BookRating.jsx";
 import { useMemo, useState, useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 function Ratings() {
   const { userRatings, userRatingsLoaded, updateRanking } = useRatings();
   const { bookLogs, bookLogsLoaded, updateBookRanking } = useBookLogs();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [ratingFilter, setRatingFilter] = useState("all");
-  const [mediaTypeFilter, setMediaTypeFilter] = useState("all");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchTerm, setSearchTerm] = useState(
+    location.state?.searchTerm || "",
+  );
+  const [ratingFilter, setRatingFilter] = useState(
+    location.state?.ratingFilter || "all",
+  );
+  const [mediaTypeFilter, setMediaTypeFilter] = useState(
+    location.state?.mediaTypeFilter || "all",
+  );
   // Rank mode: none | movies | tv | books
   const [rankModeType, setRankModeType] = useState("none");
+
+  const goToLog = () => {
+    navigate("/log", {
+      state: { searchTerm, ratingFilter, mediaTypeFilter },
+    });
+  };
 
   // When rank mode is enabled, force rating filter and media filter appropriately
   useEffect(() => {
@@ -411,6 +426,26 @@ function Ratings() {
           />
           Rank Books
         </label>
+        <button
+          onClick={goToLog}
+          title="View log with these filters"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+            margin: "6px",
+            display: "inline-flex",
+            alignItems: "center",
+            outline: "none",
+          }}
+        >
+          <img
+            src="/log.png"
+            alt="Go to Log"
+            style={{ width: 22, height: 22 }}
+          />
+        </button>
         <span
           style={{
             fontWeight: "bold",
