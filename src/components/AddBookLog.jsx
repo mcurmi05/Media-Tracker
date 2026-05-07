@@ -12,6 +12,7 @@ const AddBookLog = ({ isOpen, onClose }) => {
     author: "",
     cover_image: "",
     release_year: "",
+    goodreads_link: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,6 +46,7 @@ const AddBookLog = ({ isOpen, onClose }) => {
         author: "",
         cover_image: "",
         release_year: "",
+        goodreads_link: "",
       });
 
       console.log("Closing modal");
@@ -115,6 +117,17 @@ const AddBookLog = ({ isOpen, onClose }) => {
               placeholder="e.g. 1984"
               min="1000"
               max={new Date().getFullYear()}
+            />
+          </div>
+
+          <div className="form-field">
+            <label htmlFor="goodreads_link">Goodreads Link</label>
+            <input
+              id="goodreads_link"
+              type="url"
+              value={formData.goodreads_link}
+              onChange={(e) => handleInputChange("goodreads_link", e.target.value)}
+              placeholder="https://www.goodreads.com/book/show/..."
             />
           </div>
 

@@ -7,6 +7,7 @@ const EditBookInfoModal = ({ isOpen, onClose, bookLog, onSave }) => {
     author: bookLog?.author || "",
     cover_image: bookLog?.cover_image || "",
     release_year: bookLog?.release_year || "",
+    goodreads_link: bookLog?.goodreads_link || "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +42,7 @@ const EditBookInfoModal = ({ isOpen, onClose, bookLog, onSave }) => {
       author: bookLog?.author || "",
       cover_image: bookLog?.cover_image || "",
       release_year: bookLog?.release_year || "",
+      goodreads_link: bookLog?.goodreads_link || "",
     });
     onClose();
   };
@@ -103,6 +105,17 @@ const EditBookInfoModal = ({ isOpen, onClose, bookLog, onSave }) => {
               placeholder="e.g. 1984"
               min="1000"
               max={new Date().getFullYear()}
+            />
+          </div>
+
+          <div className="form-field">
+            <label htmlFor="edit-goodreads_link">Goodreads Link</label>
+            <input
+              id="edit-goodreads_link"
+              type="url"
+              value={formData.goodreads_link}
+              onChange={(e) => handleInputChange("goodreads_link", e.target.value)}
+              placeholder="https://www.goodreads.com/book/show/..."
             />
           </div>
 

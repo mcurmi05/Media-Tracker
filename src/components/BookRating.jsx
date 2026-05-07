@@ -17,11 +17,9 @@ function BookRating({
   const [showRatingModal, setShowRatingModal] = useState(false);
 
   const handleGoodreadsSearch = () => {
-    const formattedTitle = (bookLog.title || "").replace(/\s+/g, "+");
-    window.open(
-      `https://www.goodreads.com/search?q=${formattedTitle}`,
-      "_blank",
-    );
+    if (bookLog.goodreads_link) {
+      window.open(bookLog.goodreads_link, "_blank");
+    }
   };
 
   const handleAuthorSearch = () => {
@@ -75,12 +73,13 @@ function BookRating({
             }}
             className="rating-poster"
             onClick={handleGoodreadsSearch}
+            style={{ cursor: bookLog.goodreads_link ? "pointer" : "default" }}
             alt={`${bookLog.title} cover`}
           />
         </div>
         <div className="right-stuff">
           <div className="title-and-star">
-            <p className="movie-title" onClick={handleGoodreadsSearch}>
+            <p className="movie-title" onClick={handleGoodreadsSearch} style={{ cursor: bookLog.goodreads_link ? "pointer" : "default" }}>
               {bookLog.title}{" "}
             </p>
             {(rankNumber || showRankControls) && (

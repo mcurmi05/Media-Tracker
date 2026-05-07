@@ -159,9 +159,9 @@ const BookLogCard = ({ bookLog }) => {
   };
 
   const handleGoodreadsSearch = () => {
-    const formattedTitle = bookLog.title.replace(/\s+/g, "+");
-    const goodreadsUrl = `https://www.goodreads.com/search?q=${formattedTitle}`;
-    window.open(goodreadsUrl, "_blank");
+    if (bookLog.goodreads_link) {
+      window.open(bookLog.goodreads_link, "_blank");
+    }
   };
 
   const handleAuthorSearch = () => {
@@ -193,7 +193,7 @@ const BookLogCard = ({ bookLog }) => {
                 alt={`${bookLog.title} cover`}
                 className="book-cover"
                 onClick={handleGoodreadsSearch}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: bookLog.goodreads_link ? "pointer" : "default" }}
                 onError={(e) => {
                   e.target.style.display = "none";
                   e.target.nextSibling.style.display = "flex";
@@ -221,7 +221,7 @@ const BookLogCard = ({ bookLog }) => {
                     <div>
                       <h3
                         className="book-title"
-                        style={{ margin: 0, cursor: "pointer" }}
+                        style={{ margin: 0, cursor: bookLog.goodreads_link ? "pointer" : "default" }}
                         onClick={handleGoodreadsSearch}
                       >
                         {bookLog.title}
