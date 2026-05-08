@@ -145,6 +145,82 @@
   cursor: not-allowed;
 }
 
+/* Goodreads fetch flow */
+.goodreads-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.goodreads-actions .fetch-btn {
+  flex: 1;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  background-color: #4caf50;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.goodreads-actions .fetch-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.goodreads-actions .custom-btn {
+  padding: 10px 14px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background-color: transparent;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.goodreads-actions .custom-btn:hover {
+  background-color: #3b3b3b;
+}
+
+.fetch-error {
+  color: #ff6b6b;
+  font-size: 0.9em;
+  margin: -8px 0 16px 0;
+}
+
+.mode-switch-row {
+  margin-bottom: 12px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #4caf50;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.9em;
+  text-decoration: underline;
+}
+
+.link-btn:hover {
+  color: #66bb66;
+}
+
+.fetched-preview {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.fetched-cover {
+  width: 120px;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid #555;
+}
+
 /* Book Log Card Styles */
 .book-log-card {
   background-color: transparent;
