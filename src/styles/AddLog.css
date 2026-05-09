@@ -225,12 +225,23 @@
 .book-log-card {
   background-color: transparent;
   border-radius: 8px;
-  padding: 20px 10px 0px 10px;
-  margin-bottom: 4px;
-  width: 100%;
-  max-width: 800px;
+  padding: 30px 30px 15px 30px;
+  margin-top: 10px;
+  width: 55%;
   border: solid grey 2px;
   position: relative;
+}
+
+@media (max-width: 1200px) {
+  .book-log-card {
+    width: 70%;
+  }
+}
+
+@media (max-width: 800px) {
+  .book-log-card {
+    width: 100%;
+  }
 }
 
 .book-log-content {
@@ -441,8 +452,7 @@
 /* Responsive styles for book log cards */
 @media (max-width: 768px) {
   .book-log-card {
-    padding: 15px 8px 0px 8px;
-    max-width: 95%;
+    padding: 22px 20px 12px 20px;
   }
 
   .book-info-section {
@@ -507,8 +517,8 @@
 
 @media (max-width: 480px) {
   .book-log-card {
-    padding: 12px 5px 0px 5px;
-    margin: 0 5px 4px 5px;
+    padding: 18px 12px 10px 12px;
+    margin-top: 10px;
   }
 
   .book-info-section {

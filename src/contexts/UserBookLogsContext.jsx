@@ -34,10 +34,19 @@ export const UserBookLogsProvider = ({ children }) => {
     try {
       let finalUpdates = { ...updates };
 
-      // Ranking is tied to finished status (end_date), not rating.
-      if (Object.prototype.hasOwnProperty.call(updates, "end_date")) {
-        if (updates.end_date != null) {
-          // Book just finished: auto-assign a ranking if it has none.
+      // Ranking is tied to having a rating. Stamp book_rating_date and (un)rank when rating changes.
+      if (Object.prototype.hasOwnProperty.call(updates, "book_rating")) {
+        const newRating = updates.book_rating;
+        if (newRating == null || Number(newRating) === 0) {
+          finalUpdates.book_rating_date = null;
+          finalUpdates.ranking = null;
+        } else {
+          const today = new Date();
+          const year = today.getFullYear();
+          const month = String(today.getMonth() + 1).padStart(2, "0");
+          const day = String(today.getDate()).padStart(2, "0");
+          finalUpdates.book_rating_date = `${year}-${month}-${day}`;
+
           const target = bookLogs.find((b) => b.id === logId);
           if (target && target.ranking == null) {
             const maxRank = bookLogs.reduce(
@@ -47,9 +56,6 @@ export const UserBookLogsProvider = ({ children }) => {
             );
             finalUpdates.ranking = maxRank + 1;
           }
-        } else {
-          // Book marked unfinished: clear ranking.
-          finalUpdates.ranking = null;
         }
       }
 
@@ -108,20 +114,19 @@ export const UserBookLogsProvider = ({ children }) => {
         hasFetched.current = true;
         const logs = await getUserBookLogs(user);
 
-        // Ranking is tied to finished status. Cleanup + backfill on load:
-        //  - clear rankings on books that aren't finished
-        //  - assign sequential rankings to finished books that have none
-        const finishedBooks = logs.filter((b) => b.end_date != null);
-        const unfinishedRanked = logs.filter(
-          (b) => b.end_date == null && b.ranking != null,
+        // Ranking is tied to having a rating. Cleanup + backfill on load:
+        //  - clear rankings on books without a rating
+        //  - assign sequential rankings to rated books that have none
+        const isRated = (b) => b.book_rating != null && Number(b.book_rating) > 0;
+        const ratedBooks = logs.filter(isRated);
+        const unratedRanked = logs.filter(
+          (b) => !isRated(b) && b.ranking != null,
         );
-        const unrankedFinished = finishedBooks.filter(
-          (b) => b.ranking == null,
-        );
+        const unrankedRated = ratedBooks.filter((b) => b.ranking == null);
 
         let finalLogs = logs;
 
-        for (const book of unfinishedRanked) {
+        for (const book of unratedRanked) {
           try {
             await updateBookLogService(book.id, { ranking: null });
             finalLogs = finalLogs.map((b) =>
@@ -132,14 +137,15 @@ export const UserBookLogsProvider = ({ children }) => {
           }
         }
 
-        if (unrankedFinished.length > 0) {
-          const maxRank = finishedBooks.reduce(
+        if (unrankedRated.length > 0) {
+          const maxRank = ratedBooks.reduce(
             (max, b) =>
               Number.isInteger(b.ranking) ? Math.max(max, b.ranking) : max,
             0,
           );
-          const sortedUnranked = [...unrankedFinished].sort(
-            (a, b) => new Date(b.end_date) - new Date(a.end_date),
+          const sortedUnranked = [...unrankedRated].sort(
+            (a, b) =>
+              new Date(b.book_rating_date) - new Date(a.book_rating_date),
           );
           for (let i = 0; i < sortedUnranked.length; i++) {
             const newRank = maxRank + i + 1;

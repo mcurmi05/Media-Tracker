@@ -35,7 +35,15 @@ function Log() {
     window.scrollTo({ top: 0 });
   }, []);
 
-  if (!userLogsLoaded && mediaTypeFilter !== "books") {
+  const needsMovieData =
+    mediaTypeFilter === "all" ||
+    mediaTypeFilter === "moviesAndTV" ||
+    mediaTypeFilter === "movies" ||
+    mediaTypeFilter === "tv";
+  const needsBookData =
+    mediaTypeFilter === "all" || mediaTypeFilter === "books";
+
+  if (needsMovieData && !userLogsLoaded) {
     return (
       <>
         <h1 style={{ alignSelf: "center", marginTop: "-20px" }}>Your Log</h1>
@@ -44,7 +52,7 @@ function Log() {
     );
   }
 
-  if (!bookLogsLoaded && mediaTypeFilter === "books") {
+  if (needsBookData && !bookLogsLoaded) {
     return (
       <>
         <h1 style={{ alignSelf: "center", marginTop: "-20px" }}>Your Log</h1>
@@ -92,76 +100,87 @@ function Log() {
     return new Date(bookLog.created_at);
   };
 
-  // Filter book logs
-  const filteredBookLogs = bookLogs
-    .filter((bookLog) => {
-      // Filter by search term
-      if (searchTerm.trim()) {
-        const title = bookLog.title || "";
-        const author = bookLog.author || "";
-        if (
-          !title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-          !author.toLowerCase().includes(searchTerm.toLowerCase())
-        ) {
-          return false;
-        }
-      }
-      // Filter by rating value
-      if (ratingFilter !== "all") {
-        if (Number(bookLog.book_rating) !== Number(ratingFilter)) return false;
-      }
-      return true;
-    })
-    .sort((a, b) => getMostRecentBookDate(b) - getMostRecentBookDate(a)); // Sort by most recent date (newest first)
+  // Filter book logs (only relevant when books should be shown)
+  const filteredBookLogs = needsBookData
+    ? bookLogs
+        .filter((bookLog) => {
+          if (searchTerm.trim()) {
+            const title = bookLog.title || "";
+            const author = bookLog.author || "";
+            if (
+              !title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+              !author.toLowerCase().includes(searchTerm.toLowerCase())
+            ) {
+              return false;
+            }
+          }
+          if (ratingFilter !== "all") {
+            if (Number(bookLog.book_rating) !== Number(ratingFilter))
+              return false;
+          }
+          return true;
+        })
+        .sort((a, b) => getMostRecentBookDate(b) - getMostRecentBookDate(a))
+    : [];
 
-  // Debug logging
-  console.log("Log page state:", {
-    mediaTypeFilter,
-    bookLogs: bookLogs.length,
-    filteredBookLogs: filteredBookLogs.length,
-    bookLogsLoaded,
-    searchTerm,
-    ratingFilter,
-  });
+  const filteredLogs = needsMovieData
+    ? userLogs
+        .filter((log) => {
+          const type = (log.movie_object?.type || "").toLowerCase();
+          const titleType = (log.movie_object?.titleType || "").toLowerCase();
+          const isTV =
+            type.includes("tv") ||
+            titleType.includes("tv") ||
+            log.movie_object?.episodes;
+          if (mediaTypeFilter === "movies" && isTV) return false;
+          if (mediaTypeFilter === "tv" && !isTV) return false;
+          // "all" and "moviesAndTV" include both movies and TV
+          if (searchTerm.trim()) {
+            const title = log.movie_object?.primaryTitle || "";
+            if (!title.toLowerCase().includes(searchTerm.toLowerCase()))
+              return false;
+          }
+          if (ratingFilter !== "all") {
+            let ratingValue = null;
+            if (log.movie_object && log.movie_object.id) {
+              const found = userRatings.find(
+                (r) => r.imdb_movie_id === log.movie_object.id,
+              );
+              if (found) ratingValue = found.rating;
+            }
+            if (ratingValue === null) return false;
+            if (Number(ratingValue) !== Number(ratingFilter)) return false;
+          }
+          return true;
+        })
+        .sort((a, b) => getMostRecentDate(b) - getMostRecentDate(a))
+    : [];
 
-  const filteredLogs = userLogs
-    .filter((log) => {
-      // Filter by media type
-      if (mediaTypeFilter !== "all") {
-        // Don't show movie/TV logs when books filter is selected
-        if (mediaTypeFilter === "books") return false;
+  // Combined sorted list for "All" view (movies, TV, books interleaved by date)
+  const combinedAllItems =
+    mediaTypeFilter === "all"
+      ? [
+          ...filteredLogs.map((log) => ({
+            kind: "log",
+            id: `log-${log.id}`,
+            data: log,
+            date: getMostRecentDate(log),
+          })),
+          ...filteredBookLogs.map((bookLog) => ({
+            kind: "book",
+            id: `book-${bookLog.id}`,
+            data: bookLog,
+            date: getMostRecentBookDate(bookLog),
+          })),
+        ].sort((a, b) => b.date - a.date)
+      : null;
 
-        const type = (log.movie_object?.type || "").toLowerCase();
-        const titleType = (log.movie_object?.titleType || "").toLowerCase();
-        const isTV =
-          type.includes("tv") ||
-          titleType.includes("tv") ||
-          log.movie_object?.episodes;
-        if (mediaTypeFilter === "movies" && isTV) return false;
-        if (mediaTypeFilter === "tv" && !isTV) return false;
-      }
-      // Filter by search term
-      if (searchTerm.trim()) {
-        const title = log.movie_object?.primaryTitle || "";
-        if (!title.toLowerCase().includes(searchTerm.toLowerCase()))
-          return false;
-      }
-      // Filter by rating value (if present)
-      if (ratingFilter !== "all") {
-        // Find rating from userRatings context
-        let ratingValue = null;
-        if (log.movie_object && log.movie_object.id) {
-          const found = userRatings.find(
-            (r) => r.imdb_movie_id === log.movie_object.id,
-          );
-          if (found) ratingValue = found.rating;
-        }
-        if (ratingValue === null) return false;
-        if (Number(ratingValue) !== Number(ratingFilter)) return false;
-      }
-      return true;
-    })
-    .sort((a, b) => getMostRecentDate(b) - getMostRecentDate(a)); // Sort by most recent date (newest first)
+  const displayCount =
+    mediaTypeFilter === "all"
+      ? combinedAllItems.length
+      : mediaTypeFilter === "books"
+        ? filteredBookLogs.length
+        : filteredLogs.length;
 
   return (
     <div
@@ -248,7 +267,8 @@ function Log() {
             margin: "6px",
           }}
         >
-          <option value="all">Movies & TV</option>
+          <option value="all">All</option>
+          <option value="moviesAndTV">Movies & TV</option>
           <option value="movies">Movies</option>
           <option value="tv">TV</option>
           <option value="books">Books</option>
@@ -279,28 +299,27 @@ function Log() {
             </option>
           ))}
         </select>
-        {mediaTypeFilter === "books" && (
+        {(mediaTypeFilter === "books" || mediaTypeFilter === "all") && (
           <button
             onClick={() => setShowAddBookLog(true)}
             style={{
               background: "none",
               border: "none",
-              color: "#4CAF50",
-              fontSize: "24px",
-              fontWeight: "bold",
               cursor: "pointer",
               margin: "6px",
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: "4px",
-              borderRadius: "4px",
-              transition: "background-color 0.2s",
-              transform: "translateY(-3px)",
+              padding: 0,
+              outline: "none",
             }}
             title="Add Book Log"
           >
-            +
+            <img
+              src="/addbookicon.png"
+              alt="Add Book Log"
+              style={{ width: 22, height: 22 }}
+            />
           </button>
         )}
         <button
@@ -338,12 +357,62 @@ function Log() {
             margin: "6px",
           }}
         >
-          {mediaTypeFilter === "books"
-            ? filteredBookLogs.length
-            : filteredLogs.length}
+          {displayCount}
         </span>
       </div>
-      {mediaTypeFilter === "books" ? (
+      {mediaTypeFilter === "all" ? (
+        // Combined view: movies, TV, and books interleaved by date
+        <>
+          {combinedAllItems.length === 0 && (
+            <div style={{ textAlign: "center" }}>
+              No logs match your applied filters
+            </div>
+          )}
+          <div
+            style={{
+              width: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            {combinedAllItems.map((item) =>
+              item.kind === "log" ? (
+                <div
+                  key={item.id}
+                  style={{
+                    marginBottom: "1rem",
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <LogComponent
+                    log_id={item.data.id}
+                    created_at={item.data.created_at}
+                    movie={item.data.movie_object}
+                    logtext={item.data.log}
+                  />
+                </div>
+              ) : (
+                <div
+                  key={item.id}
+                  style={{
+                    marginBottom: "1rem",
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <BookLogCard bookLog={item.data} />
+                </div>
+              ),
+            )}
+          </div>
+        </>
+      ) : mediaTypeFilter === "books" ? (
         // Book logs section
         <>
           {filteredBookLogs.length === 0 && (

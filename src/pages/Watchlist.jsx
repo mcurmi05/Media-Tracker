@@ -142,8 +142,12 @@ function Watchlist() {
           }}
           style={{
             height: "32px",
+            boxSizing: "border-box",
             padding: "0 12px",
-            border: "1px solid " + (newSeasonFilter ? "#e50914" : "#cccccc"),
+            border:
+              (newSeasonFilter ? "2px" : "1px") +
+              " solid " +
+              (newSeasonFilter ? "#ffffff" : "#cccccc"),
             borderRadius: "6px",
             backgroundColor: newSeasonFilter ? "#e50914" : "#3b3b3b",
             color: "#ffffff",

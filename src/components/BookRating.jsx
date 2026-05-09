@@ -46,20 +46,14 @@ function BookRating({
     }
   };
 
-  const ratingDate =
-    bookLog.end_date || bookLog.start_date || bookLog.created_at;
-  const formattedDate = ratingDate
-    ? new Date(ratingDate).toLocaleDateString("en-US", {
+  const formattedDate = bookLog.book_rating_date
+    ? new Date(bookLog.book_rating_date).toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
         day: "numeric",
       })
     : "";
-  const dateLabel = bookLog.end_date
-    ? "Read"
-    : bookLog.start_date
-      ? "Started"
-      : "Added";
+  const dateLabel = "Rated";
 
   return (
     <div className="container">

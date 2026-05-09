@@ -42,6 +42,16 @@ function Ratings() {
     }
   }, [rankModeType]);
 
+  const handleRatingFilterChange = (newValue) => {
+    setRatingFilter(newValue);
+    if (
+      (rankModeType === "movies" || rankModeType === "tv") &&
+      newValue !== "10"
+    ) {
+      setRankModeType("none");
+    }
+  };
+
   // Avoid early return before hooks; we'll render a loading state in JSX
 
   // Helper to determine if an item is a TV show
@@ -55,18 +65,24 @@ function Ratings() {
     );
   };
 
+  const includeMoviesTV =
+    mediaTypeFilter === "all" ||
+    mediaTypeFilter === "moviesAndTV" ||
+    mediaTypeFilter === "movies" ||
+    mediaTypeFilter === "tv";
+  const includeBooks =
+    mediaTypeFilter === "all" || mediaTypeFilter === "books";
+
   const filteredRatings = userRatings.filter((rating) => {
-    // Filter by media type (movie/tv)
-    if (mediaTypeFilter !== "all") {
-      const type = (rating.movie_object?.type || "").toLowerCase();
-      const titleType = (rating.movie_object?.titleType || "").toLowerCase();
-      const isTV =
-        type.includes("tv") ||
-        titleType.includes("tv") ||
-        rating.movie_object?.episodes;
-      if (mediaTypeFilter === "movies" && isTV) return false;
-      if (mediaTypeFilter === "tv" && !isTV) return false;
-    }
+    if (!includeMoviesTV) return false;
+    const type = (rating.movie_object?.type || "").toLowerCase();
+    const titleType = (rating.movie_object?.titleType || "").toLowerCase();
+    const isTV =
+      type.includes("tv") ||
+      titleType.includes("tv") ||
+      rating.movie_object?.episodes;
+    if (mediaTypeFilter === "movies" && isTV) return false;
+    if (mediaTypeFilter === "tv" && !isTV) return false;
     // Filter by search term
     if (searchTerm.trim()) {
       const title = rating.movie_object?.primaryTitle || "";
@@ -112,6 +128,7 @@ function Ratings() {
 
   // Books: only those with a non-null rating
   const filteredBooks = useMemo(() => {
+    if (!includeBooks) return [];
     return bookLogs.filter((bookLog) => {
       if (!bookLog.book_rating || Number(bookLog.book_rating) === 0)
         return false;
@@ -126,10 +143,9 @@ function Ratings() {
       }
       return true;
     });
-  }, [bookLogs, searchTerm, ratingFilter]);
+  }, [bookLogs, searchTerm, ratingFilter, includeBooks]);
 
-  const bookSortDate = (b) =>
-    new Date(b.end_date || b.start_date || b.created_at);
+  const bookSortDate = (b) => new Date(b.book_rating_date);
 
   const bookRankSort = useCallback((a, b) => {
     const ra = a.ranking ?? Number.MAX_SAFE_INTEGER;
@@ -140,9 +156,7 @@ function Ratings() {
 
   const sortedBooks = useMemo(() => {
     if (rankModeType === "books") {
-      return filteredBooks
-        .filter((b) => b.end_date != null)
-        .sort(bookRankSort);
+      return filteredBooks.slice().sort(bookRankSort);
     }
     return filteredBooks
       .slice()
@@ -198,9 +212,11 @@ function Ratings() {
     }
   };
 
-  // Rank reorder operates on finished books only (the ones visible in Rank Books).
+  // Rank reorder operates on rated books only (the ones visible in Rank Books).
   const finishedSortedForRank = () =>
-    bookLogs.filter((b) => b.end_date != null).sort(bookRankSort);
+    bookLogs
+      .filter((b) => b.book_rating != null && Number(b.book_rating) > 0)
+      .sort(bookRankSort);
 
   const handleBookMove = async (bookId, direction) => {
     const sorted = finishedSortedForRank();
@@ -234,8 +250,36 @@ function Ratings() {
   };
 
   const isBooksView = mediaTypeFilter === "books";
-  const displayCount = isBooksView ? sortedBooks.length : sortedRatings.length;
-  const isLoading = isBooksView ? !bookLogsLoaded : !userRatingsLoaded;
+  const isAllView = mediaTypeFilter === "all";
+
+  // Combined list for "All" view: ratings (movies + TV) and books interleaved by date
+  const combinedAll = useMemo(() => {
+    if (!isAllView) return null;
+    const ratingItems = sortedRatings.map((r) => ({
+      kind: "rating",
+      id: `rating-${r.id || r.imdb_movie_id}`,
+      data: r,
+      date: new Date(r.created_at),
+    }));
+    const bookItems = sortedBooks.map((b) => ({
+      kind: "book",
+      id: `book-${b.id}`,
+      data: b,
+      date: bookSortDate(b),
+    }));
+    return [...ratingItems, ...bookItems].sort((a, b) => b.date - a.date);
+  }, [isAllView, sortedRatings, sortedBooks]);
+
+  const displayCount = isAllView
+    ? combinedAll.length
+    : isBooksView
+      ? sortedBooks.length
+      : sortedRatings.length;
+  const isLoading = isAllView
+    ? !userRatingsLoaded || !bookLogsLoaded
+    : isBooksView
+      ? !bookLogsLoaded
+      : !userRatingsLoaded;
 
   return (
     <div
@@ -321,14 +365,15 @@ function Ratings() {
             margin: "6px",
           }}
         >
-          <option value="all">Movies & TV</option>
+          <option value="all">All</option>
+          <option value="moviesAndTV">Movies & TV</option>
           <option value="movies">Movies</option>
           <option value="tv">TV</option>
           <option value="books">Books</option>
         </select>
         <select
           value={ratingFilter}
-          onChange={(e) => setRatingFilter(e.target.value)}
+          onChange={(e) => handleRatingFilterChange(e.target.value)}
           style={{
             height: "32px",
             padding: "0 10px",
@@ -353,79 +398,40 @@ function Ratings() {
         </select>
 
         {/* Rank mode toggles */}
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            backgroundColor: "#3b3b3b",
-            color: "#ffffff",
-            padding: "6px 10px",
-            border: "1px solid #cccccc",
-            borderRadius: "6px",
-            margin: "6px",
-            fontSize: "0.85rem",
-            userSelect: "none",
-            cursor: "pointer",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={rankModeType === "movies"}
-            onChange={(e) =>
-              setRankModeType(e.target.checked ? "movies" : "none")
-            }
-          />
-          Rank 10s Movies
-        </label>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            backgroundColor: "#3b3b3b",
-            color: "#ffffff",
-            padding: "6px 10px",
-            border: "1px solid #cccccc",
-            borderRadius: "6px",
-            margin: "6px",
-            fontSize: "0.85rem",
-            userSelect: "none",
-            cursor: "pointer",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={rankModeType === "tv"}
-            onChange={(e) => setRankModeType(e.target.checked ? "tv" : "none")}
-          />
-          Rank 10s TV
-        </label>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            backgroundColor: "#3b3b3b",
-            color: "#ffffff",
-            padding: "6px 10px",
-            border: "1px solid #cccccc",
-            borderRadius: "6px",
-            margin: "6px",
-            fontSize: "0.85rem",
-            userSelect: "none",
-            cursor: "pointer",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={rankModeType === "books"}
-            onChange={(e) =>
-              setRankModeType(e.target.checked ? "books" : "none")
-            }
-          />
-          Rank Books
-        </label>
+        {[
+          { value: "movies", label: "Rank 10s Movies" },
+          { value: "tv", label: "Rank 10s TV" },
+          { value: "books", label: "Rank Books" },
+        ].map(({ value, label }) => {
+          const active = rankModeType === value;
+          return (
+            <button
+              key={value}
+              onClick={() => setRankModeType(active ? "none" : value)}
+              style={{
+                height: "32px",
+                boxSizing: "border-box",
+                padding: "0 12px",
+                border:
+                  (active ? "2px" : "1px") +
+                  " solid " +
+                  (active ? "#ffffff" : "#cccccc"),
+                borderRadius: "6px",
+                backgroundColor: active ? "#e50914" : "#3b3b3b",
+                color: "#ffffff",
+                fontSize: "0.8rem",
+                fontWeight: "bold",
+                cursor: "pointer",
+                margin: "6px",
+                whiteSpace: "nowrap",
+                transition: "background 0.2s, border-color 0.2s",
+                outline: "none",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
         <button
           onClick={goToLog}
           title="View log with these filters"
@@ -468,9 +474,11 @@ function Ratings() {
         <div style={{ textAlign: "center" }}>Loading...</div>
       ) : displayCount === 0 ? (
         <div style={{ textAlign: "center" }}>
-          {isBooksView
-            ? `No rated books found${searchTerm ? ` for "${searchTerm}"` : ""}!`
-            : `No ratings found for "${searchTerm}"!`}
+          {isAllView
+            ? `No ratings found${searchTerm ? ` for "${searchTerm}"` : ""}!`
+            : isBooksView
+              ? `No rated books found${searchTerm ? ` for "${searchTerm}"` : ""}!`
+              : `No ratings found for "${searchTerm}"!`}
         </div>
       ) : null}
       <div
@@ -481,7 +489,52 @@ function Ratings() {
           alignItems: "center",
         }}
       >
-        {isBooksView
+        {isAllView
+          ? combinedAll.map((item) =>
+              item.kind === "rating" ? (
+                <div
+                  key={item.id}
+                  style={{
+                    marginBottom: "1rem",
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <div className="div-wrapper-rating-testing">
+                    <Rating
+                      movie_object={item.data.movie_object}
+                      ratingDate={item.data.created_at}
+                      rankNumber={
+                        Number(item.data.rating) === 10
+                          ? item.data.ranking
+                          : null
+                      }
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div
+                  key={item.id}
+                  style={{
+                    marginBottom: "1rem",
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <div className="div-wrapper-rating-testing">
+                    <BookRating
+                      bookLog={item.data}
+                      rankNumber={item.data.ranking || null}
+                    />
+                  </div>
+                </div>
+              ),
+            )
+          : isBooksView
           ? sortedBooks.map((bookLog) => (
               <div
                 key={bookLog.id}
