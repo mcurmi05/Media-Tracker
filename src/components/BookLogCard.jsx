@@ -423,28 +423,20 @@ const BookLogCard = ({ bookLog }) => {
                   dateColor="#ffffff"
                   minWidth="120px"
                 />
-                <button
-                  onClick={handleMarkUnread}
-                  disabled={buttonSaving}
+                <img
+                  src="/logdelete.png"
+                  alt="Mark as unread"
                   title="Mark as unread"
+                  onClick={buttonSaving ? undefined : handleMarkUnread}
                   style={{
-                    marginLeft: "6px",
-                    marginTop: "3px",
-                    background: "none",
-                    border: "none",
-                    color: "#ff4444",
-                    fontSize: "14px",
-                    cursor: "pointer",
-                    padding: "2px 4px",
-                    borderRadius: "2px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    width: 12,
+                    height: 12,
+                    marginLeft: "11px",
+                    marginTop: "4px",
+                    cursor: buttonSaving ? "default" : "pointer",
                     transform: "translateY(-2px)",
                   }}
-                >
-                  ×
-                </button>
+                />
               </div>
             ) : (
               <button
