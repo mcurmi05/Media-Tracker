@@ -2,16 +2,30 @@ import "../styles/AddLog.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
-import { isSameBook } from "../contexts/UserBookTbrContext.jsx";
+import { findOrCreateBookEntry } from "../services/ratingsfromtable.js";
+import { getBookInfo } from "../utils/bookInfo.js";
 
 export default function AddBookLogButton({ book }) {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { bookLogs, createBookLog } = useBookLogs();
 
-  const alreadyLogged = bookLogs.some(
-    (log) => log.user_id === user?.id && isSameBook(log, book),
-  );
+  // Match by book_id when available; otherwise fall back to title+author/goodreads_link.
+  const knownBookId =
+    book?.book_id || book?.book_entries?.id || (book?.id && book?.title && !book?.user_id ? book.id : null);
+  const alreadyLogged = bookLogs.some((log) => {
+    if (log.user_id !== user?.id) return false;
+    if (knownBookId && log.book_id === knownBookId) return true;
+    const a = getBookInfo(log);
+    const b = getBookInfo(book);
+    const link = (a.goodreads_link || "").trim();
+    const bLink = (b.goodreads_link || "").trim();
+    if (link && bLink) return link === bLink;
+    return (
+      a.title.trim().toLowerCase() === b.title.trim().toLowerCase() &&
+      a.author.trim().toLowerCase() === b.author.trim().toLowerCase()
+    );
+  });
 
   async function onClick() {
     if (!isAuthenticated) {
@@ -19,16 +33,14 @@ export default function AddBookLogButton({ book }) {
       return;
     }
     try {
+      let bookId = knownBookId;
+      if (!bookId) {
+        const entry = await findOrCreateBookEntry(getBookInfo(book));
+        bookId = entry?.id;
+      }
       const payload = {
         user_id: user.id,
-        title: book.title || "",
-        author: book.author || "",
-        cover_image: book.cover_image || null,
-        release_year: book.release_year
-          ? Number(book.release_year) || null
-          : null,
-        goodreads_link: book.goodreads_link || null,
-        book_rating: book.book_rating ?? null,
+        book_id: bookId,
       };
       await createBookLog(payload);
       navigate("/log");

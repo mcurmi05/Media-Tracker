@@ -53,6 +53,17 @@ export const UserBookLogsProvider = ({ children }) => {
     }
   };
 
+  const syncBookEntry = (bookId, updatedEntry) => {
+    if (!bookId) return;
+    setBookLogs((prev) =>
+      prev.map((log) =>
+        log.book_id === bookId
+          ? { ...log, book_entries: { ...(log.book_entries || {}), ...updatedEntry } }
+          : log,
+      ),
+    );
+  };
+
   const deleteBookLog = async (logId) => {
     try {
       await deleteBookLogService(logId);
@@ -97,6 +108,7 @@ export const UserBookLogsProvider = ({ children }) => {
         updateBookLog,
         createBookLog,
         deleteBookLog,
+        syncBookEntry,
       }}
     >
       {children}

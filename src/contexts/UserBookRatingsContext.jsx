@@ -10,12 +10,10 @@ import {
   createBookRating as createBookRatingService,
   updateBookRating as updateBookRatingService,
   deleteBookRating as deleteBookRatingService,
-  updateBookLog as updateBookLogService,
-  updateBookTbr as updateBookTbrService,
+  findOrCreateBookEntry,
 } from "../services/ratingsfromtable.js";
 import { useAuth } from "./AuthContext.jsx";
-import { useBookLogs } from "./UserBookLogsContext.jsx";
-import { useBookTbr, isSameBook } from "./UserBookTbrContext.jsx";
+import { isSameBook } from "./UserBookTbrContext.jsx";
 
 /* eslint-disable react-refresh/only-export-components */
 
@@ -35,56 +33,42 @@ export const UserBookRatingsProvider = ({ children }) => {
   const [bookRatings, setBookRatings] = useState([]);
   const [bookRatingsLoaded, setBookRatingsLoaded] = useState(false);
   const { user } = useAuth();
-  const { bookLogs, setBookLogs } = useBookLogs();
-  const { userBookTbr, updateBookTbrEntry } = useBookTbr();
   const hasFetched = useRef(false);
 
-  const findRatingForBook = (book) =>
-    bookRatings.find(
-      (r) => r.user_id === user?.id && isSameBook(r, book),
-    );
-
-  // Sync the denormalized book_rating column on matching book_logs / book_tbr rows.
-  const syncDenormalized = async (book, newRating) => {
-    const matchingLog = bookLogs.find(
-      (l) => l.user_id === user?.id && isSameBook(l, book),
-    );
-    if (matchingLog && matchingLog.book_rating !== newRating) {
-      try {
-        await updateBookLogService(matchingLog.id, {
-          book_rating: newRating,
-        });
-        if (setBookLogs) {
-          setBookLogs((prev) =>
-            prev.map((l) =>
-              l.id === matchingLog.id ? { ...l, book_rating: newRating } : l,
-            ),
-          );
-        }
-      } catch (err) {
-        console.error("Error syncing book_logs.book_rating:", err);
-      }
-    }
-
-    const matchingTbr = userBookTbr.find(
-      (t) => t.user_id === user?.id && isSameBook(t, book),
-    );
-    if (matchingTbr && matchingTbr.book_rating !== newRating) {
-      try {
-        await updateBookTbrService(matchingTbr.id, {
-          book_rating: newRating,
-        });
-        updateBookTbrEntry(matchingTbr.id, { book_rating: newRating });
-      } catch (err) {
-        console.error("Error syncing book_tbr.book_rating:", err);
-      }
-    }
+  // Resolve a "book" argument (which can be a row from any table or loose form data)
+  // into a book_entries id. Find-or-create the entry when only loose data is provided.
+  const resolveBookId = async (book) => {
+    if (!book) return null;
+    if (book.book_id) return book.book_id;
+    // book_entries row passed directly?
+    if (book.id && !book.user_id && book.title) return book.id;
+    const source = book.book_entries || book;
+    const entry = await findOrCreateBookEntry(source);
+    return entry?.id || null;
   };
+
+  // Try book_id first (post-migration), otherwise fall back to title/author/
+  // goodreads_link matching (handles legacy rows without book_id, or rows
+  // created separately that haven't been linked yet).
+  const matchesBook = (row, book) => {
+    if (!row || !book) return false;
+    const rId = row.book_id || row.book_entries?.id;
+    const bId =
+      book.book_id ||
+      book.book_entries?.id ||
+      (book.id && !book.user_id && book.title ? book.id : null);
+    if (rId && bId && rId === bId) return true;
+    return isSameBook(row.book_entries || row, book.book_entries || book);
+  };
+
+  const findRatingForBook = (book) =>
+    bookRatings.find((r) => r.user_id === user?.id && matchesBook(r, book));
 
   const rateBook = async (book, newRating) => {
     if (!user) return;
     const isClear = newRating == null || Number(newRating) === 0;
     const existing = findRatingForBook(book);
+    const bookId = existing?.book_id || (await resolveBookId(book));
 
     if (isClear) {
       if (existing) {
@@ -95,7 +79,6 @@ export const UserBookRatingsProvider = ({ children }) => {
           console.error("Error deleting book rating:", err);
         }
       }
-      await syncDenormalized(book, null);
       return;
     }
 
@@ -121,14 +104,8 @@ export const UserBookRatingsProvider = ({ children }) => {
       try {
         const newRow = await createBookRatingService({
           user_id: user.id,
+          book_id: bookId,
           book_rating: newRating,
-          title: book.title || "",
-          author: book.author || "",
-          cover_image: book.cover_image || null,
-          release_year: book.release_year
-            ? Number(book.release_year) || null
-            : null,
-          goodreads_link: book.goodreads_link || null,
           ranking: maxRanking + 1,
         });
         setBookRatings((prev) => [newRow, ...prev]);
@@ -136,8 +113,17 @@ export const UserBookRatingsProvider = ({ children }) => {
         console.error("Error creating book rating:", err);
       }
     }
+  };
 
-    await syncDenormalized(book, newRating);
+  const syncBookEntry = (bookId, updatedEntry) => {
+    if (!bookId) return;
+    setBookRatings((prev) =>
+      prev.map((r) =>
+        r.book_id === bookId
+          ? { ...r, book_entries: { ...(r.book_entries || {}), ...updatedEntry } }
+          : r,
+      ),
+    );
   };
 
   const updateBookRankingValue = async (ratingId, newRanking) => {
@@ -211,6 +197,7 @@ export const UserBookRatingsProvider = ({ children }) => {
         rateBook,
         findRatingForBook,
         updateBookRanking: updateBookRankingValue,
+        syncBookEntry,
       }}
     >
       {children}

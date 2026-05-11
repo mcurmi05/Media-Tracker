@@ -1,31 +1,103 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "../styles/AddLog.css";
+import { updateBookEntry } from "../services/ratingsfromtable.js";
+import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
+import { useBookTbr } from "../contexts/UserBookTbrContext.jsx";
+import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
+import { getBookInfo } from "../utils/bookInfo.js";
 
-const EditBookInfoModal = ({ isOpen, onClose, bookLog, onSave }) => {
-  const [formData, setFormData] = useState({
-    title: bookLog?.title || "",
-    author: bookLog?.author || "",
-    cover_image: bookLog?.cover_image || "",
-    release_year: bookLog?.release_year || "",
-    goodreads_link: bookLog?.goodreads_link || "",
+const EditBookInfoModal = ({ isOpen, onClose, row }) => {
+  const { syncBookEntry: syncLogs } = useBookLogs();
+  const { syncBookEntry: syncTbr } = useBookTbr();
+  const { syncBookEntry: syncRatings } = useBookRatings();
+
+  const book = getBookInfo(row);
+
+  const buildInitial = () => ({
+    title: book.title || "",
+    author: book.author || "",
+    cover_image: book.cover_image || "",
+    release_year: book.release_year || "",
+    goodreads_link: book.goodreads_link || "",
   });
 
+  const [formData, setFormData] = useState(buildInitial());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(buildInitial());
+      setFetchError("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, row]);
+
+  const handleRefetchGoodreads = async () => {
+    const link = (formData.goodreads_link || "").trim();
+    if (!link) {
+      setFetchError("Add a Goodreads link first.");
+      return;
+    }
+    setFetchError("");
+    setIsFetching(true);
+    try {
+      const response = await fetch(
+        `/api/goodreads?url=${encodeURIComponent(link)}`,
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || `Request failed (${response.status})`);
+      }
+      setFormData((prev) => ({
+        ...prev,
+        title: data.title || prev.title,
+        author: data.author || prev.author,
+        cover_image: data.cover_image || prev.cover_image,
+        release_year:
+          data.release_year != null
+            ? String(data.release_year)
+            : prev.release_year,
+      }));
+    } catch (err) {
+      setFetchError(err.message || "Failed to fetch from Goodreads.");
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  const bookEntryId = row?.book_entries?.id || row?.book_id || null;
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!bookLog) return;
-
+    if (!bookEntryId) {
+      alert(
+        "Cannot edit: this row is not yet linked to a book_entries record. Backfill book_id first.",
+      );
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await onSave(bookLog.id, formData);
+      const updates = {
+        title: (formData.title || "").trim(),
+        author: (formData.author || "").trim(),
+        cover_image: formData.cover_image || null,
+        release_year: formData.release_year
+          ? Number(formData.release_year) || null
+          : null,
+        goodreads_link: formData.goodreads_link || null,
+      };
+      const updated = await updateBookEntry(bookEntryId, updates);
+      const merged = updated || { id: bookEntryId, ...updates };
+      // Propagate to every context so the change is reflected everywhere.
+      syncLogs(bookEntryId, merged);
+      syncTbr(bookEntryId, merged);
+      syncRatings(bookEntryId, merged);
       onClose();
     } catch (error) {
       console.error("Error updating book info:", error);
@@ -36,14 +108,7 @@ const EditBookInfoModal = ({ isOpen, onClose, bookLog, onSave }) => {
   };
 
   const handleClose = () => {
-    // Reset form to original values when closing
-    setFormData({
-      title: bookLog?.title || "",
-      author: bookLog?.author || "",
-      cover_image: bookLog?.cover_image || "",
-      release_year: bookLog?.release_year || "",
-      goodreads_link: bookLog?.goodreads_link || "",
-    });
+    setFormData(buildInitial());
     onClose();
   };
 
@@ -114,10 +179,24 @@ const EditBookInfoModal = ({ isOpen, onClose, bookLog, onSave }) => {
               id="edit-goodreads_link"
               type="url"
               value={formData.goodreads_link}
-              onChange={(e) => handleInputChange("goodreads_link", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("goodreads_link", e.target.value)
+              }
               placeholder="https://www.goodreads.com/book/show/..."
             />
           </div>
+
+          <div className="goodreads-actions" style={{ marginBottom: 4 }}>
+            <button
+              type="button"
+              className="fetch-btn"
+              onClick={handleRefetchGoodreads}
+              disabled={isFetching || !formData.goodreads_link.trim()}
+            >
+              {isFetching ? "Fetching..." : "Refetch from Goodreads"}
+            </button>
+          </div>
+          {fetchError && <p className="fetch-error">{fetchError}</p>}
 
           <div className="modal-actions">
             <button type="button" onClick={handleClose} disabled={isSubmitting}>

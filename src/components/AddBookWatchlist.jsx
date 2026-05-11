@@ -1,23 +1,29 @@
 import "../styles/AddLog.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import {
-  useBookTbr,
-  isSameBook,
-} from "../contexts/UserBookTbrContext.jsx";
+import { useBookTbr, isSameBook } from "../contexts/UserBookTbrContext.jsx";
 import {
   createBookTbr,
   deleteBookTbr,
+  findOrCreateBookEntry,
 } from "../services/ratingsfromtable.js";
+import { getBookInfo } from "../utils/bookInfo.js";
 
 export default function AddBookWatchlist({ book }) {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { userBookTbr, addBookTbr, removeBookTbr } = useBookTbr();
 
-  const existing = userBookTbr.find(
-    (item) => item.user_id === user?.id && isSameBook(item, book),
-  );
+  const knownBookId =
+    book?.book_id ||
+    book?.book_entries?.id ||
+    (book?.id && book?.title && !book?.user_id ? book.id : null);
+
+  const existing = userBookTbr.find((item) => {
+    if (item.user_id !== user?.id) return false;
+    if (knownBookId && item.book_id === knownBookId) return true;
+    return isSameBook(getBookInfo(item), getBookInfo(book));
+  });
   const onWatchlist = !!existing;
 
   async function onClick() {
@@ -27,26 +33,32 @@ export default function AddBookWatchlist({ book }) {
     }
 
     if (!onWatchlist) {
+      let bookId = knownBookId;
+      let entry = book?.book_entries || null;
+      if (!bookId) {
+        try {
+          entry = await findOrCreateBookEntry(getBookInfo(book));
+          bookId = entry?.id;
+        } catch (err) {
+          console.error("AddBookWatchlist findOrCreate failed:", err);
+          return;
+        }
+      }
+
       const tempId = `temp-${Date.now()}-${Math.random()}`;
       const tempEntry = {
         id: tempId,
         user_id: user.id,
-        title: book.title || "",
-        author: book.author || "",
-        cover_image: book.cover_image || null,
-        release_year: book.release_year
-          ? Number(book.release_year) || null
-          : null,
-        goodreads_link: book.goodreads_link || null,
-        book_rating: book.book_rating ?? null,
+        book_id: bookId,
         created_at: new Date().toISOString(),
+        book_entries: entry,
       };
       addBookTbr(tempEntry);
       try {
-        const payload = { ...tempEntry };
-        delete payload.id;
-        delete payload.created_at;
-        const newEntry = await createBookTbr(payload);
+        const newEntry = await createBookTbr({
+          user_id: user.id,
+          book_id: bookId,
+        });
         removeBookTbr(tempId);
         addBookTbr(newEntry);
       } catch (err) {

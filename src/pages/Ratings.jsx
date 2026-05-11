@@ -5,6 +5,7 @@ import BookRating from "../components/BookRating.jsx";
 import AddBookLog from "../components/AddBookLog.jsx";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { getBookInfo } from "../utils/bookInfo.js";
 
 function Ratings() {
   const { userRatings, userRatingsLoaded, updateRanking } = useRatings();
@@ -145,8 +146,9 @@ function Ratings() {
     if (!includeBooks) return [];
     return bookRatings.filter((bookRating) => {
       if (searchTerm.trim()) {
-        const title = (bookRating.title || "").toLowerCase();
-        const author = (bookRating.author || "").toLowerCase();
+        const info = getBookInfo(bookRating);
+        const title = (info.title || "").toLowerCase();
+        const author = (info.author || "").toLowerCase();
         const search = searchTerm.toLowerCase();
         if (!title.includes(search) && !author.includes(search)) return false;
       }

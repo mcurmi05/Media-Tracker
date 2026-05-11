@@ -3,15 +3,18 @@ import { useRatings } from "../contexts/UserRatingsContext.jsx";
 import "../styles/Log.css";
 import { useLogs } from "../contexts/UserLogsContext.jsx";
 import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
+import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
 import AddBookLog from "../components/AddBookLog.jsx";
 import BookLogCard from "../components/BookLogCard.jsx";
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { getBookInfo } from "../utils/bookInfo.js";
 //
 function Log() {
   const { userLogs, userLogsLoaded } = useLogs();
   const { bookLogs, bookLogsLoaded } = useBookLogs();
   const { userRatings } = useRatings();
+  const { findRatingForBook } = useBookRatings();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState(
@@ -111,8 +114,9 @@ function Log() {
     ? bookLogs
         .filter((bookLog) => {
           if (searchTerm.trim()) {
-            const title = bookLog.title || "";
-            const author = bookLog.author || "";
+            const info = getBookInfo(bookLog);
+            const title = info.title || "";
+            const author = info.author || "";
             if (
               !title.toLowerCase().includes(searchTerm.toLowerCase()) &&
               !author.toLowerCase().includes(searchTerm.toLowerCase())
@@ -121,8 +125,9 @@ function Log() {
             }
           }
           if (ratingFilter !== "all") {
-            if (Number(bookLog.book_rating) !== Number(ratingFilter))
-              return false;
+            const rating = findRatingForBook(bookLog)?.book_rating ?? null;
+            if (rating == null) return false;
+            if (Number(rating) !== Number(ratingFilter)) return false;
           }
           return true;
         })

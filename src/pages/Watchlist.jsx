@@ -8,6 +8,7 @@ import { useAuth } from "../contexts/AuthContext.jsx";
 import { useWatchlist } from "../contexts/UserWatchlistContext.jsx";
 import { useBookTbr } from "../contexts/UserBookTbrContext.jsx";
 import { createBookTbr } from "../services/ratingsfromtable.js";
+import { getBookInfo } from "../utils/bookInfo.js";
 
 function Watchlist() {
   const { userWatchlist, userWatchlistLoaded } = useWatchlist();
@@ -16,7 +17,9 @@ function Watchlist() {
   const [showAddBook, setShowAddBook] = useState(false);
 
   const handleCreateBookTbr = async (payload) => {
-    const newEntry = await createBookTbr(payload);
+    // eslint-disable-next-line no-unused-vars
+    const { book_entries: _be, ...insertable } = payload;
+    const newEntry = await createBookTbr(insertable);
     addBookTbr(newEntry);
   };
   const navigate = useNavigate();
@@ -81,8 +84,9 @@ function Watchlist() {
     return userBookTbr.filter((item) => {
       if (!searchTerm.trim()) return true;
       const search = searchTerm.toLowerCase();
-      const title = (item.title || "").toLowerCase();
-      const author = (item.author || "").toLowerCase();
+      const info = getBookInfo(item);
+      const title = (info.title || "").toLowerCase();
+      const author = (info.author || "").toLowerCase();
       return title.includes(search) || author.includes(search);
     });
   }, [userBookTbr, newSeasonFilter, searchTerm, needsBookData]);

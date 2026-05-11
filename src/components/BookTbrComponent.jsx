@@ -11,6 +11,8 @@ import { deleteBookTbr } from "../services/ratingsfromtable.js";
 import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import AddBookLogButton from "./AddBookLogButton.jsx";
 import RatingModal from "./RatingModal.jsx";
+import EditBookInfoModal from "./EditBookInfoModal.jsx";
+import { getBookInfo } from "../utils/bookInfo.js";
 
 const modalStyle = {
   position: "absolute",
@@ -28,10 +30,13 @@ const modalStyle = {
 
 export default function BookTbrComponent({ tbrEntry }) {
   const { removeBookTbr } = useBookTbr();
-  const { rateBook } = useBookRatings();
+  const { rateBook, findRatingForBook } = useBookRatings();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [visible, setVisible] = useState(true);
+  const book = getBookInfo(tbrEntry);
+  const currentRating = findRatingForBook(tbrEntry)?.book_rating ?? 0;
 
   const handleRatingChange = async (newRating) => {
     try {
@@ -63,13 +68,13 @@ export default function BookTbrComponent({ tbrEntry }) {
   if (!visible) return null;
 
   const handleGoodreadsSearch = () => {
-    if (tbrEntry.goodreads_link) {
-      window.open(tbrEntry.goodreads_link, "_blank");
+    if (book.goodreads_link) {
+      window.open(book.goodreads_link, "_blank");
     }
   };
 
   const handleAuthorSearch = () => {
-    const formattedAuthor = (tbrEntry.author || "").replace(/\s+/g, "+");
+    const formattedAuthor = (book.author || "").replace(/\s+/g, "+");
     window.open(
       `https://www.google.com/search?q=${formattedAuthor}+books`,
       "_blank",
@@ -90,7 +95,7 @@ export default function BookTbrComponent({ tbrEntry }) {
         <div className="top-stuff">
           <div className="poster-wrapper">
             <img
-              src={tbrEntry.cover_image || "/placeholderimage.jpg"}
+              src={book.cover_image || "/placeholderimage.jpg"}
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = "/placeholderimage.jpg";
@@ -98,9 +103,9 @@ export default function BookTbrComponent({ tbrEntry }) {
               className="rating-poster"
               onClick={handleGoodreadsSearch}
               style={{
-                cursor: tbrEntry.goodreads_link ? "pointer" : "default",
+                cursor: book.goodreads_link ? "pointer" : "default",
               }}
-              alt={`${tbrEntry.title} cover`}
+              alt={`${book.title} cover`}
             />
           </div>
           <div className="right-stuff" style={{ marginTop: "12px" }}>
@@ -109,15 +114,39 @@ export default function BookTbrComponent({ tbrEntry }) {
                 className="movie-title"
                 onClick={handleGoodreadsSearch}
                 style={{
-                  cursor: tbrEntry.goodreads_link ? "pointer" : "default",
+                  cursor: book.goodreads_link ? "pointer" : "default",
                 }}
               >
-                {tbrEntry.title}{" "}
+                {book.title}{" "}
               </p>
+              <button
+                onClick={() => setShowEditModal(true)}
+                title="Edit book information"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "2px",
+                  marginLeft: "6px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <img
+                  src="/pencil.png"
+                  alt="Edit"
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    filter: "saturate(1.5) brightness(1.3)",
+                  }}
+                />
+              </button>
               <div style={{ display: "flex" }}>
                 <div className="rating-star-div">
                   <span className="user-rating-movie-card">
-                    {!tbrEntry.book_rating || tbrEntry.book_rating === 0 ? (
+                    {!currentRating || currentRating === 0 ? (
                       <>
                         <img
                           className="user-rating-star"
@@ -144,7 +173,7 @@ export default function BookTbrComponent({ tbrEntry }) {
                           onClick={() => setShowRatingModal(true)}
                           style={{ cursor: "pointer" }}
                         >
-                          {tbrEntry.book_rating}
+                          {currentRating}
                         </p>
                       </>
                     )}
@@ -168,9 +197,9 @@ export default function BookTbrComponent({ tbrEntry }) {
                   onClick={handleAuthorSearch}
                   style={{ cursor: "pointer", textDecoration: "underline" }}
                 >
-                  {tbrEntry.author}
+                  {book.author}
                 </span>
-                {tbrEntry.release_year ? ` (${tbrEntry.release_year})` : ""}
+                {book.release_year ? ` (${book.release_year})` : ""}
               </span>
               {formattedDate ? (
                 <span
@@ -197,9 +226,14 @@ export default function BookTbrComponent({ tbrEntry }) {
         onClose={() => setShowRatingModal(false)}
         onRate={handleRatingChange}
         onRemove={handleClearRating}
-        currentRating={tbrEntry.book_rating || 0}
-        movieTitle={tbrEntry.title}
-        isRated={tbrEntry.book_rating && tbrEntry.book_rating > 0}
+        currentRating={currentRating || 0}
+        movieTitle={book.title}
+        isRated={currentRating && currentRating > 0}
+      />
+      <EditBookInfoModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        row={tbrEntry}
       />
       <Modal
         open={showDeleteModal}

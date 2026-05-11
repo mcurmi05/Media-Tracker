@@ -12,6 +12,7 @@ import AddBookLogButton from "./AddBookLogButton.jsx";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import { getBookInfo } from "../utils/bookInfo.js";
 
 const modalStyle = {
   position: "absolute",
@@ -29,7 +30,9 @@ const modalStyle = {
 
 const BookLogCard = ({ bookLog }) => {
   const { deleteBookLog, updateBookLog } = useBookLogs();
-  const { rateBook } = useBookRatings();
+  const { rateBook, findRatingForBook } = useBookRatings();
+  const book = getBookInfo(bookLog);
+  const currentRating = findRatingForBook(bookLog)?.book_rating ?? 0;
 
   // Editable state
   const [text, setText] = useState(bookLog.log || "");
@@ -173,24 +176,14 @@ const BookLogCard = ({ bookLog }) => {
     setShowDeleteModal(false);
   };
 
-  const handleUpdateBookInfo = async (bookLogId, updatedInfo) => {
-    try {
-      await updateBookLog(bookLogId, updatedInfo);
-      console.log("Updated book info successfully");
-    } catch (error) {
-      console.error("Error updating book info:", error);
-      throw error;
-    }
-  };
-
   const handleGoodreadsSearch = () => {
-    if (bookLog.goodreads_link) {
-      window.open(bookLog.goodreads_link, "_blank");
+    if (book.goodreads_link) {
+      window.open(book.goodreads_link, "_blank");
     }
   };
 
   const handleAuthorSearch = () => {
-    const formattedAuthor = bookLog.author.replace(/\s+/g, "+");
+    const formattedAuthor = (book.author || "").replace(/\s+/g, "+");
     const googleAuthorUrl = `https://www.google.com/search?q=${formattedAuthor}+books`;
     window.open(googleAuthorUrl, "_blank");
   };
@@ -216,13 +209,13 @@ const BookLogCard = ({ bookLog }) => {
       <div className="book-log-content">
         <div className="book-info-section" style={{ position: "relative" }}>
           <div className="book-cover-section">
-            {bookLog.cover_image ? (
+            {book.cover_image ? (
               <img
-                src={bookLog.cover_image}
-                alt={`${bookLog.title} cover`}
+                src={book.cover_image}
+                alt={`${book.title} cover`}
                 className="book-cover"
                 onClick={handleGoodreadsSearch}
-                style={{ cursor: bookLog.goodreads_link ? "pointer" : "default" }}
+                style={{ cursor: book.goodreads_link ? "pointer" : "default" }}
                 onError={(e) => {
                   e.target.style.display = "none";
                   e.target.nextSibling.style.display = "flex";
@@ -230,7 +223,7 @@ const BookLogCard = ({ bookLog }) => {
               />
             ) : null}
             <div
-              className={`book-cover-placeholder ${!bookLog.cover_image ? "show" : ""}`}
+              className={`book-cover-placeholder ${!book.cover_image ? "show" : ""}`}
             >
               📚
             </div>
@@ -250,10 +243,10 @@ const BookLogCard = ({ bookLog }) => {
                     <div>
                       <h3
                         className="book-title"
-                        style={{ margin: 0, cursor: bookLog.goodreads_link ? "pointer" : "default" }}
+                        style={{ margin: 0, cursor: book.goodreads_link ? "pointer" : "default" }}
                         onClick={handleGoodreadsSearch}
                       >
-                        {bookLog.title}
+                        {book.title}
                       </h3>
                       <p
                         className="book-author"
@@ -274,10 +267,10 @@ const BookLogCard = ({ bookLog }) => {
                               textDecoration: "underline",
                             }}
                           >
-                            {bookLog.author}
+                            {book.author}
                           </span>
-                          {bookLog.release_year
-                            ? ` (${bookLog.release_year})`
+                          {book.release_year
+                            ? ` (${book.release_year})`
                             : ""}
                         </span>
                         <img
@@ -324,7 +317,7 @@ const BookLogCard = ({ bookLog }) => {
                       className="user-rating-movie-card"
                       style={{ position: "relative", top: "30px" }}
                     >
-                      {!bookLog.book_rating || bookLog.book_rating === 0 ? (
+                      {!currentRating || currentRating === 0 ? (
                         <>
                           <img
                             className="user-rating-star"
@@ -351,7 +344,7 @@ const BookLogCard = ({ bookLog }) => {
                             onClick={() => setShowRatingModal(true)}
                             style={{ cursor: "pointer" }}
                           >
-                            {bookLog.book_rating}
+                            {currentRating}
                           </p>
                         </>
                       )}
@@ -520,16 +513,15 @@ const BookLogCard = ({ bookLog }) => {
         onClose={() => setShowRatingModal(false)}
         onRate={handleRatingChange}
         onRemove={handleClearRating}
-        currentRating={bookLog.book_rating || 0}
-        movieTitle={bookLog.title}
-        isRated={bookLog.book_rating && bookLog.book_rating > 0}
+        currentRating={currentRating || 0}
+        movieTitle={book.title}
+        isRated={currentRating && currentRating > 0}
       />
 
       <EditBookInfoModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
-        bookLog={bookLog}
-        onSave={handleUpdateBookInfo}
+        row={bookLog}
       />
 
       <Modal

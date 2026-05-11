@@ -3,8 +3,10 @@ import "../styles/MovieRatingStar.css";
 import { useState } from "react";
 import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
 import RatingModal from "./RatingModal.jsx";
+import EditBookInfoModal from "./EditBookInfoModal.jsx";
 import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import AddBookLogButton from "./AddBookLogButton.jsx";
+import { getBookInfo } from "../utils/bookInfo.js";
 
 function BookRating({
   bookLog,
@@ -17,15 +19,17 @@ function BookRating({
 }) {
   const { rateBook } = useBookRatings();
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const book = getBookInfo(bookLog);
 
   const handleGoodreadsSearch = () => {
-    if (bookLog.goodreads_link) {
-      window.open(bookLog.goodreads_link, "_blank");
+    if (book.goodreads_link) {
+      window.open(book.goodreads_link, "_blank");
     }
   };
 
   const handleAuthorSearch = () => {
-    const formattedAuthor = (bookLog.author || "").replace(/\s+/g, "+");
+    const formattedAuthor = (book.author || "").replace(/\s+/g, "+");
     window.open(
       `https://www.google.com/search?q=${formattedAuthor}+books`,
       "_blank",
@@ -62,22 +66,46 @@ function BookRating({
       <div className="top-stuff">
         <div className="poster-wrapper">
           <img
-            src={bookLog.cover_image || "/placeholderimage.jpg"}
+            src={book.cover_image || "/placeholderimage.jpg"}
             onError={(e) => {
               e.target.onerror = null;
               e.target.src = "/placeholderimage.jpg";
             }}
             className="rating-poster"
             onClick={handleGoodreadsSearch}
-            style={{ cursor: bookLog.goodreads_link ? "pointer" : "default" }}
-            alt={`${bookLog.title} cover`}
+            style={{ cursor: book.goodreads_link ? "pointer" : "default" }}
+            alt={`${book.title} cover`}
           />
         </div>
         <div className="right-stuff">
           <div className="title-and-star">
-            <p className="movie-title" onClick={handleGoodreadsSearch} style={{ cursor: bookLog.goodreads_link ? "pointer" : "default" }}>
-              {bookLog.title}{" "}
+            <p className="movie-title" onClick={handleGoodreadsSearch} style={{ cursor: book.goodreads_link ? "pointer" : "default" }}>
+              {book.title}{" "}
             </p>
+            <button
+              onClick={() => setShowEditModal(true)}
+              title="Edit book information"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "2px",
+                marginLeft: "6px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <img
+                src="/pencil.png"
+                alt="Edit"
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  filter: "saturate(1.5) brightness(1.3)",
+                }}
+              />
+            </button>
             {(rankNumber || showRankControls) && (
               <div
                 style={{
@@ -272,9 +300,9 @@ function BookRating({
                 onClick={handleAuthorSearch}
                 style={{ cursor: "pointer", textDecoration: "underline" }}
               >
-                {bookLog.author}
+                {book.author}
               </span>
-              {bookLog.release_year ? ` (${bookLog.release_year})` : ""}
+              {book.release_year ? ` (${book.release_year})` : ""}
             </span>
             {formattedDate ? (
               <span
@@ -297,8 +325,13 @@ function BookRating({
         onRate={handleRatingChange}
         onRemove={handleClearRating}
         currentRating={bookLog.book_rating || 0}
-        movieTitle={bookLog.title}
+        movieTitle={book.title}
         isRated={bookLog.book_rating && bookLog.book_rating > 0}
+      />
+      <EditBookInfoModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        row={bookLog}
       />
     </div>
   );

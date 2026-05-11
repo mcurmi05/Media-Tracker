@@ -48,6 +48,17 @@ export const UserBookTbrProvider = ({ children }) => {
     );
   };
 
+  const syncBookEntry = (bookId, updatedEntry) => {
+    if (!bookId) return;
+    setUserBookTbr((prev) =>
+      prev.map((item) =>
+        item.book_id === bookId
+          ? { ...item, book_entries: { ...(item.book_entries || {}), ...updatedEntry } }
+          : item,
+      ),
+    );
+  };
+
   useEffect(() => {
     const loadTbr = async () => {
       if (user && !hasFetched.current) {
@@ -82,6 +93,7 @@ export const UserBookTbrProvider = ({ children }) => {
         addBookTbr,
         removeBookTbr,
         updateBookTbrEntry,
+        syncBookEntry,
       }}
     >
       {children}

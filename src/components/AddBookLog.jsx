@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
+import { findOrCreateBookEntry } from "../services/ratingsfromtable.js";
 import "../styles/AddLog.css";
 
 const emptyForm = {
@@ -86,14 +87,23 @@ const AddBookLog = ({
 
     setIsSubmitting(true);
     try {
-      const payload = { ...formData, user_id: user.id };
+      // Resolve the canonical book_entries row (find-or-create) so the new
+      // child row references a single source of truth for book metadata.
+      const entry = await findOrCreateBookEntry(formData);
+      const payload = {
+        user_id: user.id,
+        book_id: entry.id,
+        book_entries: entry,
+      };
       if (requireRating) {
         payload.book_rating = Number(bookRating);
       }
       if (onCreate) {
         await onCreate(payload);
       } else {
-        await createBookLog(payload);
+        // eslint-disable-next-line no-unused-vars
+        const { book_entries: _be, ...insertable } = payload;
+        await createBookLog(insertable);
       }
       resetAll();
       onClose();
