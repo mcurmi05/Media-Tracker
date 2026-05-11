@@ -195,7 +195,7 @@ export default function BookTbrComponent({ tbrEntry }) {
                 by{" "}
                 <span
                   onClick={handleAuthorSearch}
-                  style={{ cursor: "pointer", textDecoration: "underline" }}
+                  style={{ cursor: "pointer" }}
                 >
                   {book.author}
                 </span>

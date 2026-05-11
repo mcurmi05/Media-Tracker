@@ -121,7 +121,7 @@ function Watchlist() {
     return (
       <>
         <h1 style={{ alignSelf: "center", marginTop: "-20px" }}>
-          Your Watchlist
+          {isBooksView ? "Your TBR list" : "Your Watchlist"}
         </h1>
         <div style={{ alignSelf: "center" }}>Loading watchlist...</div>
       </>
@@ -139,7 +139,7 @@ function Watchlist() {
       }}
     >
       <h1 style={{ textAlign: "center", marginTop: "-20px" }}>
-        Your Watchlist
+        {isBooksView ? "Your TBR list" : "Your Watchlist"}
       </h1>
       <div style={{ height: "18px" }} />
       <div

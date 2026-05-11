@@ -108,24 +108,32 @@ function parseGoodreadsHtml(html) {
   // Cover
   cover_image = (jsonLd?.image && String(jsonLd.image)) || ogImage || null;
 
-  // Release year
-  const dateRaw =
-    jsonLd?.datePublished ||
-    nextBook?.details?.publicationTime ||
-    nextBook?.details?.publishDate ||
-    null;
-  if (dateRaw) {
-    if (typeof dateRaw === "number") {
-      const year = new Date(dateRaw).getUTCFullYear();
-      if (!Number.isNaN(year)) release_year = year;
-    } else {
-      const m = String(dateRaw).match(/(\d{4})/);
-      if (m) release_year = parseInt(m[1], 10);
-    }
+  // Release year: prefer the Work's first-publication time, then the
+  // "First published ... YYYY" text on the page, then edition-level data.
+  const workPubTime = nextBook?._work?.details?.publicationTime;
+  if (typeof workPubTime === "number") {
+    const year = new Date(workPubTime).getUTCFullYear();
+    if (!Number.isNaN(year)) release_year = year;
   }
   if (!release_year) {
     const m = html.match(/[Ff]irst published[^<]{0,80}?(\d{4})/);
     if (m) release_year = parseInt(m[1], 10);
+  }
+  if (!release_year) {
+    const dateRaw =
+      jsonLd?.datePublished ||
+      nextBook?.details?.publicationTime ||
+      nextBook?.details?.publishDate ||
+      null;
+    if (dateRaw) {
+      if (typeof dateRaw === "number") {
+        const year = new Date(dateRaw).getUTCFullYear();
+        if (!Number.isNaN(year)) release_year = year;
+      } else {
+        const m = String(dateRaw).match(/(\d{4})/);
+        if (m) release_year = parseInt(m[1], 10);
+      }
+    }
   }
 
   return { title, author, cover_image, release_year };
@@ -212,6 +220,12 @@ function extractNextDataBook(html) {
       }
       return bs;
     });
+  }
+
+  // Work entry holds first-publication info, separate from the edition shown.
+  const workRef = best.work?.__ref;
+  if (workRef && apollo[workRef]) {
+    best._work = apollo[workRef];
   }
 
   return best;
