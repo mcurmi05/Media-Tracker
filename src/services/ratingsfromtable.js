@@ -99,3 +99,39 @@ export const deleteBookLog = async (logId) => {
   const { error } = await supabase.from("book_logs").delete().eq("id", logId);
   if (error) throw error;
 };
+
+// Book TBR (to-be-read watchlist) functions
+export const getUserBookTbr = async (user) => {
+  if (!user) throw new Error("User must be authenticated to view TBR books");
+  const { data, error } = await supabase
+    .from("book_tbr")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .eq("user_id", user.id);
+  if (error) throw error;
+  return data || [];
+};
+
+export const createBookTbr = async (bookTbr) => {
+  const { data, error } = await supabase
+    .from("book_tbr")
+    .insert(bookTbr)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteBookTbr = async (tbrId) => {
+  const { error } = await supabase.from("book_tbr").delete().eq("id", tbrId);
+  if (error) throw error;
+};
+
+export const updateBookTbr = async (tbrId, updates) => {
+  const { data, error } = await supabase
+    .from("book_tbr")
+    .update(updates)
+    .eq("id", tbrId)
+    .select();
+  if (error) throw error;
+  return data[0];
+};

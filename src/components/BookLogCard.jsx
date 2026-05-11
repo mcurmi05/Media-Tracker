@@ -6,6 +6,8 @@ import "../styles/LogComponent.css";
 import "../styles/MovieRatingStar.css";
 import RatingModal from "./RatingModal.jsx";
 import EditBookInfoModal from "./EditBookInfoModal.jsx";
+import AddBookWatchlist from "./AddBookWatchlist.jsx";
+import AddBookLogButton from "./AddBookLogButton.jsx";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -352,6 +354,18 @@ const BookLogCard = ({ bookLog }) => {
                         </>
                       )}
                     </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        position: "relative",
+                        top: "16px",
+                        marginLeft: "-13px",
+                      }}
+                    >
+                      <AddBookWatchlist book={bookLog} />
+                      <AddBookLogButton book={bookLog} />
+                    </div>
                   </div>
                 </div>
               </div>

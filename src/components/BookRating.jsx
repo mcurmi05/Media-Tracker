@@ -3,6 +3,8 @@ import "../styles/MovieRatingStar.css";
 import { useState } from "react";
 import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
 import RatingModal from "./RatingModal.jsx";
+import AddBookWatchlist from "./AddBookWatchlist.jsx";
+import AddBookLogButton from "./AddBookLogButton.jsx";
 
 function BookRating({
   bookLog,
@@ -251,6 +253,11 @@ function BookRating({
                     </>
                   )}
                 </span>
+              </div>
+              <div style={{ margin: "5px" }}></div>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <AddBookWatchlist book={bookLog} />
+                <AddBookLogButton book={bookLog} />
               </div>
             </div>
           </div>

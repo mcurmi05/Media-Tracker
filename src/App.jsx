@@ -17,6 +17,7 @@ import { UserLogsProvider } from "./contexts/UserLogsContext.jsx";
 import Home from "./pages/Home.jsx";
 import { UserWatchlistProvider } from "./contexts/UserWatchlistContext.jsx";
 import { UserBookLogsProvider } from "./contexts/UserBookLogsContext.jsx";
+import { UserBookTbrProvider } from "./contexts/UserBookTbrContext.jsx";
 import Watchlist from "./pages/Watchlist.jsx";
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
               <UserLogsProvider>
                 <UserWatchlistProvider>
                   <UserBookLogsProvider>
+                    <UserBookTbrProvider>
                     <NavBar />
                     <main className="main-content">
                       <Routes>
@@ -66,6 +68,7 @@ function App() {
                         />
                       </Routes>
                     </main>
+                    </UserBookTbrProvider>
                   </UserBookLogsProvider>
                 </UserWatchlistProvider>
               </UserLogsProvider>
