@@ -250,7 +250,6 @@ const AddBookLog = ({
                     handleInputChange("release_year", e.target.value)
                   }
                   placeholder="e.g. 1984"
-                  min="1000"
                   max={new Date().getFullYear()}
                 />
               </div>
