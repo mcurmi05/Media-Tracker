@@ -6,7 +6,8 @@ import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import { useBookTbr } from "../contexts/UserBookTbrContext.jsx";
-import { deleteBookTbr, updateBookTbr } from "../services/ratingsfromtable.js";
+import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
+import { deleteBookTbr } from "../services/ratingsfromtable.js";
 import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import AddBookLogButton from "./AddBookLogButton.jsx";
 import RatingModal from "./RatingModal.jsx";
@@ -26,15 +27,15 @@ const modalStyle = {
 };
 
 export default function BookTbrComponent({ tbrEntry }) {
-  const { removeBookTbr, updateBookTbrEntry } = useBookTbr();
+  const { removeBookTbr } = useBookTbr();
+  const { rateBook } = useBookRatings();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [visible, setVisible] = useState(true);
 
   const handleRatingChange = async (newRating) => {
     try {
-      const updated = await updateBookTbr(tbrEntry.id, { book_rating: newRating });
-      updateBookTbrEntry(tbrEntry.id, updated || { book_rating: newRating });
+      await rateBook(tbrEntry, newRating);
     } catch (err) {
       console.error("Error updating book TBR rating:", err);
     }
@@ -42,8 +43,7 @@ export default function BookTbrComponent({ tbrEntry }) {
 
   const handleClearRating = async () => {
     try {
-      const updated = await updateBookTbr(tbrEntry.id, { book_rating: null });
-      updateBookTbrEntry(tbrEntry.id, updated || { book_rating: null });
+      await rateBook(tbrEntry, null);
     } catch (err) {
       console.error("Error clearing book TBR rating:", err);
     }

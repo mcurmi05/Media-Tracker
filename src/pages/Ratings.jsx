@@ -1,13 +1,21 @@
 import { useRatings } from "../contexts/UserRatingsContext.jsx";
-import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
+import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
 import Rating from "../components/Rating.jsx";
 import BookRating from "../components/BookRating.jsx";
+import AddBookLog from "../components/AddBookLog.jsx";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 function Ratings() {
   const { userRatings, userRatingsLoaded, updateRanking } = useRatings();
-  const { bookLogs, bookLogsLoaded, updateBookRanking } = useBookLogs();
+  const { bookRatings, bookRatingsLoaded, updateBookRanking, rateBook } =
+    useBookRatings();
+  const [showAddBook, setShowAddBook] = useState(false);
+
+  const handleAddRatedBook = async (payload) => {
+    const { book_rating, ...book } = payload;
+    await rateBook(book, book_rating);
+  };
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState(
@@ -25,6 +33,12 @@ function Ratings() {
   const goToLog = () => {
     navigate("/log", {
       state: { searchTerm, ratingFilter, mediaTypeFilter },
+    });
+  };
+
+  const goToWatchlist = () => {
+    navigate("/watchlist", {
+      state: { searchTerm, mediaTypeFilter },
     });
   };
 
@@ -126,26 +140,25 @@ function Ratings() {
     });
   }, [filteredRatings, allTens, ratingFilter, rankSort]);
 
-  // Books: only those with a non-null rating
+  // Books: every row in book_ratings is a rated book
   const filteredBooks = useMemo(() => {
     if (!includeBooks) return [];
-    return bookLogs.filter((bookLog) => {
-      if (!bookLog.book_rating || Number(bookLog.book_rating) === 0)
-        return false;
+    return bookRatings.filter((bookRating) => {
       if (searchTerm.trim()) {
-        const title = (bookLog.title || "").toLowerCase();
-        const author = (bookLog.author || "").toLowerCase();
+        const title = (bookRating.title || "").toLowerCase();
+        const author = (bookRating.author || "").toLowerCase();
         const search = searchTerm.toLowerCase();
         if (!title.includes(search) && !author.includes(search)) return false;
       }
       if (ratingFilter !== "all") {
-        if (Number(bookLog.book_rating) !== Number(ratingFilter)) return false;
+        if (Number(bookRating.book_rating) !== Number(ratingFilter))
+          return false;
       }
       return true;
     });
-  }, [bookLogs, searchTerm, ratingFilter, includeBooks]);
+  }, [bookRatings, searchTerm, ratingFilter, includeBooks]);
 
-  const bookSortDate = (b) => new Date(b.book_rating_date);
+  const bookSortDate = (b) => new Date(b.created_at);
 
   const bookRankSort = useCallback((a, b) => {
     const ra = a.ranking ?? Number.MAX_SAFE_INTEGER;
@@ -212,11 +225,8 @@ function Ratings() {
     }
   };
 
-  // Rank reorder operates on rated books only (the ones visible in Rank Books).
-  const finishedSortedForRank = () =>
-    bookLogs
-      .filter((b) => b.book_rating != null && Number(b.book_rating) > 0)
-      .sort(bookRankSort);
+  // Rank reorder operates on all rated books (every row in book_ratings).
+  const finishedSortedForRank = () => bookRatings.slice().sort(bookRankSort);
 
   const handleBookMove = async (bookId, direction) => {
     const sorted = finishedSortedForRank();
@@ -276,9 +286,9 @@ function Ratings() {
       ? sortedBooks.length
       : sortedRatings.length;
   const isLoading = isAllView
-    ? !userRatingsLoaded || !bookLogsLoaded
+    ? !userRatingsLoaded || !bookRatingsLoaded
     : isBooksView
-      ? !bookLogsLoaded
+      ? !bookRatingsLoaded
       : !userRatingsLoaded;
 
   return (
@@ -432,6 +442,49 @@ function Ratings() {
             </button>
           );
         })}
+        {(mediaTypeFilter === "books" || mediaTypeFilter === "all") && (
+          <button
+            onClick={() => setShowAddBook(true)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              margin: "6px",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+              outline: "none",
+            }}
+            title="Add Rated Book"
+          >
+            <img
+              src="/addbookicon.png"
+              alt="Add Rated Book"
+              style={{ width: 22, height: 22 }}
+            />
+          </button>
+        )}
+        <button
+          onClick={goToWatchlist}
+          title="View watchlist with these filters"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+            margin: "6px",
+            display: "inline-flex",
+            alignItems: "center",
+            outline: "none",
+          }}
+        >
+          <img
+            src="/watchlist-navbar.png"
+            alt="Go to Watchlist"
+            style={{ width: 22, height: 22 }}
+          />
+        </button>
         <button
           onClick={goToLog}
           title="View log with these filters"
@@ -589,6 +642,14 @@ function Ratings() {
               </div>
             ))}
       </div>
+      <AddBookLog
+        isOpen={showAddBook}
+        onClose={() => setShowAddBook(false)}
+        title="Add Rated Book"
+        submitLabel="Add Rating"
+        onCreate={handleAddRatedBook}
+        requireRating
+      />
     </div>
   );
 }

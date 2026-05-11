@@ -1,16 +1,45 @@
 import WatchlistComponent from "../components/WatchlistComponent.jsx";
 import BookTbrComponent from "../components/BookTbrComponent.jsx";
+import AddBookLog from "../components/AddBookLog.jsx";
 import "../styles/Log.css";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext.jsx";
 import { useWatchlist } from "../contexts/UserWatchlistContext.jsx";
 import { useBookTbr } from "../contexts/UserBookTbrContext.jsx";
+import { createBookTbr } from "../services/ratingsfromtable.js";
 
 function Watchlist() {
   const { userWatchlist, userWatchlistLoaded } = useWatchlist();
-  const { userBookTbr, userBookTbrLoaded } = useBookTbr();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [mediaTypeFilter, setMediaTypeFilter] = useState("all");
+  const { userBookTbr, userBookTbrLoaded, addBookTbr } = useBookTbr();
+  const { user } = useAuth();
+  const [showAddBook, setShowAddBook] = useState(false);
+
+  const handleCreateBookTbr = async (payload) => {
+    const newEntry = await createBookTbr(payload);
+    addBookTbr(newEntry);
+  };
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchTerm, setSearchTerm] = useState(
+    location.state?.searchTerm || "",
+  );
+  const [mediaTypeFilter, setMediaTypeFilter] = useState(
+    location.state?.mediaTypeFilter || "all",
+  );
   const [newSeasonFilter, setNewSeasonFilter] = useState(false);
+
+  const goToRatings = () => {
+    navigate("/ratings", {
+      state: { searchTerm, mediaTypeFilter },
+    });
+  };
+
+  const goToLog = () => {
+    navigate("/log", {
+      state: { searchTerm, mediaTypeFilter },
+    });
+  };
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -224,6 +253,69 @@ function Watchlist() {
             {"★"} New Season
           </button>
         )}
+        {(mediaTypeFilter === "books" || mediaTypeFilter === "all") && (
+          <button
+            onClick={() => setShowAddBook(true)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              margin: "6px",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+              outline: "none",
+            }}
+            title="Add Book to TBR"
+          >
+            <img
+              src="/addbookicon.png"
+              alt="Add Book to TBR"
+              style={{ width: 22, height: 22 }}
+            />
+          </button>
+        )}
+        <button
+          onClick={goToRatings}
+          title="View ratings with these filters"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+            margin: "6px",
+            display: "inline-flex",
+            alignItems: "center",
+            outline: "none",
+          }}
+        >
+          <img
+            src="/ratings.png"
+            alt="Go to Ratings"
+            style={{ width: 22, height: 22 }}
+          />
+        </button>
+        <button
+          onClick={goToLog}
+          title="View log with these filters"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+            margin: "6px",
+            display: "inline-flex",
+            alignItems: "center",
+            outline: "none",
+          }}
+        >
+          <img
+            src="/log.png"
+            alt="Go to Log"
+            style={{ width: 22, height: 22 }}
+          />
+        </button>
         <span
           style={{
             fontWeight: "bold",
@@ -329,6 +421,13 @@ function Watchlist() {
                 ) : null,
               )}
       </div>
+      <AddBookLog
+        isOpen={showAddBook}
+        onClose={() => setShowAddBook(false)}
+        title="Add Book to TBR"
+        submitLabel="Add to TBR"
+        onCreate={handleCreateBookTbr}
+      />
     </div>
   );
 }

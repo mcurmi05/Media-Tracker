@@ -31,6 +31,12 @@ function Log() {
     });
   };
 
+  const goToWatchlist = () => {
+    navigate("/watchlist", {
+      state: { searchTerm, mediaTypeFilter },
+    });
+  };
+
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, []);
@@ -339,6 +345,26 @@ function Log() {
           <img
             src="/ratings.png"
             alt="Go to Ratings"
+            style={{ width: 22, height: 22 }}
+          />
+        </button>
+        <button
+          onClick={goToWatchlist}
+          title="View watchlist with these filters"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+            margin: "6px",
+            display: "inline-flex",
+            alignItems: "center",
+            outline: "none",
+          }}
+        >
+          <img
+            src="/watchlist-navbar.png"
+            alt="Go to Watchlist"
             style={{ width: 22, height: 22 }}
           />
         </button>

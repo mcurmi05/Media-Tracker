@@ -1,7 +1,7 @@
 import "../styles/Rating.css";
 import "../styles/MovieRatingStar.css";
 import { useState } from "react";
-import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
+import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
 import RatingModal from "./RatingModal.jsx";
 import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import AddBookLogButton from "./AddBookLogButton.jsx";
@@ -15,7 +15,7 @@ function BookRating({
   onSendTop,
   onSendBottom,
 }) {
-  const { updateBookLog } = useBookLogs();
+  const { rateBook } = useBookRatings();
   const [showRatingModal, setShowRatingModal] = useState(false);
 
   const handleGoodreadsSearch = () => {
@@ -34,7 +34,7 @@ function BookRating({
 
   const handleRatingChange = async (newRating) => {
     try {
-      await updateBookLog(bookLog.id, { book_rating: newRating });
+      await rateBook(bookLog, newRating);
     } catch (error) {
       console.error("Error updating book rating:", error);
     }
@@ -42,14 +42,14 @@ function BookRating({
 
   const handleClearRating = async () => {
     try {
-      await updateBookLog(bookLog.id, { book_rating: null });
+      await rateBook(bookLog, null);
     } catch (error) {
       console.error("Error clearing book rating:", error);
     }
   };
 
-  const formattedDate = bookLog.book_rating_date
-    ? new Date(bookLog.book_rating_date).toLocaleDateString("en-US", {
+  const formattedDate = bookLog.created_at
+    ? new Date(bookLog.created_at).toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
         day: "numeric",

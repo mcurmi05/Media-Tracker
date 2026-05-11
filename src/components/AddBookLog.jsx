@@ -11,12 +11,20 @@ const emptyForm = {
   goodreads_link: "",
 };
 
-const AddBookLog = ({ isOpen, onClose }) => {
+const AddBookLog = ({
+  isOpen,
+  onClose,
+  title = "Add Book Log",
+  submitLabel = "Add Book Log",
+  onCreate,
+  requireRating = false,
+}) => {
   const { user } = useAuth();
   const { createBookLog } = useBookLogs();
 
   const [mode, setMode] = useState("goodreads"); // "goodreads" | "custom"
   const [formData, setFormData] = useState(emptyForm);
+  const [bookRating, setBookRating] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState("");
@@ -24,6 +32,7 @@ const AddBookLog = ({ isOpen, onClose }) => {
 
   const resetAll = () => {
     setFormData(emptyForm);
+    setBookRating("");
     setMode("goodreads");
     setHasFetched(false);
     setFetchError("");
@@ -77,13 +86,20 @@ const AddBookLog = ({ isOpen, onClose }) => {
 
     setIsSubmitting(true);
     try {
-      const bookLogData = { ...formData, user_id: user.id };
-      await createBookLog(bookLogData);
+      const payload = { ...formData, user_id: user.id };
+      if (requireRating) {
+        payload.book_rating = Number(bookRating);
+      }
+      if (onCreate) {
+        await onCreate(payload);
+      } else {
+        await createBookLog(payload);
+      }
       resetAll();
       onClose();
     } catch (error) {
-      console.error("Error creating book log:", error);
-      alert("Failed to create book log: " + (error.message || error));
+      console.error("Error creating book:", error);
+      alert("Failed to add book: " + (error.message || error));
     } finally {
       setIsSubmitting(false);
     }
@@ -92,13 +108,19 @@ const AddBookLog = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const showDetails = mode === "custom" || hasFetched;
-  const canSubmit = !isSubmitting && formData.title && formData.author;
+  const ratingValid =
+    !requireRating ||
+    (bookRating !== "" &&
+      Number(bookRating) >= 1 &&
+      Number(bookRating) <= 10);
+  const canSubmit =
+    !isSubmitting && formData.title && formData.author && ratingValid;
 
   return (
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Add Book Log</h2>
+          <h2>{title}</h2>
           <button className="modal-close" onClick={handleClose}>
             ×
           </button>
@@ -237,6 +259,23 @@ const AddBookLog = ({ isOpen, onClose }) => {
                   />
                 </div>
               )}
+
+              {requireRating && (
+                <div className="form-field">
+                  <label htmlFor="book_rating">Rating (1-10) *</label>
+                  <input
+                    id="book_rating"
+                    type="number"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={bookRating}
+                    onChange={(e) => setBookRating(e.target.value)}
+                    placeholder="e.g. 8"
+                    required
+                  />
+                </div>
+              )}
             </>
           )}
 
@@ -245,7 +284,7 @@ const AddBookLog = ({ isOpen, onClose }) => {
               Cancel
             </button>
             <button type="submit" disabled={!canSubmit}>
-              {isSubmitting ? "Adding..." : "Add Book Log"}
+              {isSubmitting ? "Adding..." : submitLabel}
             </button>
           </div>
         </form>

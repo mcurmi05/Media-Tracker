@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
+import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
 import { format } from "date-fns";
 import { Dialog } from "./ReactDayPicker.jsx";
 import "../styles/LogComponent.css";
@@ -28,6 +29,7 @@ const modalStyle = {
 
 const BookLogCard = ({ bookLog }) => {
   const { deleteBookLog, updateBookLog } = useBookLogs();
+  const { rateBook } = useBookRatings();
 
   // Editable state
   const [text, setText] = useState(bookLog.log || "");
@@ -108,7 +110,7 @@ const BookLogCard = ({ bookLog }) => {
   const handleRatingChange = async (newRating) => {
     try {
       setRatingSaving(true);
-      await updateBookLog(bookLog.id, { book_rating: newRating });
+      await rateBook(bookLog, newRating);
       setTimeout(() => setRatingSaving(false), 1200);
     } catch (error) {
       setRatingSaving(false);
@@ -120,7 +122,7 @@ const BookLogCard = ({ bookLog }) => {
   const handleClearRating = async () => {
     try {
       setRatingSaving(true);
-      await updateBookLog(bookLog.id, { book_rating: null });
+      await rateBook(bookLog, null);
       setTimeout(() => setRatingSaving(false), 1200);
     } catch (error) {
       setRatingSaving(false);

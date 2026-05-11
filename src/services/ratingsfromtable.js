@@ -135,3 +135,39 @@ export const updateBookTbr = async (tbrId, updates) => {
   if (error) throw error;
   return data[0];
 };
+
+// Book ratings (independent of book_logs / book_tbr)
+export const getUserBookRatings = async (user) => {
+  if (!user) throw new Error("User must be authenticated to view book ratings");
+  const { data, error } = await supabase
+    .from("book_ratings")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .eq("user_id", user.id);
+  if (error) throw error;
+  return data || [];
+};
+
+export const createBookRating = async (payload) => {
+  const { data, error } = await supabase
+    .from("book_ratings")
+    .insert(payload)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateBookRating = async (id, updates) => {
+  const { data, error } = await supabase
+    .from("book_ratings")
+    .update(updates)
+    .eq("id", id)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteBookRating = async (id) => {
+  const { error } = await supabase.from("book_ratings").delete().eq("id", id);
+  if (error) throw error;
+};
