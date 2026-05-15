@@ -16,6 +16,7 @@ export const SearchProvider = ({ children }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [searchError, setSearchError] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchMode, setSearchMode] = useState("movies");
 
 
   const clearSearch = () => {
@@ -34,6 +35,8 @@ export const SearchProvider = ({ children }) => {
       setSearchError,
       searchLoading,
       setSearchLoading,
+      searchMode,
+      setSearchMode,
       clearSearch
     }}>
       {children}

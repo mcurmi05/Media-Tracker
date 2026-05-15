@@ -11,7 +11,6 @@ import { deleteBookTbr } from "../services/ratingsfromtable.js";
 import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import AddBookLogButton from "./AddBookLogButton.jsx";
 import RatingModal from "./RatingModal.jsx";
-import EditBookInfoModal from "./EditBookInfoModal.jsx";
 import { getBookInfo } from "../utils/bookInfo.js";
 
 const modalStyle = {
@@ -33,7 +32,6 @@ export default function BookTbrComponent({ tbrEntry }) {
   const { rateBook, findRatingForBook } = useBookRatings();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [visible, setVisible] = useState(true);
   const book = getBookInfo(tbrEntry);
   const currentRating = findRatingForBook(tbrEntry)?.book_rating ?? 0;
@@ -119,30 +117,6 @@ export default function BookTbrComponent({ tbrEntry }) {
               >
                 {book.title}{" "}
               </p>
-              <button
-                onClick={() => setShowEditModal(true)}
-                title="Edit book information"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "2px",
-                  marginLeft: "6px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <img
-                  src="/pencil.png"
-                  alt="Edit"
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    filter: "saturate(1.5) brightness(1.3)",
-                  }}
-                />
-              </button>
               <div style={{ display: "flex" }}>
                 <div className="rating-star-div">
                   <span className="user-rating-movie-card">
@@ -229,11 +203,6 @@ export default function BookTbrComponent({ tbrEntry }) {
         currentRating={currentRating || 0}
         movieTitle={book.title}
         isRated={currentRating && currentRating > 0}
-      />
-      <EditBookInfoModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        row={tbrEntry}
       />
       <Modal
         open={showDeleteModal}

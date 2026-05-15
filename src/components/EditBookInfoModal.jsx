@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import "../styles/AddLog.css";
 import { updateBookEntry } from "../services/ratingsfromtable.js";
 import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
@@ -6,7 +7,7 @@ import { useBookTbr } from "../contexts/UserBookTbrContext.jsx";
 import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
 import { getBookInfo } from "../utils/bookInfo.js";
 
-const EditBookInfoModal = ({ isOpen, onClose, row }) => {
+const EditBookInfoModal = ({ isOpen, onClose, row, onUpdated }) => {
   const { syncBookEntry: syncLogs } = useBookLogs();
   const { syncBookEntry: syncTbr } = useBookTbr();
   const { syncBookEntry: syncRatings } = useBookRatings();
@@ -67,7 +68,10 @@ const EditBookInfoModal = ({ isOpen, onClose, row }) => {
     }
   };
 
-  const bookEntryId = row?.book_entries?.id || row?.book_id || null;
+  const bookEntryId =
+    row?.book_entries?.id ||
+    row?.book_id ||
+    (row?.id && row?.title && !row?.user_id ? row.id : null);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -98,6 +102,7 @@ const EditBookInfoModal = ({ isOpen, onClose, row }) => {
       syncLogs(bookEntryId, merged);
       syncTbr(bookEntryId, merged);
       syncRatings(bookEntryId, merged);
+      if (onUpdated) onUpdated(merged);
       onClose();
     } catch (error) {
       console.error("Error updating book info:", error);
@@ -114,7 +119,7 @@ const EditBookInfoModal = ({ isOpen, onClose, row }) => {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -210,7 +215,8 @@ const EditBookInfoModal = ({ isOpen, onClose, row }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

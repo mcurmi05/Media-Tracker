@@ -2,21 +2,15 @@ import { useRatings } from "../contexts/UserRatingsContext.jsx";
 import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
 import Rating from "../components/Rating.jsx";
 import BookRating from "../components/BookRating.jsx";
-import AddBookLog from "../components/AddBookLog.jsx";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getBookInfo } from "../utils/bookInfo.js";
 
 function Ratings() {
   const { userRatings, userRatingsLoaded, updateRanking } = useRatings();
-  const { bookRatings, bookRatingsLoaded, updateBookRanking, rateBook } =
+  const { bookRatings, bookRatingsLoaded, updateBookRanking } =
     useBookRatings();
-  const [showAddBook, setShowAddBook] = useState(false);
 
-  const handleAddRatedBook = async (payload) => {
-    const { book_rating, ...book } = payload;
-    await rateBook(book, book_rating);
-  };
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState(
@@ -444,29 +438,6 @@ function Ratings() {
             </button>
           );
         })}
-        {(mediaTypeFilter === "books" || mediaTypeFilter === "all") && (
-          <button
-            onClick={() => setShowAddBook(true)}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              margin: "6px",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0,
-              outline: "none",
-            }}
-            title="Add Rated Book"
-          >
-            <img
-              src="/addbookicon.png"
-              alt="Add Rated Book"
-              style={{ width: 22, height: 22 }}
-            />
-          </button>
-        )}
         <button
           onClick={goToWatchlist}
           title="View watchlist with these filters"
@@ -644,14 +615,6 @@ function Ratings() {
               </div>
             ))}
       </div>
-      <AddBookLog
-        isOpen={showAddBook}
-        onClose={() => setShowAddBook(false)}
-        title="Add Rated Book"
-        submitLabel="Add Rating"
-        onCreate={handleAddRatedBook}
-        requireRating
-      />
     </div>
   );
 }

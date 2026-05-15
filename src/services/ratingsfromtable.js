@@ -117,6 +117,31 @@ export const findOrCreateBookEntry = async (bookData) => {
   return await createBookEntry(payload);
 };
 
+// Search book_entries by title or author (case-insensitive substring match).
+export const searchBookEntries = async (query, limit = 100) => {
+  const term = (query || "").trim();
+  if (!term) return [];
+  const pattern = `%${term}%`;
+  const { data, error } = await supabase
+    .from("book_entries")
+    .select("*")
+    .or(`title.ilike.${pattern},author.ilike.${pattern}`)
+    .order("title", { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+};
+
+// Return every row in book_entries.
+export const getAllBookEntries = async () => {
+  const { data, error } = await supabase
+    .from("book_entries")
+    .select("*")
+    .order("title", { ascending: true });
+  if (error) throw error;
+  return data || [];
+};
+
 // Book logs functions
 export const getUserBookLogs = async (user) => {
   if (!user) throw new Error("User must be authenticated to view book logs");

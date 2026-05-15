@@ -4,7 +4,6 @@ import "../styles/Log.css";
 import { useLogs } from "../contexts/UserLogsContext.jsx";
 import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
 import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
-import AddBookLog from "../components/AddBookLog.jsx";
 import BookLogCard from "../components/BookLogCard.jsx";
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -26,7 +25,6 @@ function Log() {
   const [mediaTypeFilter, setMediaTypeFilter] = useState(
     location.state?.mediaTypeFilter || "all",
   );
-  const [showAddBookLog, setShowAddBookLog] = useState(false);
 
   const goToRatings = () => {
     navigate("/ratings", {
@@ -310,29 +308,6 @@ function Log() {
             </option>
           ))}
         </select>
-        {(mediaTypeFilter === "books" || mediaTypeFilter === "all") && (
-          <button
-            onClick={() => setShowAddBookLog(true)}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              margin: "6px",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0,
-              outline: "none",
-            }}
-            title="Add Book Log"
-          >
-            <img
-              src="/addbookicon.png"
-              alt="Add Book Log"
-              style={{ width: 22, height: 22 }}
-            />
-          </button>
-        )}
         <button
           onClick={goToRatings}
           title="View ratings with these filters"
@@ -508,11 +483,6 @@ function Log() {
         </>
       )}
 
-      {/* Add Book Log Modal */}
-      <AddBookLog
-        isOpen={showAddBookLog}
-        onClose={() => setShowAddBookLog(false)}
-      />
     </div>
   );
 }

@@ -3,7 +3,6 @@ import "../styles/MovieRatingStar.css";
 import { useState } from "react";
 import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
 import RatingModal from "./RatingModal.jsx";
-import EditBookInfoModal from "./EditBookInfoModal.jsx";
 import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import AddBookLogButton from "./AddBookLogButton.jsx";
 import { getBookInfo } from "../utils/bookInfo.js";
@@ -19,7 +18,6 @@ function BookRating({
 }) {
   const { rateBook } = useBookRatings();
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const book = getBookInfo(bookLog);
 
   const handleGoodreadsSearch = () => {
@@ -82,30 +80,6 @@ function BookRating({
             <p className="movie-title" onClick={handleGoodreadsSearch} style={{ cursor: book.goodreads_link ? "pointer" : "default" }}>
               {book.title}{" "}
             </p>
-            <button
-              onClick={() => setShowEditModal(true)}
-              title="Edit book information"
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "2px",
-                marginLeft: "6px",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <img
-                src="/pencil.png"
-                alt="Edit"
-                style={{
-                  width: "16px",
-                  height: "16px",
-                  filter: "saturate(1.5) brightness(1.3)",
-                }}
-              />
-            </button>
             {(rankNumber || showRankControls) && (
               <div
                 style={{
@@ -327,11 +301,6 @@ function BookRating({
         currentRating={bookLog.book_rating || 0}
         movieTitle={book.title}
         isRated={bookLog.book_rating && bookLog.book_rating > 0}
-      />
-      <EditBookInfoModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        row={bookLog}
       />
     </div>
   );

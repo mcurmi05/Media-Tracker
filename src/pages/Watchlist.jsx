@@ -1,27 +1,16 @@
 import WatchlistComponent from "../components/WatchlistComponent.jsx";
 import BookTbrComponent from "../components/BookTbrComponent.jsx";
-import AddBookLog from "../components/AddBookLog.jsx";
 import "../styles/Log.css";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext.jsx";
 import { useWatchlist } from "../contexts/UserWatchlistContext.jsx";
 import { useBookTbr } from "../contexts/UserBookTbrContext.jsx";
-import { createBookTbr } from "../services/ratingsfromtable.js";
 import { getBookInfo } from "../utils/bookInfo.js";
 
 function Watchlist() {
   const { userWatchlist, userWatchlistLoaded } = useWatchlist();
-  const { userBookTbr, userBookTbrLoaded, addBookTbr } = useBookTbr();
-  const { user } = useAuth();
-  const [showAddBook, setShowAddBook] = useState(false);
+  const { userBookTbr, userBookTbrLoaded } = useBookTbr();
 
-  const handleCreateBookTbr = async (payload) => {
-    // eslint-disable-next-line no-unused-vars
-    const { book_entries: _be, ...insertable } = payload;
-    const newEntry = await createBookTbr(insertable);
-    addBookTbr(newEntry);
-  };
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState(
@@ -257,29 +246,6 @@ function Watchlist() {
             {"★"} New Season
           </button>
         )}
-        {(mediaTypeFilter === "books" || mediaTypeFilter === "all") && (
-          <button
-            onClick={() => setShowAddBook(true)}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              margin: "6px",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0,
-              outline: "none",
-            }}
-            title="Add Book to TBR"
-          >
-            <img
-              src="/addbookicon.png"
-              alt="Add Book to TBR"
-              style={{ width: 22, height: 22 }}
-            />
-          </button>
-        )}
         <button
           onClick={goToRatings}
           title="View ratings with these filters"
@@ -425,13 +391,6 @@ function Watchlist() {
                 ) : null,
               )}
       </div>
-      <AddBookLog
-        isOpen={showAddBook}
-        onClose={() => setShowAddBook(false)}
-        title="Add Book to TBR"
-        submitLabel="Add to TBR"
-        onCreate={handleCreateBookTbr}
-      />
     </div>
   );
 }

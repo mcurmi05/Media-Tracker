@@ -8,6 +8,34 @@
   z-index: 1001;
 }
 
+.search-mode-toggle {
+  padding: 0.75rem 0.75rem;
+  border: none;
+  border-radius: 4px;
+  background-color: #333;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+  transition: background-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.search-mode-toggle:hover {
+  background-color: #444;
+}
+
+.search-mode-toggle:focus,
+.search-mode-toggle:focus-visible,
+.search-mode-toggle:active {
+  outline: none;
+  box-shadow: none;
+}
+
 .search-input {
   padding: 0.75rem 1rem;
   border: none;
@@ -39,6 +67,29 @@
 .search-button-img{
   width:20px;
   height:20px;
+}
+
+.search-add-book {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.search-add-book img {
+  width: 24px;
+  height: 24px;
+}
+
+.search-add-book:focus,
+.search-add-book:focus-visible,
+.search-add-book:active {
+  outline: none;
+  box-shadow: none;
 }
 
 .search-button:hover {
@@ -108,5 +159,9 @@
 @media (max-width: 630px) {
   .search-input{
     width:30vw;
+  }
+  .search-mode-toggle {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.5rem;
   }
 }
