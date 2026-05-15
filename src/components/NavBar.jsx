@@ -74,7 +74,7 @@ function NavBar() {
           <img className="nav-icon" src="/home.png" alt="Home"></img>
         </Link>
         <a
-          href="https://github.com/mcurmi05/Movie-Library"
+          href="https://github.com/mcurmi05/Media-Library"
           target="_blank"
           rel="noopener noreferrer"
           className="nav-link home-button github"
@@ -143,7 +143,7 @@ function NavBar() {
             </a>
 
             <a
-              href="https://github.com/mcurmi05/Movie-Library"
+              href="https://github.com/mcurmi05/Media-Library"
               target="_blank"
               rel="noopener noreferrer"
               className="dropdown-nav-item "
