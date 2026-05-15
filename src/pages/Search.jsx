@@ -131,7 +131,7 @@ function Search() {
           style={{
             display: "flex",
             justifyContent: "center",
-            padding: "0.5rem 0",
+            padding: "0 0 1rem 0",
           }}
         >
           <select

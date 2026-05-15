@@ -23,6 +23,8 @@
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
+  min-width: 100px;
+  text-align: center;
 }
 
 .search-mode-toggle:hover {
@@ -60,8 +62,11 @@
   align-self:center;
 }
 
-.search-button:focus {
-  outline: 1px solid #ffffff; 
+.search-button:focus,
+.search-button:focus-visible,
+.search-button:active {
+  outline: none;
+  box-shadow: none;
 }
 
 .search-button-img{

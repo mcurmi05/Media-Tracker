@@ -139,9 +139,7 @@ export default function SearchBar() {
         </button>
         <input
           type="text"
-          placeholder={
-            searchMode === "books" ? "Search books..." : "Search..."
-          }
+          placeholder="Search..."
           className="search-input"
           value={searchQuery}
           onChange={handleInputChange}
@@ -149,17 +147,19 @@ export default function SearchBar() {
         <button type="submit" className="search-button">
           <img src="/search.png" className="search-button-img"></img>
         </button>
-        {searchMode === "books" && (
-          <button
-            type="button"
-            className="search-add-book"
-            onClick={() => setShowAddBook(true)}
-            title="Add Book to Library"
-            aria-label="Add Book to Library"
-          >
-            <img src="/addbookicon.png" alt="Add Book" />
-          </button>
-        )}
+        <button
+          type="button"
+          className="search-add-book"
+          onClick={() => setShowAddBook(true)}
+          title="Add Book to Library"
+          aria-label="Add Book to Library"
+          style={{
+            visibility: searchMode === "books" ? "visible" : "hidden",
+            pointerEvents: searchMode === "books" ? "auto" : "none",
+          }}
+        >
+          <img src="/addbookicon.png" alt="Add Book" />
+        </button>
       </form>
 
       {showDropdown && (

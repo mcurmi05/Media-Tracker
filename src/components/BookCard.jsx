@@ -41,6 +41,16 @@ function BookCard({ book: bookProp }) {
     setBook((prev) => ({ ...(prev || {}), ...updated }));
   };
 
+  const handleAuthorSearch = () => {
+    const formattedAuthor = (book.author || "").replace(/\s+/g, "+");
+    if (!formattedAuthor) return;
+    window.open(
+      `https://www.google.com/search?q=${formattedAuthor}+books`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
   return (
     <div className="movie-card">
       <div
@@ -71,14 +81,12 @@ function BookCard({ book: bookProp }) {
           <div className="add-log-container-moviecard">
             <AddBookWatchlist book={book} />
             <AddBookLogButton book={book} />
-            <button
+            <div
+              className="white-highlight"
               onClick={() => setShowEditModal(true)}
               title="Edit book information"
               style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "2px",
+                marginLeft: "4px",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -93,7 +101,7 @@ function BookCard({ book: bookProp }) {
                   filter: "saturate(1.5) brightness(1.3)",
                 }}
               />
-            </button>
+            </div>
           </div>
         </div>
         <div
@@ -124,7 +132,14 @@ function BookCard({ book: bookProp }) {
             }}
           >
             <p style={{ margin: 0 }}>
-              {book.author || ""}
+              {book.author ? (
+                <span
+                  onClick={handleAuthorSearch}
+                  style={{ cursor: "pointer" }}
+                >
+                  {book.author}
+                </span>
+              ) : null}
               {book.author && book.release_year ? " · " : ""}
               {book.release_year ? `${book.release_year}` : ""}
             </p>
