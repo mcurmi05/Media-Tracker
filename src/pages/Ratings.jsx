@@ -532,6 +532,7 @@ function Ratings() {
                     <Rating
                       movie_object={item.data.movie_object}
                       ratingDate={item.data.created_at}
+                      ratingUpdatedDate={item.data.updated_at}
                       rankNumber={
                         Number(item.data.rating) === 10
                           ? item.data.ranking
@@ -600,6 +601,7 @@ function Ratings() {
                   <Rating
                     movie_object={rating.movie_object}
                     ratingDate={rating.created_at}
+                    ratingUpdatedDate={rating.updated_at}
                     rankNumber={
                       Number(rating.rating) === 10 ? rating.ranking : null
                     }

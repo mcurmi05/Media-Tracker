@@ -83,10 +83,15 @@ export const UserBookRatingsProvider = ({ children }) => {
     }
 
     if (existing) {
+      // No-op if the rating value hasn't actually changed, so updated_at
+      // keeps pointing at the last real change.
+      if (Number(existing.book_rating) === Number(newRating)) {
+        return;
+      }
       try {
         const updated = await updateBookRatingService(existing.id, {
           book_rating: newRating,
-          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         });
         setBookRatings((prev) =>
           prev.map((r) =>

@@ -53,6 +53,11 @@ function MovieRatingStar({movie}) {
   }
 
   async function handleRating(newRating) {
+      // No-op if the rating value hasn't actually changed, so updated_at
+      // keeps pointing at the last real change.
+      if (rated && Number(rating) === Number(newRating)) {
+        return;
+      }
       setRating(newRating);
       console.log("calling api to get more information about movie for database entry")
       const movie_object = await getMovieById(movie.id)

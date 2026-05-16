@@ -4,10 +4,12 @@ import MovieRatingStar from "./MovieRatingStar";
 import ReleaseAndRunTime from "./ReleaseAndRunTime";
 import AddLog from "./AddLog.jsx";
 import AddWatchlist from "./AddWatchlist.jsx";
+import { getRatingDateInfo } from "../utils/ratingDate.js";
 
 function Rating({
   movie_object,
   ratingDate,
+  ratingUpdatedDate,
   addedToWatchlistDate,
   rankNumber = null,
   showRankControls = false,
@@ -25,13 +27,7 @@ function Rating({
     navigate(`/mediadetails/${movie_object.id}`);
   }
 
-  const formattedDate = ratingDate
-    ? new Date(ratingDate).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : "";
+  const ratingDateInfo = getRatingDateInfo(ratingDate, ratingUpdatedDate);
 
   return (
     <div className="container">
@@ -237,7 +233,7 @@ function Rating({
                 </span>
                 {dateSlot}
               </span>
-            ) : formattedDate !== "Invalid Date" && ratingDate !== null ? (
+            ) : ratingDateInfo ? (
               <span
                 style={{
                   color: "#888",
@@ -245,7 +241,10 @@ function Rating({
                   whiteSpace: "nowrap",
                 }}
               >
-                Rated: {formattedDate}
+                Rated: {ratingDateInfo.ratedFormatted}
+                {ratingDateInfo.changed
+                  ? `, (Last updated: ${ratingDateInfo.updatedFormatted})`
+                  : ""}
               </span>
             ) : null}
           </div>

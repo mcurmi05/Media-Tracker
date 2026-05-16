@@ -6,6 +6,7 @@ import RatingModal from "./RatingModal.jsx";
 import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import AddBookLogButton from "./AddBookLogButton.jsx";
 import { getBookInfo } from "../utils/bookInfo.js";
+import { getRatingDateInfo } from "../utils/ratingDate.js";
 
 function BookRating({
   bookLog,
@@ -50,14 +51,10 @@ function BookRating({
     }
   };
 
-  const formattedDate = bookLog.created_at
-    ? new Date(bookLog.created_at).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : "";
-  const dateLabel = "Rated";
+  const ratingDateInfo = getRatingDateInfo(
+    bookLog.created_at,
+    bookLog.updated_at,
+  );
 
   return (
     <div className="container">
@@ -278,7 +275,7 @@ function BookRating({
               </span>
               {book.release_year ? ` (${book.release_year})` : ""}
             </span>
-            {formattedDate ? (
+            {ratingDateInfo ? (
               <span
                 style={{
                   color: "#888",
@@ -286,7 +283,10 @@ function BookRating({
                   whiteSpace: "nowrap",
                 }}
               >
-                {dateLabel}: {formattedDate}
+                Rated: {ratingDateInfo.ratedFormatted}
+                {ratingDateInfo.changed
+                  ? `, (Last updated: ${ratingDateInfo.updatedFormatted})`
+                  : ""}
               </span>
             ) : null}
           </div>

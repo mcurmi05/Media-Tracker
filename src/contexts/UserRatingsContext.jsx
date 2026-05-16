@@ -51,7 +51,7 @@ export const UserRatingsProvider = ({ children }) => {
           ...rating,
           rating: newRating,
           movie_object: movie,
-          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         };
         if (isBecomingTen && !Number.isInteger(rating.ranking)) {
           next.ranking = maxRank + 1; // default to bottom
