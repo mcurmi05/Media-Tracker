@@ -90,9 +90,14 @@ const AddBookLog = ({
       // Resolve the canonical book_entries row (find-or-create) so the new
       // child row references a single source of truth for book metadata.
       const entry = await findOrCreateBookEntry(formData);
+      const today = new Date();
+      const startDate = `${today.getFullYear()}-${String(
+        today.getMonth() + 1,
+      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
       const payload = {
         user_id: user.id,
         book_id: entry.id,
+        start_date: startDate,
         book_entries: entry,
       };
       if (requireRating) {

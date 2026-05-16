@@ -38,9 +38,14 @@ export default function AddBookLogButton({ book }) {
         const entry = await findOrCreateBookEntry(getBookInfo(book));
         bookId = entry?.id;
       }
+      const today = new Date();
+      const startDate = `${today.getFullYear()}-${String(
+        today.getMonth() + 1,
+      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
       const payload = {
         user_id: user.id,
         book_id: bookId,
+        start_date: startDate,
       };
       await createBookLog(payload);
       navigate("/log");
