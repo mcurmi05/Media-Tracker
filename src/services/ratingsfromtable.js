@@ -1,8 +1,18 @@
-// Update a user's rating in Supabase
-export const updateUserRating = async (userId, imdbMovieId, newRating) => {
+// Update a user's rating in Supabase. `previousRating` records the value the
+// rating had before this change, so the UI can show what it was changed from.
+export const updateUserRating = async (
+  userId,
+  imdbMovieId,
+  newRating,
+  previousRating = null,
+) => {
   const { data, error } = await supabase
     .from("ratings")
-    .update({ rating: newRating, updated_at: new Date().toISOString() })
+    .update({
+      rating: newRating,
+      previous_rating: previousRating,
+      updated_at: new Date().toISOString(),
+    })
     .eq("user_id", userId)
     .eq("imdb_movie_id", imdbMovieId);
   if (error) throw error;

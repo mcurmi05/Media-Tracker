@@ -533,6 +533,8 @@ function Ratings() {
                       movie_object={item.data.movie_object}
                       ratingDate={item.data.created_at}
                       ratingUpdatedDate={item.data.updated_at}
+                      ratingPreviousValue={item.data.previous_rating}
+                      ratingAccurate={item.data.accurate}
                       rankNumber={
                         Number(item.data.rating) === 10
                           ? item.data.ranking
@@ -602,6 +604,8 @@ function Ratings() {
                     movie_object={rating.movie_object}
                     ratingDate={rating.created_at}
                     ratingUpdatedDate={rating.updated_at}
+                    ratingPreviousValue={rating.previous_rating}
+                    ratingAccurate={rating.accurate}
                     rankNumber={
                       Number(rating.rating) === 10 ? rating.ranking : null
                     }

@@ -14,7 +14,12 @@ const formatDate = (d) =>
     day: "numeric",
   });
 
-export function getRatingDateInfo(createdAt, updatedAt) {
+export function getRatingDateInfo(
+  createdAt,
+  updatedAt,
+  previousRating = null,
+  accurate = null,
+) {
   if (!createdAt) return null;
   const created = new Date(createdAt);
   if (Number.isNaN(created.getTime())) return null;
@@ -25,9 +30,20 @@ export function getRatingDateInfo(createdAt, updatedAt) {
     !Number.isNaN(updated.getTime()) &&
     updated.getTime() - created.getTime() > CHANGED_TOLERANCE_MS;
 
+  // Ratings updated before previous_rating was tracked have no stored value;
+  // those just show the date with no "was ..." suffix.
+  const hasPrevious =
+    previousRating !== null &&
+    previousRating !== undefined &&
+    previousRating !== "";
+
   return {
     changed,
     ratedFormatted: formatDate(created),
     updatedFormatted: changed ? formatDate(updated) : null,
+    previousRating: changed && hasPrevious ? previousRating : null,
+    // `accurate` is null for ratings created before created_at was tracked
+    // reliably; only an explicit `true` means the date can be trusted.
+    dateInaccurate: accurate !== true,
   };
 }

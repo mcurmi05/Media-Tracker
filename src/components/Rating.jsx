@@ -10,6 +10,8 @@ function Rating({
   movie_object,
   ratingDate,
   ratingUpdatedDate,
+  ratingPreviousValue = null,
+  ratingAccurate = null,
   addedToWatchlistDate,
   rankNumber = null,
   showRankControls = false,
@@ -27,7 +29,12 @@ function Rating({
     navigate(`/mediadetails/${movie_object.id}`);
   }
 
-  const ratingDateInfo = getRatingDateInfo(ratingDate, ratingUpdatedDate);
+  const ratingDateInfo = getRatingDateInfo(
+    ratingDate,
+    ratingUpdatedDate,
+    ratingPreviousValue,
+    ratingAccurate,
+  );
 
   return (
     <div className="container">
@@ -242,9 +249,19 @@ function Rating({
                 }}
               >
                 Rated: {ratingDateInfo.ratedFormatted}
-                {ratingDateInfo.changed
-                  ? `, (Last updated: ${ratingDateInfo.updatedFormatted})`
+                {ratingDateInfo.dateInaccurate
+                  ? " (inaccurate initial rating date)"
                   : ""}
+                {ratingDateInfo.changed ? (
+                  <span style={{ fontWeight: 600 }}>
+                    {" "}
+                    (Last updated: {ratingDateInfo.updatedFormatted}
+                    {ratingDateInfo.previousRating != null
+                      ? `, was ${ratingDateInfo.previousRating}`
+                      : ""}
+                    )
+                  </span>
+                ) : null}
               </span>
             ) : null}
           </div>

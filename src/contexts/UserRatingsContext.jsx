@@ -32,11 +32,17 @@ export const UserRatingsProvider = ({ children }) => {
       rating: rating,
       movie_object: movie,
       created_at: new Date().toISOString(),
+      // Ratings created from now on have a trustworthy created_at.
+      accurate: true,
     };
     setUserRatings((prev) => [...prev, newRating]);
   };
 
   const updateRating = async (movieId, newRating, movie) => {
+    // The value the rating had before this change, recorded so the UI can
+    // show what it was updated from.
+    const previousRating =
+      userRatings.find((r) => r.imdb_movie_id === movieId)?.rating ?? null;
     setUserRatings((prev) => {
       // compute next rank if moving to 10 and currently unranked
       const isBecomingTen = Number(newRating) === 10;
@@ -50,6 +56,7 @@ export const UserRatingsProvider = ({ children }) => {
         const next = {
           ...rating,
           rating: newRating,
+          previous_rating: previousRating,
           movie_object: movie,
           updated_at: new Date().toISOString(),
         };
@@ -61,7 +68,7 @@ export const UserRatingsProvider = ({ children }) => {
     });
     if (user && movieId) {
       try {
-        await updateUserRating(user.id, movieId, newRating);
+        await updateUserRating(user.id, movieId, newRating, previousRating);
         // If becoming 10 and was unranked, persist bottom rank as well
         if (Number(newRating) === 10) {
           const current = userRatings.find((r) => r.imdb_movie_id === movieId);

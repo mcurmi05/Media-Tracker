@@ -54,6 +54,8 @@ function BookRating({
   const ratingDateInfo = getRatingDateInfo(
     bookLog.created_at,
     bookLog.updated_at,
+    bookLog.previous_rating,
+    bookLog.accurate,
   );
 
   return (
@@ -284,9 +286,19 @@ function BookRating({
                 }}
               >
                 Rated: {ratingDateInfo.ratedFormatted}
-                {ratingDateInfo.changed
-                  ? `, (Last updated: ${ratingDateInfo.updatedFormatted})`
+                {ratingDateInfo.dateInaccurate
+                  ? " (inaccurate initial rating date)"
                   : ""}
+                {ratingDateInfo.changed ? (
+                  <span style={{ fontWeight: 600 }}>
+                    {" "}
+                    (Last updated: {ratingDateInfo.updatedFormatted}
+                    {ratingDateInfo.previousRating != null
+                      ? `, was ${ratingDateInfo.previousRating}`
+                      : ""}
+                    )
+                  </span>
+                ) : null}
               </span>
             ) : null}
           </div>

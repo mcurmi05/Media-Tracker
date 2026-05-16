@@ -91,6 +91,7 @@ export const UserBookRatingsProvider = ({ children }) => {
       try {
         const updated = await updateBookRatingService(existing.id, {
           book_rating: newRating,
+          previous_rating: existing.book_rating ?? null,
           updated_at: new Date().toISOString(),
         });
         setBookRatings((prev) =>
@@ -112,6 +113,8 @@ export const UserBookRatingsProvider = ({ children }) => {
           book_id: bookId,
           book_rating: newRating,
           ranking: maxRanking + 1,
+          // Ratings created from now on have a trustworthy created_at.
+          accurate: true,
         });
         setBookRatings((prev) => [newRow, ...prev]);
       } catch (err) {
