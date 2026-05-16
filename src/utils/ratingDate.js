@@ -37,10 +37,16 @@ export function getRatingDateInfo(
     previousRating !== undefined &&
     previousRating !== "";
 
+  const validUpdated = updated && !Number.isNaN(updated.getTime());
+
   return {
     changed,
     ratedFormatted: formatDate(created),
     updatedFormatted: changed ? formatDate(updated) : null,
+    // The most recent date we have. When the original "Rated" date is
+    // inaccurate this is shown on its own as "Last updated", since that's
+    // genuinely what the date represents.
+    lastUpdatedFormatted: formatDate(validUpdated ? updated : created),
     previousRating: changed && hasPrevious ? previousRating : null,
     // `accurate` is null for ratings created before created_at was tracked
     // reliably; only an explicit `true` means the date can be trusted.

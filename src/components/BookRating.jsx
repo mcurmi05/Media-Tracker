@@ -285,20 +285,28 @@ function BookRating({
                   whiteSpace: "nowrap",
                 }}
               >
-                Rated: {ratingDateInfo.ratedFormatted}
-                {ratingDateInfo.dateInaccurate
-                  ? " (inaccurate initial rating date)"
-                  : ""}
-                {ratingDateInfo.changed ? (
+                {ratingDateInfo.dateInaccurate ? (
                   <span style={{ fontWeight: 600 }}>
-                    {" "}
-                    (Last updated: {ratingDateInfo.updatedFormatted}
+                    Last updated: {ratingDateInfo.lastUpdatedFormatted}
                     {ratingDateInfo.previousRating != null
                       ? `, was ${ratingDateInfo.previousRating}`
                       : ""}
-                    )
                   </span>
-                ) : null}
+                ) : (
+                  <>
+                    Rated: {ratingDateInfo.ratedFormatted}
+                    {ratingDateInfo.changed ? (
+                      <span style={{ fontWeight: 600 }}>
+                        {" "}
+                        (Last updated: {ratingDateInfo.updatedFormatted}
+                        {ratingDateInfo.previousRating != null
+                          ? `, was ${ratingDateInfo.previousRating}`
+                          : ""}
+                        )
+                      </span>
+                    ) : null}
+                  </>
+                )}
               </span>
             ) : null}
           </div>
