@@ -228,6 +228,15 @@ export const UserLogsProvider = ({ children }) => {
     );
   };
 
+  // Update the multi-day end date for a movie log (null clears multi-day mode)
+  const updateEndDate = (log_id, newEndDate) => {
+    setUserLogs((prev) =>
+      prev.map((log) =>
+        log.id === log_id ? { ...log, movie_end_date: newEndDate } : log,
+      ),
+    );
+  };
+
   const removeLog = (log_id) => {
     setUserLogs((prev) => prev.filter((log) => log.id !== log_id));
   };
@@ -266,6 +275,7 @@ export const UserLogsProvider = ({ children }) => {
         removeLog,
         updateLog,
         updateDate,
+        updateEndDate,
       }}
     >
       {children}

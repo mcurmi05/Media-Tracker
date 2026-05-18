@@ -25,12 +25,19 @@ const modalStyle = {
   fontWeight: "bold",
 };
 
-export default function LogComponent({ log_id, movie, logtext, created_at }) {
+export default function LogComponent({
+  log_id,
+  movie,
+  logtext,
+  created_at,
+  movie_end_date,
+}) {
   const [visible, setVisible] = useState(true);
   const {
     removeLog,
     updateLog,
     updateDate,
+    updateEndDate,
     userLogs,
     addSeason,
     updateSeasonDate,
@@ -81,6 +88,49 @@ export default function LogComponent({ log_id, movie, logtext, created_at }) {
       setSaving(false);
       alert("Failed to save date. Please try again.");
       console.error("Error updating date:", error);
+    }
+  }
+
+  const isMultiDay = !!movie_end_date;
+
+  // Save the multi-day end date for a movie log
+  async function handleEndDateChange(newDate) {
+    const isoDate = newDate.toISOString();
+    setSaving(true);
+    const { error } = await supabase
+      .from("logs")
+      .update({ movie_end_date: isoDate })
+      .eq("id", log_id);
+
+    if (!error) {
+      updateEndDate(log_id, isoDate);
+      setTimeout(() => setSaving(false), 1200);
+    } else {
+      setSaving(false);
+      alert("Failed to save date. Please try again.");
+      console.error("Error updating end date:", error);
+    }
+  }
+
+  // Toggle multi-day movie log mode on/off
+  async function handleMultiDayChange(enabled) {
+    // Enabling defaults the end date to the start date; disabling clears it
+    const newEndDate = enabled
+      ? created_at || new Date().toISOString()
+      : null;
+    setSaving(true);
+    const { error } = await supabase
+      .from("logs")
+      .update({ movie_end_date: newEndDate })
+      .eq("id", log_id);
+
+    if (!error) {
+      updateEndDate(log_id, newEndDate);
+      setTimeout(() => setSaving(false), 1200);
+    } else {
+      setSaving(false);
+      alert("Failed to update multi-day mode. Please try again.");
+      console.error("Error updating multi-day mode:", error);
     }
   }
 
@@ -146,6 +196,13 @@ export default function LogComponent({ log_id, movie, logtext, created_at }) {
               onDateChange={handleDateChange}
               showWeekday={true}
               dateColor="#fff"
+              iconGap="15px"
+              minWidth="auto"
+              enableMultiDay={true}
+              isMultiDay={isMultiDay}
+              endDate={movie_end_date ? new Date(movie_end_date) : null}
+              onEndDateChange={handleEndDateChange}
+              onMultiDayChange={handleMultiDayChange}
             />
           </div>
         </div>

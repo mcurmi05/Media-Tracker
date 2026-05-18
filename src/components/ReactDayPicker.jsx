@@ -9,6 +9,12 @@ export function Dialog({
   dateColor,
   iconGap = "10px",
   minWidth = "150px",
+  // Multi-day movie log support (movies only)
+  enableMultiDay = false,
+  endDate = null,
+  onEndDateChange,
+  isMultiDay = false,
+  onMultiDayChange,
 }) {
   const dialogRef = useRef(null);
   const dialogId = useId();
@@ -17,6 +23,8 @@ export function Dialog({
   const [month, setMonth] = useState(initialDate || new Date());
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  // Which date the calendar is editing while in multi-day mode
+  const [activeField, setActiveField] = useState("start");
 
   const toggleDialog = () => setIsDialogOpen(!isDialogOpen);
 
@@ -48,17 +56,60 @@ export function Dialog({
     return () => dialogEl.removeEventListener("click", onBackdropClick);
   }, [dialogRef]);
 
+  const dateFormat = showWeekday ? "EEE, dd MMM yyyy" : "dd MMM yyyy";
+
   // When a date is picked
   const handleDayPickerSelect = (date) => {
     if (!date) {
       dialogRef.current?.close();
       return;
     }
-    setSelectedDate(date);
     setMonth(date);
+    // Multi-day mode: route the pick to whichever field is active and keep open
+    if (enableMultiDay && isMultiDay) {
+      if (activeField === "end") {
+        if (onEndDateChange) onEndDateChange(date);
+      } else {
+        setSelectedDate(date);
+        if (onDateChange) onDateChange(date);
+      }
+      return;
+    }
+    // Single-day mode: pick and close
+    setSelectedDate(date);
     setIsDialogOpen(false);
-    if (onDateChange) onDateChange(date); // <-- Call parent handler
+    if (onDateChange) onDateChange(date);
   };
+
+  // Toggle between single-day and multi-day movie log mode
+  const handleMultiDayToggle = () => {
+    const next = !isMultiDay;
+    if (next) setActiveField("start");
+    if (onMultiDayChange) onMultiDayChange(next);
+  };
+
+  // Switch which date the calendar edits in multi-day mode
+  const selectField = (field) => {
+    setActiveField(field);
+    if (field === "end" && endDate) setMonth(endDate);
+    if (field === "start" && selectedDate) setMonth(selectedDate);
+  };
+
+  const multiDayActive = enableMultiDay && isMultiDay;
+  const calendarSelected =
+    multiDayActive && activeField === "end"
+      ? endDate || undefined
+      : selectedDate;
+
+  // Display text: single date, or "date1 - date2" in multi-day mode
+  let displayText = "Pick a date";
+  if (multiDayActive) {
+    const start = selectedDate ? format(selectedDate, dateFormat) : "...";
+    const end = endDate ? format(endDate, dateFormat) : "...";
+    displayText = `${start} - ${end}`;
+  } else if (selectedDate) {
+    displayText = format(selectedDate, dateFormat);
+  }
 
   return (
     <>
@@ -87,11 +138,7 @@ export function Dialog({
             flexShrink: 0,
           }}
         >
-          {selectedDate
-            ? showWeekday
-              ? format(selectedDate, "EEE, dd MMM yyyy")
-              : format(selectedDate, "dd MMM yyyy")
-            : "Pick a date"}
+          {displayText}
         </p>
         <img
           onClick={toggleDialog}
@@ -148,18 +195,87 @@ export function Dialog({
               ×
             </button>
             <div style={{ padding: 12, boxSizing: "border-box" }}>
+              {multiDayActive && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    justifyContent: "center",
+                    marginBottom: 10,
+                  }}
+                >
+                  {["start", "end"].map((field) => (
+                    <button
+                      key={field}
+                      onClick={() => selectField(field)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      style={{
+                        background:
+                          activeField === field ? "#e50914" : "transparent",
+                        color: "white",
+                        border: "1px solid #555",
+                        borderRadius: 6,
+                        padding: "6px 14px",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        textTransform: "capitalize",
+                        outline: "none",
+                      }}
+                    >
+                      {field}
+                    </button>
+                  ))}
+                </div>
+              )}
               <DayPicker
                 month={month}
                 onMonthChange={setMonth}
                 autoFocus
                 mode="single"
-                selected={selectedDate}
+                selected={calendarSelected}
                 onSelect={handleDayPickerSelect}
                 footer={
-                  selectedDate !== undefined &&
-                  `Selected: ${selectedDate.toDateString()}`
+                  multiDayActive
+                    ? `Start: ${
+                        selectedDate
+                          ? selectedDate.toDateString()
+                          : "not set"
+                      } - End: ${
+                        endDate ? endDate.toDateString() : "not set"
+                      }`
+                    : selectedDate !== undefined &&
+                      `Selected: ${selectedDate.toDateString()}`
                 }
               />
+              {enableMultiDay && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    marginTop: 10,
+                  }}
+                >
+                  <button
+                    onClick={handleMultiDayToggle}
+                    onMouseDown={(e) => e.preventDefault()}
+                    style={{
+                      background: "transparent",
+                      color: "white",
+                      border: "1px solid #555",
+                      borderRadius: 6,
+                      padding: "6px 12px",
+                      cursor: "pointer",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      outline: "none",
+                    }}
+                  >
+                    {isMultiDay
+                      ? "Set to single day movie mode"
+                      : "Set to multi-day movie log"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </dialog>

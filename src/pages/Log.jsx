@@ -397,6 +397,7 @@ function Log() {
                   <LogComponent
                     log_id={item.data.id}
                     created_at={item.data.created_at}
+                    movie_end_date={item.data.movie_end_date}
                     movie={item.data.movie_object}
                     logtext={item.data.log}
                   />
@@ -473,6 +474,7 @@ function Log() {
                   <LogComponent
                     log_id={log.id}
                     created_at={log.created_at}
+                    movie_end_date={log.movie_end_date}
                     movie={log.movie_object}
                     logtext={log.log}
                   />
