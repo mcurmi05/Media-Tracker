@@ -9,22 +9,19 @@ export function Dialog({
   dateColor,
   iconGap = "10px",
   minWidth = "150px",
-  // Multi-day movie log support (movies only)
-  enableMultiDay = false,
-  endDate = null,
-  onEndDateChange,
-  isMultiDay = false,
-  onMultiDayChange,
+  // Text shown when no date is set
+  placeholder = "Pick a date",
+  // Optional extra action buttons rendered inside the picker modal.
+  // Each: { label, onClick, danger?, disabled? }
+  extraActions = [],
 }) {
   const dialogRef = useRef(null);
   const dialogId = useId();
   const headerId = useId();
 
   const [month, setMonth] = useState(initialDate || new Date());
-  const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
+  const [selectedDate, setSelectedDate] = useState(initialDate || undefined);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  // Which date the calendar is editing while in multi-day mode
-  const [activeField, setActiveField] = useState("start");
 
   const toggleDialog = () => setIsDialogOpen(!isDialogOpen);
 
@@ -47,10 +44,7 @@ export function Dialog({
     const dialogEl = dialogRef.current;
     if (!dialogEl) return;
     const onBackdropClick = (e) => {
-      // If the click target is the dialog itself (i.e., the backdrop), close without changing date
-      if (e.target === dialogEl) {
-        setIsDialogOpen(false);
-      }
+      if (e.target === dialogEl) setIsDialogOpen(false);
     };
     dialogEl.addEventListener("click", onBackdropClick);
     return () => dialogEl.removeEventListener("click", onBackdropClick);
@@ -58,58 +52,20 @@ export function Dialog({
 
   const dateFormat = showWeekday ? "EEE, dd MMM yyyy" : "dd MMM yyyy";
 
-  // When a date is picked
   const handleDayPickerSelect = (date) => {
     if (!date) {
       dialogRef.current?.close();
       return;
     }
     setMonth(date);
-    // Multi-day mode: route the pick to whichever field is active and keep open
-    if (enableMultiDay && isMultiDay) {
-      if (activeField === "end") {
-        if (onEndDateChange) onEndDateChange(date);
-      } else {
-        setSelectedDate(date);
-        if (onDateChange) onDateChange(date);
-      }
-      return;
-    }
-    // Single-day mode: pick and close
     setSelectedDate(date);
     setIsDialogOpen(false);
     if (onDateChange) onDateChange(date);
   };
 
-  // Toggle between single-day and multi-day movie log mode
-  const handleMultiDayToggle = () => {
-    const next = !isMultiDay;
-    if (next) setActiveField("start");
-    if (onMultiDayChange) onMultiDayChange(next);
-  };
-
-  // Switch which date the calendar edits in multi-day mode
-  const selectField = (field) => {
-    setActiveField(field);
-    if (field === "end" && endDate) setMonth(endDate);
-    if (field === "start" && selectedDate) setMonth(selectedDate);
-  };
-
-  const multiDayActive = enableMultiDay && isMultiDay;
-  const calendarSelected =
-    multiDayActive && activeField === "end"
-      ? endDate || undefined
-      : selectedDate;
-
-  // Display text: single date, or "date1 - date2" in multi-day mode
-  let displayText = "Pick a date";
-  if (multiDayActive) {
-    const start = selectedDate ? format(selectedDate, dateFormat) : "...";
-    const end = endDate ? format(endDate, dateFormat) : "...";
-    displayText = `${start} - ${end}`;
-  } else if (selectedDate) {
-    displayText = format(selectedDate, dateFormat);
-  }
+  const displayText = selectedDate
+    ? format(selectedDate, dateFormat)
+    : placeholder;
 
   return (
     <>
@@ -195,85 +151,54 @@ export function Dialog({
               ×
             </button>
             <div style={{ padding: 12, boxSizing: "border-box" }}>
-              {multiDayActive && (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    justifyContent: "center",
-                    marginBottom: 10,
-                  }}
-                >
-                  {["start", "end"].map((field) => (
-                    <button
-                      key={field}
-                      onClick={() => selectField(field)}
-                      onMouseDown={(e) => e.preventDefault()}
-                      style={{
-                        background:
-                          activeField === field ? "#e50914" : "transparent",
-                        color: "white",
-                        border: "1px solid #555",
-                        borderRadius: 6,
-                        padding: "6px 14px",
-                        cursor: "pointer",
-                        fontWeight: 600,
-                        textTransform: "capitalize",
-                        outline: "none",
-                      }}
-                    >
-                      {field}
-                    </button>
-                  ))}
-                </div>
-              )}
               <DayPicker
                 month={month}
                 onMonthChange={setMonth}
                 autoFocus
                 mode="single"
-                selected={calendarSelected}
+                selected={selectedDate}
                 onSelect={handleDayPickerSelect}
                 footer={
-                  multiDayActive
-                    ? `Start: ${
-                        selectedDate
-                          ? selectedDate.toDateString()
-                          : "not set"
-                      } - End: ${
-                        endDate ? endDate.toDateString() : "not set"
-                      }`
-                    : selectedDate !== undefined &&
-                      `Selected: ${selectedDate.toDateString()}`
+                  selectedDate
+                    ? `Selected: ${selectedDate.toDateString()}`
+                    : "Pick a date"
                 }
               />
-              {enableMultiDay && (
+              {extraActions.length > 0 && (
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "flex-end",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    justifyContent: "center",
                     marginTop: 10,
                   }}
                 >
-                  <button
-                    onClick={handleMultiDayToggle}
-                    onMouseDown={(e) => e.preventDefault()}
-                    style={{
-                      background: "transparent",
-                      color: "white",
-                      border: "1px solid #555",
-                      borderRadius: 6,
-                      padding: "6px 12px",
-                      cursor: "pointer",
-                      fontSize: "0.8rem",
-                      fontWeight: 600,
-                      outline: "none",
-                    }}
-                  >
-                    {isMultiDay
-                      ? "Set to single day movie mode"
-                      : "Set to multi-day movie log"}
-                  </button>
+                  {extraActions.map((action, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (!action.disabled && action.onClick) action.onClick();
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                      disabled={action.disabled}
+                      style={{
+                        background: action.danger ? "#c91919" : "transparent",
+                        color: action.disabled ? "#777" : "white",
+                        border: action.danger
+                          ? "1px solid #c91919"
+                          : "1px solid #555",
+                        borderRadius: 6,
+                        padding: "6px 12px",
+                        cursor: action.disabled ? "default" : "pointer",
+                        fontSize: "0.8rem",
+                        fontWeight: 600,
+                        outline: "none",
+                      }}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

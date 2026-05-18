@@ -59,7 +59,8 @@
   color: #ffffff;
   font-size: 24px;
   cursor: pointer;
-  padding: 0;
+  padding: 0 0 4px 0;
+  box-sizing: border-box;
   width: 30px;
   height: 30px;
   display: flex;
@@ -69,7 +70,7 @@
 }
 
 .modal-close:hover {
-  background-color: #444;
+  background-color: transparent;
 }
 
 .book-log-form {

@@ -41,7 +41,7 @@ function Search() {
 
   const location = useLocation();
   const [resultsMode, setResultsMode] = useState(null);
-  const [bookSort, setBookSort] = useState("title");
+  const [bookSort, setBookSort] = useState("series");
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

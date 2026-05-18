@@ -37,12 +37,13 @@ export default function LogComponent({
     removeLog,
     updateLog,
     updateDate,
-    updateEndDate,
     userLogs,
     addSeason,
     updateSeasonDate,
     removeSeasonAt,
     setSeasonFinished,
+    setSeasonDnf,
+    patchLog,
   } = useLogs();
   const [showRemoveSeasonModal, setShowRemoveSeasonModal] = useState(false);
   const [seasonToRemoveIndex, setSeasonToRemoveIndex] = useState(null);
@@ -91,47 +92,62 @@ export default function LogComponent({
     }
   }
 
-  const isMultiDay = !!movie_end_date;
+  const liveLog = userLogs.find((l) => l.id === log_id);
+  const movieEndDate = liveLog?.movie_end_date ?? movie_end_date;
+  const isMultiDay = !!liveLog?.multi_day;
+  const movieDnf = !!liveLog?.dnf;
 
-  // Save the multi-day end date for a movie log
-  async function handleEndDateChange(newDate) {
-    const isoDate = newDate.toISOString();
+  // Persist a partial update to this movie log, then sync local state.
+  async function persistLog(updates, failMsg) {
     setSaving(true);
     const { error } = await supabase
       .from("logs")
-      .update({ movie_end_date: isoDate })
+      .update(updates)
       .eq("id", log_id);
 
     if (!error) {
-      updateEndDate(log_id, isoDate);
+      patchLog(log_id, updates);
       setTimeout(() => setSaving(false), 1200);
     } else {
       setSaving(false);
-      alert("Failed to save date. Please try again.");
-      console.error("Error updating end date:", error);
+      alert(failMsg);
+      console.error(failMsg, error);
     }
   }
 
-  // Toggle multi-day movie log mode on/off
-  async function handleMultiDayChange(enabled) {
-    // Enabling defaults the end date to the start date; disabling clears it
-    const newEndDate = enabled
-      ? created_at || new Date().toISOString()
-      : null;
-    setSaving(true);
-    const { error } = await supabase
-      .from("logs")
-      .update({ movie_end_date: newEndDate })
-      .eq("id", log_id);
+  // Save the multi-day end date for a movie log (also clears any DNF state)
+  function handleEndDateChange(newDate) {
+    return persistLog(
+      { movie_end_date: newDate.toISOString(), dnf: false },
+      "Failed to save date. Please try again.",
+    );
+  }
 
-    if (!error) {
-      updateEndDate(log_id, newEndDate);
-      setTimeout(() => setSaving(false), 1200);
-    } else {
-      setSaving(false);
-      alert("Failed to update multi-day mode. Please try again.");
-      console.error("Error updating multi-day mode:", error);
-    }
+  // Clear the multi-day end date, leaving the movie in-progress
+  function handleClearEndDate() {
+    return persistLog(
+      { movie_end_date: null },
+      "Failed to clear end date. Please try again.",
+    );
+  }
+
+  // Mark the multi-day movie as DNF, or undo it
+  function handleMovieDnf(value) {
+    return persistLog(
+      value ? { dnf: true, movie_end_date: null } : { dnf: false },
+      "Failed to update DNF state. Please try again.",
+    );
+  }
+
+  // Toggle multi-day movie log mode on/off. Enabling leaves the movie
+  // in-progress (no end date); disabling clears the end date and DNF state.
+  function handleMultiDayChange(enabled) {
+    return persistLog(
+      enabled
+        ? { multi_day: true, movie_end_date: null }
+        : { multi_day: false, movie_end_date: null, dnf: false },
+      "Failed to update multi-day mode. Please try again.",
+    );
   }
 
   async function confirmDeleteLog() {
@@ -168,6 +184,34 @@ export default function LogComponent({
   }, [text, visible, created_at, movie, textEdited, updateLog, log_id]);
 
   if (!visible) return null;
+
+  // Action buttons offered inside the movie date pickers. DNF can only be
+  // set from here; it is undone by clicking the red DNF badge.
+  const movieActions = [
+    {
+      label: isMultiDay
+        ? "Set to single-day movie log"
+        : "Set to multi-day movie log",
+      onClick: () => handleMultiDayChange(!isMultiDay),
+    },
+  ];
+  if (isMultiDay) {
+    movieActions.push({
+      label: "Clear end date",
+      onClick: handleClearEndDate,
+      disabled: !movieEndDate,
+    });
+    if (!movieDnf) {
+      movieActions.push({
+        label: "DNF",
+        onClick: () => handleMovieDnf(true),
+        danger: true,
+      });
+    }
+  }
+
+  const dateLabelStyle = { fontSize: "0.9rem", color: "#ccc" };
+
   return (
     //i am fully aware of how lazy this is
     <div className="log-rating-wrapper">
@@ -178,33 +222,84 @@ export default function LogComponent({
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            gap: "26px",
+            flexWrap: "wrap",
             marginBottom: "18px",
           }}
         >
           <div
-            className="date-picker-log"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "100%",
-              paddingLeft: "200px",
-            }}
+            style={{ display: "flex", alignItems: "center", gap: "8px" }}
           >
+            {isMultiDay && <span style={dateLabelStyle}>Started:</span>}
             <Dialog
               initialDate={created_at ? new Date(created_at) : new Date()}
               onDateChange={handleDateChange}
               showWeekday={true}
               dateColor="#fff"
-              iconGap="15px"
+              iconGap="10px"
               minWidth="auto"
-              enableMultiDay={true}
-              isMultiDay={isMultiDay}
-              endDate={movie_end_date ? new Date(movie_end_date) : null}
-              onEndDateChange={handleEndDateChange}
-              onMultiDayChange={handleMultiDayChange}
+              extraActions={movieActions}
             />
           </div>
+
+          {isMultiDay &&
+            (movieDnf ? (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <span style={dateLabelStyle}>Finished:</span>
+                <span
+                  className="dnf-badge"
+                  onClick={() => handleMovieDnf(false)}
+                  title="Undo did not finish"
+                >
+                  DNF
+                </span>
+              </div>
+            ) : movieEndDate ? (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <span style={dateLabelStyle}>Finished:</span>
+                <Dialog
+                  key={movieEndDate}
+                  initialDate={new Date(movieEndDate)}
+                  onDateChange={handleEndDateChange}
+                  showWeekday={true}
+                  dateColor="#fff"
+                  iconGap="10px"
+                  minWidth="auto"
+                  extraActions={movieActions}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => handleEndDateChange(new Date())}
+                aria-label="Mark as finished"
+                title="Mark as finished"
+                style={{
+                  background: "transparent",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 4,
+                  padding: "5px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <img
+                  src="/watched.png"
+                  alt="Mark as finished"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    transform: "translateY(-2px)",
+                  }}
+                />
+              </button>
+            ))}
         </div>
       )}
 
@@ -261,7 +356,7 @@ export default function LogComponent({
                         </div>
                         {/* actions: undo/mark-finished and delete - sit to the right of label */}
                         <div className="season-actions">
-                          {!s.finished ? (
+                          {!s.finished && !s.dnf && (
                             <button
                               onClick={() =>
                                 setSeasonFinished(log_id, idx, true)
@@ -290,7 +385,8 @@ export default function LogComponent({
                                 }}
                               />
                             </button>
-                          ) : (
+                          )}
+                          {s.finished && (
                             <button
                               onClick={() => {
                                 setUndoSeasonIndex(idx);
@@ -316,7 +412,6 @@ export default function LogComponent({
                               />
                             </button>
                           )}
-
                           {/* show remove button only for the last season */}
                           {idx === arr.length - 1 && (
                             <img
@@ -360,6 +455,18 @@ export default function LogComponent({
                             dateColor="#fff"
                             iconGap="8px"
                             minWidth="110px"
+                            extraActions={
+                              !s.finished && !s.dnf
+                                ? [
+                                    {
+                                      label: "DNF",
+                                      onClick: () =>
+                                        setSeasonDnf(log_id, idx, true),
+                                      danger: true,
+                                    },
+                                  ]
+                                : []
+                            }
                           />
                         </div>
 
@@ -392,6 +499,18 @@ export default function LogComponent({
                               iconGap="6px"
                               minWidth="120px"
                             />
+                          </div>
+                        )}
+
+                        {s.dnf && (
+                          <div className="season-chunk">
+                            <span
+                              className="dnf-badge"
+                              onClick={() => setSeasonDnf(log_id, idx, false)}
+                              title="Undo did not finish"
+                            >
+                              DNF
+                            </span>
                           </div>
                         )}
                       </div>

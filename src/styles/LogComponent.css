@@ -171,3 +171,24 @@
   outline: none;
   box-shadow: none;
 }
+
+/* DNF (did not finish) badge - click to undo */
+.dnf-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #c91919;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 11px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  line-height: 1.5;
+  user-select: none;
+}
+.dnf-badge:hover {
+  background: #e23030;
+}

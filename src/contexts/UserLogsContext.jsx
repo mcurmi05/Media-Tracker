@@ -125,6 +125,44 @@ export const UserLogsProvider = ({ children }) => {
     }
   };
 
+  // Mark a season as DNF (did not finish), or clear that flag.
+  // A DNF season is not "finished", so finished state is cleared alongside.
+  const setSeasonDnf = async (log_id, seasonIndex, dnf) => {
+    const applyUpdate = (current) => {
+      if (!current[seasonIndex]) return current;
+      current[seasonIndex] = {
+        ...current[seasonIndex],
+        dnf: !!dnf,
+        finished: dnf ? false : current[seasonIndex].finished,
+        finished_at: dnf ? null : current[seasonIndex].finished_at,
+        end_date: dnf ? null : current[seasonIndex].end_date,
+      };
+      return current;
+    };
+
+    setUserLogs((prev) =>
+      prev.map((l) => {
+        if (l.id !== log_id) return l;
+        const current = Array.isArray(l.season_info) ? [...l.season_info] : [];
+        return { ...l, season_info: applyUpdate(current) };
+      }),
+    );
+
+    try {
+      const logRow = userLogs.find((x) => x.id === log_id);
+      const current = logRow?.season_info ? [...logRow.season_info] : [];
+      if (!current[seasonIndex]) return;
+      applyUpdate(current);
+      const { error } = await supabase
+        .from("logs")
+        .update({ season_info: current })
+        .eq("id", log_id);
+      if (error) console.error("Failed to persist setSeasonDnf:", error);
+    } catch (err) {
+      console.error("setSeasonDnf error:", err);
+    }
+  };
+
   // Update a single season date (start_date or end_date)
   const updateSeasonDate = async (log_id, seasonIndex, field, isoDate) => {
     // field should be 'start_date' or 'end_date'
@@ -237,6 +275,15 @@ export const UserLogsProvider = ({ children }) => {
     );
   };
 
+  // Merge an arbitrary set of fields into a log row (local state only).
+  const patchLog = (log_id, updates) => {
+    setUserLogs((prev) =>
+      prev.map((log) =>
+        log.id === log_id ? { ...log, ...updates } : log,
+      ),
+    );
+  };
+
   const removeLog = (log_id) => {
     setUserLogs((prev) => prev.filter((log) => log.id !== log_id));
   };
@@ -272,10 +319,12 @@ export const UserLogsProvider = ({ children }) => {
         removeSeason,
         removeSeasonAt,
         setSeasonFinished,
+        setSeasonDnf,
         removeLog,
         updateLog,
         updateDate,
         updateEndDate,
+        patchLog,
       }}
     >
       {children}

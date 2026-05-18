@@ -132,12 +132,13 @@ function Trending() {
             border: "1px solid #cccccc",
             borderRadius: "6px",
             backgroundColor: "#3b3b3b",
-            color: "#898888ff",
+            color: "#ffffff",
             fontSize: "0.8rem",
             outline: "none",
             textAlign: "center",
             minWidth: "140px",
             margin: "6px",
+            marginTop: "10px",
           }}
         >
           <option value="movies">Movies</option>

@@ -140,7 +140,7 @@ const BookLogCard = ({ bookLog }) => {
       const month = String(today.getMonth() + 1).padStart(2, "0");
       const day = String(today.getDate()).padStart(2, "0");
       const dateString = `${year}-${month}-${day}`;
-      await updateBookLog(bookLog.id, { end_date: dateString });
+      await updateBookLog(bookLog.id, { end_date: dateString, dnf: false });
       setTimeout(() => setButtonSaving(false), 1200);
     } catch (error) {
       setButtonSaving(false);
@@ -158,6 +158,22 @@ const BookLogCard = ({ bookLog }) => {
       setButtonSaving(false);
       console.error("Error marking as unread:", error);
       alert("Failed to mark as unread. Please try again.");
+    }
+  };
+
+  // Mark this book as DNF (did not finish), or undo it.
+  const handleDnf = async (value) => {
+    try {
+      setButtonSaving(true);
+      await updateBookLog(
+        bookLog.id,
+        value ? { dnf: true, end_date: null } : { dnf: false },
+      );
+      setTimeout(() => setButtonSaving(false), 1200);
+    } catch (error) {
+      setButtonSaving(false);
+      console.error("Error updating DNF:", error);
+      alert("Failed to update DNF. Please try again.");
     }
   };
 
@@ -370,6 +386,17 @@ const BookLogCard = ({ bookLog }) => {
                 showWeekday={false}
                 dateColor="#ffffff"
                 minWidth="120px"
+                extraActions={
+                  !bookLog.end_date && !bookLog.dnf
+                    ? [
+                        {
+                          label: "DNF",
+                          onClick: () => handleDnf(true),
+                          danger: true,
+                        },
+                      ]
+                    : []
+                }
               />
             </div>
 
@@ -409,6 +436,18 @@ const BookLogCard = ({ bookLog }) => {
                   }}
                 />
               </div>
+            ) : bookLog.dnf ? (
+              <span
+                className="dnf-badge"
+                onClick={buttonSaving ? undefined : () => handleDnf(false)}
+                title="Undo did not finish"
+                style={{
+                  transform: "translateY(-4px)",
+                  cursor: buttonSaving ? "default" : "pointer",
+                }}
+              >
+                DNF
+              </span>
             ) : (
               <button
                 onClick={handleMarkRead}
