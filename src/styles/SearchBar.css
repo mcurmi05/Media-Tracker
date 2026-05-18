@@ -23,29 +23,33 @@
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
-  min-width: 100px;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-mode-toggle:hover {
   background-color: #444;
 }
 
-.search-mode-short {
-  display: none;
+.search-mode-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
 }
 
-@media (max-width: 500px) {
-  .search-mode-full {
+/* In Movies/TV mode the Add Book button is hidden but still reserves
+   space - drop it from layout on narrow screens to reclaim that gap */
+@media (max-width: 430px) {
+  .search-add-book.movies-mode {
     display: none;
   }
+}
 
-  .search-mode-short {
-    display: inline;
-  }
-
-  .search-mode-toggle {
-    min-width: 0;
+/* Drop the left padding so the search bar sits flush left */
+@media (max-width: 400px) {
+  .search-form {
+    padding-left: 0;
   }
 }
 

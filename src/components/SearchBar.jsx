@@ -135,17 +135,11 @@ export default function SearchBar() {
               : "Switch to Books"
           }
         >
-          {searchMode === "books" ? (
-            <>
-              <span className="search-mode-full">Books</span>
-              <span className="search-mode-short">B</span>
-            </>
-          ) : (
-            <>
-              <span className="search-mode-full">Movies/TV</span>
-              <span className="search-mode-short">M/TV</span>
-            </>
-          )}
+          <img
+            className="search-mode-icon"
+            src={searchMode === "books" ? "/book.png" : "/movie.png"}
+            alt={searchMode === "books" ? "Books" : "Movies/TV"}
+          />
         </button>
         <input
           type="text"
@@ -159,7 +153,9 @@ export default function SearchBar() {
         </button>
         <button
           type="button"
-          className="search-add-book"
+          className={`search-add-book ${
+            searchMode === "books" ? "books-mode" : "movies-mode"
+          }`}
           onClick={() => setShowAddBook(true)}
           title="Add Book to Library"
           aria-label="Add Book to Library"
