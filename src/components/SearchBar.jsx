@@ -135,7 +135,17 @@ export default function SearchBar() {
               : "Switch to Books"
           }
         >
-          {searchMode === "books" ? "Books" : "Movies/TV"}
+          {searchMode === "books" ? (
+            <>
+              <span className="search-mode-full">Books</span>
+              <span className="search-mode-short">B</span>
+            </>
+          ) : (
+            <>
+              <span className="search-mode-full">Movies/TV</span>
+              <span className="search-mode-short">M/TV</span>
+            </>
+          )}
         </button>
         <input
           type="text"

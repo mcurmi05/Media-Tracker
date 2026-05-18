@@ -31,6 +31,24 @@
   background-color: #444;
 }
 
+.search-mode-short {
+  display: none;
+}
+
+@media (max-width: 500px) {
+  .search-mode-full {
+    display: none;
+  }
+
+  .search-mode-short {
+    display: inline;
+  }
+
+  .search-mode-toggle {
+    min-width: 0;
+  }
+}
+
 .search-mode-toggle:focus,
 .search-mode-toggle:focus-visible,
 .search-mode-toggle:active {

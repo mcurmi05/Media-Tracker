@@ -34,6 +34,11 @@
   margin-top:5px;
 }
 
+.home-and-gh{
+  display:flex;
+  gap:1rem;
+}
+
 .nav-link:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
@@ -120,7 +125,7 @@
   color: #fff;
 }
 
-@media (max-width: 1570px) {
+@media (max-width: 1720px) {
 
   .navbar-links{
     gap:0.5rem;
@@ -132,7 +137,7 @@
 
 }
 
-@media (max-width:850px){
+@media (max-width:1100px){
   .burger-menu-container {
     display: block;
   }
@@ -140,9 +145,39 @@
   .names-to-links{
     display:block;
   }
-  
+
   .navbar-links {
     display: none;
+  }
+
+  .home-and-gh {
+    display: none;
+  }
+
+  /* Only the search bar and burger remain: center the search bar,
+     keep the burger pinned to the right edge */
+  .navbar {
+    position: relative;
+    justify-content: flex-end;
+  }
+
+  .search-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width:800px){
+  /* Stop centering the search bar - left-justify it instead */
+  .navbar {
+    justify-content: space-between;
+  }
+
+  .search-container {
+    position: relative;
+    left: auto;
+    transform: none;
   }
 }
 
@@ -170,11 +205,6 @@
     display:none;
   }
 
-}
-
-.home-and-gh{
-  display:flex;
-  gap:1rem;
 }
 
 .github-icon{

@@ -98,6 +98,13 @@ function NavBar() {
 
         {isMenuOpen && (
           <div className="burger-dropdown">
+            <Link to="/" className="dropdown-nav-item" onClick={handleLinkClick}>
+              <div className="navbar-icon-div">
+                <img className="nav-icon" src="/home.png"></img>
+                <p className="names-to-links">Home</p>
+              </div>
+            </Link>
+
             <Link
               to="/trending"
               className="dropdown-nav-item"
