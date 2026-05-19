@@ -2,6 +2,7 @@ import {useState} from "react";
 import {supabase} from "../services/supabase-client.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
+import "../styles/SignIn.css";
 
 export const SignIn = () => {
 
@@ -9,9 +10,11 @@ export const SignIn = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
+    const [showPassword, setShowPassword] = useState(false);
+
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
-    
+
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
 
@@ -25,13 +28,13 @@ export const SignIn = () => {
         e.preventDefault();
         setLoading(true);
         setMessage("");
-        
+
         if (isSignUp) {
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
             });
-            
+
             if (error) {
                 setMessage("Error: " + error.message);
             } else if (data.user && !data.session) {
@@ -45,7 +48,7 @@ export const SignIn = () => {
                 email,
                 password
             });
-            
+
             if (error) {
                 setMessage("Error: " + error.message);
             } else {
@@ -56,44 +59,85 @@ export const SignIn = () => {
         setLoading(false);
     };
 
+    const isError = message.includes("Error");
+
     return (
-        <div>
-            
-            <h2>{isSignUp ? "Sign Up" : "Sign In"}</h2>
-            
-            {message && (
-                <p style={{color: message.includes("Error") ? "red" : "green"}}>
-                    {message}
-                </p>
-            )}
+        <div className="signin-page">
+            <div className="signin-card">
 
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
+                <div className="signin-header">
+                    <h2 className="signin-title">
+                        {isSignUp ? "Create an account" : "Welcome back"}
+                    </h2>
+                    <p className="signin-subtitle">
+                        {isSignUp
+                            ? "Sign up to start building your library"
+                            : "Sign in to continue to your library"}
+                    </p>
+                </div>
 
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
+                {message && (
+                    <p className={`signin-message ${isError ? "error" : "success"}`}>
+                        {message}
+                    </p>
+                )}
 
-                <button type="submit" disabled={loading}>
-                    {loading ? "Loading..." : (isSignUp ? "Sign Up" : "Sign In")}
+                <form className="signin-form" onSubmit={handleSubmit}>
+                    <div className="signin-field">
+                        <label className="signin-label" htmlFor="signin-email">Email</label>
+                        <input
+                            id="signin-email"
+                            className="signin-input"
+                            type="email"
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    <div className="signin-field">
+                        <label className="signin-label" htmlFor="signin-password">Password</label>
+                        <div className="signin-password-wrapper">
+                            <input
+                                id="signin-password"
+                                className="signin-input"
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Enter your password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                            <button
+                                type="button"
+                                className="signin-password-toggle"
+                                onClick={() => setShowPassword(!showPassword)}
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                            >
+                                {showPassword ? "Hide" : "Show"}
+                            </button>
+                        </div>
+                    </div>
+
+                    <button className="signin-submit" type="submit" disabled={loading}>
+                        {loading ? "Loading..." : (isSignUp ? "Sign Up" : "Sign In")}
+                    </button>
+                </form>
+
+                <div className="signin-divider">
+                    {isSignUp ? "Already a member?" : "New here?"}
+                </div>
+
+                <button
+                    className="signin-toggle"
+                    onClick={() => { setIsSignUp(!isSignUp); setMessage(""); }}
+                >
+                    {isSignUp
+                        ? <>Already have an account? <strong>Sign in</strong></>
+                        : <>Not registered? <strong>Sign up</strong></>}
                 </button>
-            </form>
 
-            <button onClick={() => setIsSignUp(!isSignUp)}>
-                {isSignUp ? "Already have an account? Sign in" : "Not registered? Sign up"}
-            </button>
+            </div>
         </div>
     );
 }
-  
-

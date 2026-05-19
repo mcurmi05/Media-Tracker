@@ -1,0 +1,203 @@
+.signin-page {
+  flex: 1;
+  /* Escape the .main-content 2rem padding so the background bleeds to every edge */
+  margin: -2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 3rem;
+  background:
+    radial-gradient(circle at 0% 50%, rgba(229, 9, 20, 0.22), transparent 45%),
+    radial-gradient(circle at 100% 50%, rgba(229, 9, 20, 0.22), transparent 45%),
+    #242424;
+}
+
+.signin-card {
+  width: 100%;
+  max-width: 400px;
+  background-color: #1f1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.signin-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.signin-title {
+  font-size: 1.7rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.signin-subtitle {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.signin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.signin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.signin-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.signin-input {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: #fff;
+  background-color: #2a2929;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.signin-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.signin-input:focus {
+  outline: none;
+  border-color: #e50914;
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
+}
+
+.signin-password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.signin-password-wrapper .signin-input {
+  padding-right: 3.5rem;
+}
+
+.signin-password-toggle {
+  position: absolute;
+  right: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.signin-password-toggle:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: transparent;
+}
+
+.signin-submit {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background-color: #e50914;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.signin-submit:hover:not(:disabled) {
+  background-color: #f6121d;
+  border-color: transparent;
+}
+
+.signin-submit:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.signin-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.signin-message {
+  margin-bottom: 1.25rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.signin-message.error {
+  color: #ff8a8a;
+  background-color: rgba(229, 9, 20, 0.12);
+  border: 1px solid rgba(229, 9, 20, 0.3);
+}
+
+.signin-message.success {
+  color: #8affb0;
+  background-color: rgba(40, 200, 100, 0.12);
+  border: 1px solid rgba(40, 200, 100, 0.3);
+}
+
+.signin-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0 1rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.8rem;
+}
+
+.signin-divider::before,
+.signin-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.signin-toggle {
+  width: 100%;
+  padding: 0.65rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.signin-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.signin-toggle strong {
+  color: #e50914;
+  font-weight: 600;
+}
+
+/* Kill the default blue focus ring on every interactive element on this page */
+.signin-page button:focus,
+.signin-page button:focus-visible,
+.signin-page input:focus,
+.signin-page input:focus-visible {
+  outline: none;
+}

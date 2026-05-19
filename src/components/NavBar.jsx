@@ -8,7 +8,9 @@ import "../styles/NavBar.css";
 function NavBar() {
   const { clearSearch } = useSearch();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const burgerMenuRef = useRef(null);
+  const profileMenuRef = useRef(null);
 
   const { isAuthenticated, user, signOut, loading } = useAuth();
   const navigate = useNavigate();
@@ -27,6 +29,7 @@ function NavBar() {
     await signOut();
     clearSearch();
     setIsMenuOpen(false);
+    setIsProfileMenuOpen(false);
   };
 
   const handleAuthOnlyRouteClick = (route) => {
@@ -47,6 +50,12 @@ function NavBar() {
         !burgerMenuRef.current.contains(event.target)
       ) {
         setIsMenuOpen(false);
+      }
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target)
+      ) {
+        setIsProfileMenuOpen(false);
       }
     };
 
@@ -230,12 +239,25 @@ function NavBar() {
         </a>
 
         {isAuthenticated ? (
-          <div className="user-avatar-container">
+          <div className="user-avatar-container" ref={profileMenuRef}>
             <img
               className="user-avatar"
               src={getAvatarUrl(user?.email)}
-              onClick={handleSignOut}
+              onClick={() => setIsProfileMenuOpen((open) => !open)}
             />
+            {isProfileMenuOpen && (
+              <div className="profile-dropdown">
+                <div
+                  className="dropdown-nav-item"
+                  onClick={handleSignOut}
+                >
+                  <div className="navbar-icon-div">
+                    <img className="nav-icon" src="/signin.png" alt="" />
+                    <p className="names-to-links">Sign Out</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <Link to="/signin" className="nav-link" onClick={clearSearch}>

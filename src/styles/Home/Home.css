@@ -390,6 +390,13 @@
 .hp-feed-dot-finish {
   background: #7bbd6a;
 }
+.hp-feed-media-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-left: -4px;
+}
 .hp-feed-body {
   flex: 1;
   min-width: 0;

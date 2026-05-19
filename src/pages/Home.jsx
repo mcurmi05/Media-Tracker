@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useRatings } from "../contexts/UserRatingsContext";
@@ -7,6 +7,7 @@ import { useWatchlist } from "../contexts/UserWatchlistContext";
 import { useBookRatings } from "../contexts/UserBookRatingsContext";
 import { useBookLogs } from "../contexts/UserBookLogsContext";
 import { useBookTbr } from "../contexts/UserBookTbrContext";
+import { SignIn } from "./SignIn.jsx";
 import "../styles/Home/Home.css";
 
 /* ---------- helpers ---------- */
@@ -42,6 +43,25 @@ function timeAgo(value) {
 const byDateDesc = (key) => (a, b) =>
   new Date(b[key] || 0).getTime() - new Date(a[key] || 0).getTime();
 
+// Most-recent activity date for a movie/TV log - mirrors the Log page so the
+// home strips list logs in the same order they appear there.
+function mostRecentLogDate(log) {
+  const seasons = log.season_info;
+  if (Array.isArray(seasons) && seasons.length > 0) {
+    const last = seasons[seasons.length - 1];
+    if (last.end_date && last.finished) return new Date(last.end_date);
+    if (last.start_date) return new Date(last.start_date);
+  }
+  return new Date(log.created_at);
+}
+
+// Most-recent activity date for a book log - also mirrors the Log page.
+function mostRecentBookLogDate(bookLog) {
+  if (bookLog.end_date) return new Date(bookLog.end_date);
+  if (bookLog.start_date) return new Date(bookLog.start_date);
+  return new Date(bookLog.created_at);
+}
+
 // rank ascending (1 is best); unranked sinks to the bottom
 const byRank = (a, b) =>
   (a.ranking ?? Number.MAX_SAFE_INTEGER) - (b.ranking ?? Number.MAX_SAFE_INTEGER);
@@ -61,9 +81,26 @@ function Section({ label, hint, children }) {
 }
 
 function CoverStrip({ tiles, empty }) {
+  const stripRef = useRef(null);
+
+  // Translate vertical wheel scrolling into horizontal movement of the strip.
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (el.scrollWidth <= el.clientWidth) return; // nothing to scroll
+      // Leave genuine horizontal (trackpad) gestures to the browser.
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [tiles.length]);
+
   if (!tiles.length) return <p className="hp-empty">{empty}</p>;
   return (
-    <div className="hp-strip">
+    <div className="hp-strip" ref={stripRef}>
       {tiles.map((t, i) => (
         <div
           key={`${t.key || "x"}-${i}`}
@@ -75,6 +112,7 @@ function CoverStrip({ tiles, empty }) {
             <img
               src={t.cover || "/placeholderimage.jpg"}
               alt=""
+              decoding="async"
               style={{ objectFit: t.fit || "cover" }}
               onError={(e) => {
                 e.target.onerror = null;
@@ -98,7 +136,7 @@ function CoverStrip({ tiles, empty }) {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const { userRatings } = useRatings();
   const { userLogs } = useLogs();
   const { userWatchlist } = useWatchlist();
@@ -121,6 +159,12 @@ export default function Home() {
       fit: "cover",
       onClick: () => mo?.id && navigate(`/mediadetails/${mo.id}`),
     }),
+    [navigate],
+  );
+
+  // Open the Logs page with its search bar pre-filled with this title.
+  const goLog = useCallback(
+    (title) => () => navigate("/log", { state: { searchTerm: title || "" } }),
     [navigate],
   );
 
@@ -147,7 +191,7 @@ export default function Home() {
       .map((r) => Number(r.rating))
       .filter((v) => v >= 1 && v <= 10);
     const avg = ratingValues.length
-      ? (ratingValues.reduce((s, v) => s + v, 0) / ratingValues.length).toFixed(1)
+      ? (ratingValues.reduce((s, v) => s + v, 0) / ratingValues.length).toFixed(2)
       : "-";
     const thisYear = userLogs.filter(
       (l) => new Date(l.created_at).getFullYear() === CURRENT_YEAR,
@@ -158,18 +202,30 @@ export default function Home() {
     return [
       {
         num: userLogs.filter((l) => !isTV(l.movie_object)).length,
-        label: "Films logged",
+        label: "Movies logged",
+        onClick: () =>
+          navigate("/log", { state: { mediaTypeFilter: "movies" } }),
       },
       {
         num: userLogs.filter((l) => isTV(l.movie_object)).length,
         label: "TV logged",
+        onClick: () => navigate("/log", { state: { mediaTypeFilter: "tv" } }),
       },
-      { num: bookLogs.length, label: "Books logged" },
+      {
+        num: bookLogs.length,
+        label: "Books logged",
+        onClick: () =>
+          navigate("/log", { state: { mediaTypeFilter: "books" } }),
+      },
       { num: avg, label: "Avg screen rating" },
       { num: thisYear, label: "Logged this year" },
-      { num: perfect, label: "Perfect 10s" },
+      {
+        num: perfect,
+        label: "Perfect 10s",
+        onClick: () => navigate("/ratings", { state: { ratingFilter: "10" } }),
+      },
     ];
-  }, [userRatings, userLogs, bookRatings, bookLogs]);
+  }, [userRatings, userLogs, bookRatings, bookLogs, navigate]);
 
   /* ---------- top 4 ranked per category ---------- */
 
@@ -232,6 +288,7 @@ export default function Home() {
       ev.push({
         date: r.created_at,
         type: "rate",
+        media: "screen",
         text: `Rated ${r.movie_object?.primaryTitle || "a title"}`,
         meta: `${r.rating}`,
         onClick: goMovie(r.movie_object?.id),
@@ -246,6 +303,7 @@ export default function Home() {
           ev.push({
             date: s.start_date || s.created_at || l.created_at,
             type: "log",
+            media: "screen",
             text: `Started watching Season ${s.season} of ${title}`,
             onClick: goLog(l.movie_object?.primaryTitle),
           }),
@@ -254,6 +312,7 @@ export default function Home() {
         ev.push({
           date: l.created_at,
           type: "log",
+          media: "screen",
           text: isTV(l.movie_object)
             ? `Started watching ${title}`
             : `Logged ${title}`,
@@ -265,6 +324,7 @@ export default function Home() {
       ev.push({
         date: w.created_at,
         type: "add",
+        media: "screen",
         text: `Added ${w.movie_object?.primaryTitle || "a title"} to watchlist`,
         onClick: goMovie(w.movie_object?.id),
       }),
@@ -273,6 +333,7 @@ export default function Home() {
       ev.push({
         date: r.created_at,
         type: "rate",
+        media: "book",
         text: `Rated ${stripSeries(r.book_entries?.title) || "a book"}`,
         meta: `${r.book_rating}`,
       }),
@@ -282,6 +343,7 @@ export default function Home() {
       ev.push({
         date: l.start_date || l.created_at,
         type: "log",
+        media: "book",
         text: `Started reading ${bookTitle}`,
         onClick: goLog(stripSeries(l.book_entries?.title)),
       });
@@ -289,6 +351,7 @@ export default function Home() {
         ev.push({
           date: l.end_date,
           type: "finish",
+          media: "book",
           text: `Finished reading ${bookTitle}`,
           onClick: goLog(stripSeries(l.book_entries?.title)),
         });
@@ -297,6 +360,7 @@ export default function Home() {
       ev.push({
         date: t.created_at,
         type: "add",
+        media: "book",
         text: `Added ${stripSeries(t.book_entries?.title) || "a book"} to TBR`,
       }),
     );
@@ -314,15 +378,21 @@ export default function Home() {
       const seasons = l.season_info || [];
       // a season counts as in-progress only if not finished and not DNF
       if (seasons.length && seasons.some((s) => !s.finished && !s.dnf))
-        items.push(
-          movieTile(l.movie_object, {}),
-        );
+        items.push({
+          ...movieTile(l.movie_object, {}),
+          onClick: goLog(l.movie_object?.primaryTitle),
+        });
     });
     bookLogs
       .filter((l) => !l.end_date && !l.dnf)
-      .forEach((l) => items.push(bookTile(l.book_entries, {})));
+      .forEach((l) =>
+        items.push({
+          ...bookTile(l.book_entries, {}),
+          onClick: goLog(stripSeries(l.book_entries?.title)),
+        }),
+      );
     return items;
-  }, [userLogs, bookLogs, movieTile, bookTile]);
+  }, [userLogs, bookLogs, movieTile, bookTile, goLog]);
 
   /* ---------- on this day: a past-year event sharing today's date ---------- */
 
@@ -417,27 +487,36 @@ export default function Home() {
     () =>
       [...userLogs]
         .filter((l) => !isTV(l.movie_object))
-        .sort(byDateDesc("created_at"))
+        .sort((a, b) => mostRecentLogDate(b) - mostRecentLogDate(a))
         .slice(0, 12)
-        .map((l) => movieTile(l.movie_object, {})),
-    [userLogs, movieTile],
+        .map((l) => ({
+          ...movieTile(l.movie_object, {}),
+          onClick: goLog(l.movie_object?.primaryTitle),
+        })),
+    [userLogs, movieTile, goLog],
   );
   const recentTvLogs = useMemo(
     () =>
       [...userLogs]
         .filter((l) => isTV(l.movie_object))
-        .sort(byDateDesc("created_at"))
+        .sort((a, b) => mostRecentLogDate(b) - mostRecentLogDate(a))
         .slice(0, 12)
-        .map((l) => movieTile(l.movie_object, {})),
-    [userLogs, movieTile],
+        .map((l) => ({
+          ...movieTile(l.movie_object, {}),
+          onClick: goLog(l.movie_object?.primaryTitle),
+        })),
+    [userLogs, movieTile, goLog],
   );
   const recentBookLogs = useMemo(
     () =>
       [...bookLogs]
-        .sort(byDateDesc("created_at"))
+        .sort((a, b) => mostRecentBookLogDate(b) - mostRecentBookLogDate(a))
         .slice(0, 12)
-        .map((l) => bookTile(l.book_entries, {})),
-    [bookLogs, bookTile],
+        .map((l) => ({
+          ...bookTile(l.book_entries, {}),
+          onClick: goLog(stripSeries(l.book_entries?.title)),
+        })),
+    [bookLogs, bookTile, goLog],
   );
   const recentWatchlist = useMemo(
     () =>
@@ -461,6 +540,11 @@ export default function Home() {
   const displayName =
     (user?.email || "").split("@")[0] || (isAuthenticated ? "there" : "");
 
+  // Signed-out visitors get the sign-in screen instead of an empty library.
+  if (!loading && !isAuthenticated) {
+    return <SignIn />;
+  }
+
   return (
     <div className="home-page">
       <header className="hp-header">
@@ -472,7 +556,7 @@ export default function Home() {
           <div className="hp-subhello">
             {isAuthenticated
               ? "Here's everything you've been watching and reading."
-              : "Sign in to track your films, shows and books."}
+              : "Sign in to track your movies, shows and books."}
           </div>
         </div>
       </header>
@@ -480,7 +564,12 @@ export default function Home() {
       {/* stats strip */}
       <div className="hp-stats">
         {stats.map((s) => (
-          <div className="hp-stat" key={s.label}>
+          <div
+            className="hp-stat"
+            key={s.label}
+            onClick={s.onClick}
+            style={{ cursor: s.onClick ? "pointer" : "default" }}
+          >
             <div className="hp-stat-num">{s.num}</div>
             <div className="hp-stat-label">{s.label}</div>
           </div>
@@ -534,7 +623,7 @@ export default function Home() {
                         </div>
                         <div className="hp-chart-tip-row">
                           <span>
-                            <i className="hp-dot hp-dot-film" /> Films
+                            <i className="hp-dot hp-dot-film" /> Movies
                           </span>
                           <b>{dist.film[rating]}</b>
                         </div>
@@ -588,6 +677,11 @@ export default function Home() {
                 style={{ cursor: e.onClick ? "pointer" : "default" }}
               >
                 <span className={`hp-feed-dot hp-feed-dot-${e.type}`} />
+                <img
+                  className="hp-feed-media-icon"
+                  src={e.media === "book" ? "/book.png" : "/movie.png"}
+                  alt={e.media === "book" ? "Book" : "Movie/TV"}
+                />
                 <span className="hp-feed-body">
                   <span className="hp-feed-text">{e.text}</span>
                   {e.meta && <span className="hp-feed-rating">{e.meta}</span>}
@@ -610,8 +704,8 @@ export default function Home() {
 
       {/* recent logs */}
       <Section label="Recent Logs">
-        <div className="hp-sub-label">Films</div>
-        <CoverStrip tiles={recentFilmLogs} empty="No film logs yet." />
+        <div className="hp-sub-label">Movies</div>
+        <CoverStrip tiles={recentFilmLogs} empty="No movie logs yet." />
         <div className="hp-sub-label">TV Shows</div>
         <CoverStrip tiles={recentTvLogs} empty="No TV logs yet." />
         <div className="hp-sub-label">Books</div>
@@ -620,8 +714,8 @@ export default function Home() {
 
       {/* recent ratings */}
       <Section label="Recent Ratings">
-        <div className="hp-sub-label">Films</div>
-        <CoverStrip tiles={recentFilmRatings} empty="No film ratings yet." />
+        <div className="hp-sub-label">Movies</div>
+        <CoverStrip tiles={recentFilmRatings} empty="No movie ratings yet." />
         <div className="hp-sub-label">TV Shows</div>
         <CoverStrip tiles={recentTvRatings} empty="No TV ratings yet." />
         <div className="hp-sub-label">Books</div>
@@ -648,6 +742,8 @@ export default function Home() {
               <img
                 src={onThisDay.cover || "/placeholderimage.jpg"}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 style={{ objectFit: onThisDay.fit }}
                 onError={(e) => {
                   e.target.onerror = null;
@@ -665,7 +761,7 @@ export default function Home() {
 
       {/* genre breakdown */}
       {genres.sorted.length > 0 && (
-        <Section label="Most-Watched Genres" hint="films & TV">
+        <Section label="Most-Watched Genres" hint="movies & TV">
           <div className="hp-genres">
             {genres.sorted.map(([name, count]) => (
               <div className="hp-genre-row" key={name}>
