@@ -12,6 +12,8 @@ import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import AddBookLogButton from "./AddBookLogButton.jsx";
 import RatingModal from "./RatingModal.jsx";
 import { getBookInfo } from "../utils/bookInfo.js";
+import { useNavigate } from "react-router-dom";
+import { bookDetailsRoute } from "../utils/goodreads.js";
 
 const modalStyle = {
   position: "absolute",
@@ -33,6 +35,7 @@ export default function BookTbrComponent({ tbrEntry }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [visible, setVisible] = useState(true);
+  const navigate = useNavigate();
   const book = getBookInfo(tbrEntry);
   const currentRating = findRatingForBook(tbrEntry)?.book_rating ?? 0;
 
@@ -65,9 +68,10 @@ export default function BookTbrComponent({ tbrEntry }) {
 
   if (!visible) return null;
 
-  const handleGoodreadsSearch = () => {
-    if (book.goodreads_link) {
-      window.open(book.goodreads_link, "_blank");
+  const openBookDetails = () => {
+    const route = bookDetailsRoute(book.goodreads_link);
+    if (route) {
+      navigate(route, { state: { book: tbrEntry.book_entries || book } });
     }
   };
 
@@ -99,7 +103,7 @@ export default function BookTbrComponent({ tbrEntry }) {
                 e.target.src = "/placeholderimage.jpg";
               }}
               className="rating-poster"
-              onClick={handleGoodreadsSearch}
+              onClick={openBookDetails}
               style={{
                 cursor: book.goodreads_link ? "pointer" : "default",
               }}
@@ -110,7 +114,7 @@ export default function BookTbrComponent({ tbrEntry }) {
             <div className="title-and-star">
               <p
                 className="movie-title"
-                onClick={handleGoodreadsSearch}
+                onClick={openBookDetails}
                 style={{
                   cursor: book.goodreads_link ? "pointer" : "default",
                 }}

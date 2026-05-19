@@ -6,6 +6,7 @@ import { SearchProvider } from "./contexts/SearchContext";
 import { PopularMoviesCacheProvider } from "./contexts/PopularMoviesCacheContext.jsx";
 import { Routes, Route } from "react-router-dom";
 import MediaDetails from "./pages/MediaDetails.jsx";
+import BookDetails from "./pages/BookDetails.jsx";
 import { SignIn } from "./pages/SignIn.jsx";
 import { supabase } from "./services/supabase-client.js";
 import { useState, useEffect } from "react";
@@ -60,6 +61,10 @@ function App() {
                         <Route
                           path="/mediadetails/:id"
                           element={<MediaDetails></MediaDetails>}
+                        />
+                        <Route
+                          path="/bookdetails/*"
+                          element={<BookDetails></BookDetails>}
                         />
                         <Route path="/signin" element={<SignIn></SignIn>} />
                         <Route path="/ratings" element={<Ratings></Ratings>} />

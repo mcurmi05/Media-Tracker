@@ -4,6 +4,7 @@ import { searchBookEntries } from "../services/ratingsfromtable.js";
 import { useSearch } from "../contexts/SearchContext";
 import { useNavigate } from "react-router-dom";
 import AddBookLog from "./AddBookLog.jsx";
+import { bookDetailsRoute } from "../utils/goodreads.js";
 import "../styles/SearchBar.css";
 
 export default function SearchBar() {
@@ -98,7 +99,10 @@ export default function SearchBar() {
   const handleDropdownClick = (item) => {
     setShowDropdown(false);
     if (searchMode === "books") {
-      if (item.goodreads_link) {
+      const route = bookDetailsRoute(item.goodreads_link);
+      if (route) {
+        navigate(route, { state: { book: item } });
+      } else if (item.goodreads_link) {
         window.open(item.goodreads_link, "_blank", "noopener,noreferrer");
       }
       return;

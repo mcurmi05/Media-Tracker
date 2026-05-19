@@ -123,6 +123,7 @@ export const findOrCreateBookEntry = async (bookData) => {
       ? Number(bookData.release_year) || null
       : null,
     goodreads_link: bookData?.goodreads_link || null,
+    book_description: bookData?.book_description || null,
   };
   return await createBookEntry(payload);
 };
@@ -140,6 +141,21 @@ export const searchBookEntries = async (query, limit = 100) => {
     .limit(limit);
   if (error) throw error;
   return data || [];
+};
+
+// Look up a single book_entries row by the path portion of its Goodreads
+// link (everything after "goodreads.com/"). Used by the book details page,
+// where that path is the route identifier.
+export const getBookEntryByGoodreadsPath = async (path) => {
+  const term = (path || "").trim();
+  if (!term) return null;
+  const { data, error } = await supabase
+    .from("book_entries")
+    .select("*")
+    .ilike("goodreads_link", `%${term}%`)
+    .limit(1);
+  if (error) throw error;
+  return (data && data[0]) || null;
 };
 
 // Return every row in book_entries.

@@ -8,6 +8,7 @@ import { useBookRatings } from "../contexts/UserBookRatingsContext";
 import { useBookLogs } from "../contexts/UserBookLogsContext";
 import { useBookTbr } from "../contexts/UserBookTbrContext";
 import { SignIn } from "./SignIn.jsx";
+import { bookDetailsRoute } from "../utils/goodreads.js";
 import "../styles/Home/Home.css";
 
 /* ---------- helpers ---------- */
@@ -177,11 +178,12 @@ export default function Home() {
       badge,
       rank,
       fit: "contain",
-      onClick: () =>
-        be?.goodreads_link &&
-        window.open(be.goodreads_link, "_blank", "noopener,noreferrer"),
+      onClick: () => {
+        const route = bookDetailsRoute(be?.goodreads_link);
+        if (route) navigate(route, { state: { book: be } });
+      },
     }),
-    [],
+    [navigate],
   );
 
   /* ---------- stats ---------- */
@@ -284,6 +286,13 @@ export default function Home() {
     // Open the Logs page with its search bar pre-filled with this title.
     const goLog = (title) => () =>
       navigate("/log", { state: { searchTerm: title || "" } });
+    // Open a book's details page, when it has a usable Goodreads link.
+    const goBook = (entry) => {
+      const route = bookDetailsRoute(entry?.goodreads_link);
+      return route
+        ? () => navigate(route, { state: { book: entry } })
+        : undefined;
+    };
     userRatings.forEach((r) =>
       ev.push({
         date: r.created_at,
@@ -336,6 +345,7 @@ export default function Home() {
         media: "book",
         text: `Rated ${stripSeries(r.book_entries?.title) || "a book"}`,
         meta: `${r.book_rating}`,
+        onClick: goBook(r.book_entries),
       }),
     );
     bookLogs.forEach((l) => {
@@ -362,6 +372,7 @@ export default function Home() {
         type: "add",
         media: "book",
         text: `Added ${stripSeries(t.book_entries?.title) || "a book"} to TBR`,
+        onClick: goBook(t.book_entries),
       }),
     );
     return ev
@@ -385,12 +396,7 @@ export default function Home() {
     });
     bookLogs
       .filter((l) => !l.end_date && !l.dnf)
-      .forEach((l) =>
-        items.push({
-          ...bookTile(l.book_entries, {}),
-          onClick: goLog(stripSeries(l.book_entries?.title)),
-        }),
-      );
+      .forEach((l) => items.push(bookTile(l.book_entries, {})));
     return items;
   }, [userLogs, bookLogs, movieTile, bookTile, goLog]);
 
@@ -424,9 +430,10 @@ export default function Home() {
         title: stripSeries(l.book_entries?.title),
         line: `You finished this in ${dt.getFullYear()}`,
         fit: "contain",
-        onClick: () =>
-          l.book_entries?.goodreads_link &&
-          window.open(l.book_entries.goodreads_link, "_blank", "noopener,noreferrer"),
+        onClick: () => {
+          const route = bookDetailsRoute(l.book_entries?.goodreads_link);
+          if (route) navigate(route, { state: { book: l.book_entries } });
+        },
       })),
     );
     hits.sort((a, b) => b.dt - a.dt);
@@ -512,11 +519,37 @@ export default function Home() {
       [...bookLogs]
         .sort((a, b) => mostRecentBookLogDate(b) - mostRecentBookLogDate(a))
         .slice(0, 12)
+        .map((l) => bookTile(l.book_entries, {})),
+    [bookLogs, bookTile],
+  );
+
+  /* ---------- recently DNFed, per category, in Log page order ---------- */
+
+  const dnfTvLogs = useMemo(
+    () =>
+      [...userLogs]
+        .filter(
+          (l) =>
+            isTV(l.movie_object) &&
+            Array.isArray(l.season_info) &&
+            l.season_info.some((s) => s.dnf),
+        )
+        .sort((a, b) => mostRecentLogDate(b) - mostRecentLogDate(a))
+        .slice(0, 12)
         .map((l) => ({
-          ...bookTile(l.book_entries, {}),
-          onClick: goLog(stripSeries(l.book_entries?.title)),
+          ...movieTile(l.movie_object, {}),
+          onClick: goLog(l.movie_object?.primaryTitle),
         })),
-    [bookLogs, bookTile, goLog],
+    [userLogs, movieTile, goLog],
+  );
+  const dnfBookLogs = useMemo(
+    () =>
+      [...bookLogs]
+        .filter((l) => l.dnf)
+        .sort((a, b) => mostRecentBookLogDate(b) - mostRecentBookLogDate(a))
+        .slice(0, 12)
+        .map((l) => bookTile(l.book_entries, {})),
+    [bookLogs, bookTile],
   );
   const recentWatchlist = useMemo(
     () =>
@@ -722,11 +755,13 @@ export default function Home() {
         <CoverStrip tiles={recentBookRatings} empty="No book ratings yet." />
       </Section>
 
-      {/* recent watchlist / tbr */}
-      <Section label="Recently Added">
-        <div className="hp-sub-label">Watchlist</div>
+      {/* recently added to watchlist */}
+      <Section label="Recently Added to Watchlist">
         <CoverStrip tiles={recentWatchlist} empty="Watchlist is empty." />
-        <div className="hp-sub-label">To Be Read</div>
+      </Section>
+
+      {/* recently added to TBR */}
+      <Section label="Recently Added to TBR">
         <CoverStrip tiles={recentTbr} empty="TBR is empty." />
       </Section>
 
@@ -756,6 +791,22 @@ export default function Home() {
               <div className="hp-otd-line">{onThisDay.line}</div>
             </div>
           </div>
+        </Section>
+      )}
+
+      {/* recently DNFed */}
+      {(dnfTvLogs.length > 0 || dnfBookLogs.length > 0) && (
+        <Section
+          label={
+            <>
+              Recent <span className="hp-dnf-badge">DNFS</span>
+            </>
+          }
+        >
+          <div className="hp-sub-label">TV Shows</div>
+          <CoverStrip tiles={dnfTvLogs} empty="No DNFed TV shows." />
+          <div className="hp-sub-label">Books</div>
+          <CoverStrip tiles={dnfBookLogs} empty="No DNFed books." />
         </Section>
       )}
 

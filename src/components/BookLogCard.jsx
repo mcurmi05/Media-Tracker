@@ -12,6 +12,8 @@ import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import { getBookInfo } from "../utils/bookInfo.js";
+import { useNavigate } from "react-router-dom";
+import { bookDetailsRoute } from "../utils/goodreads.js";
 
 const modalStyle = {
   position: "absolute",
@@ -30,6 +32,7 @@ const modalStyle = {
 const BookLogCard = ({ bookLog }) => {
   const { deleteBookLog, updateBookLog } = useBookLogs();
   const { rateBook, findRatingForBook } = useBookRatings();
+  const navigate = useNavigate();
   const book = getBookInfo(bookLog);
   const currentRating = findRatingForBook(bookLog)?.book_rating ?? 0;
 
@@ -196,6 +199,13 @@ const BookLogCard = ({ bookLog }) => {
     }
   };
 
+  const openBookDetails = () => {
+    const route = bookDetailsRoute(book.goodreads_link);
+    if (route) {
+      navigate(route, { state: { book: bookLog.book_entries || book } });
+    }
+  };
+
   const handleAuthorSearch = () => {
     const formattedAuthor = (book.author || "").replace(/\s+/g, "+");
     const googleAuthorUrl = `https://www.google.com/search?q=${formattedAuthor}+books`;
@@ -228,7 +238,7 @@ const BookLogCard = ({ bookLog }) => {
                 src={book.cover_image}
                 alt={`${book.title} cover`}
                 className="book-cover"
-                onClick={handleGoodreadsSearch}
+                onClick={openBookDetails}
                 style={{ cursor: book.goodreads_link ? "pointer" : "default" }}
                 onError={(e) => {
                   e.target.style.display = "none";
@@ -258,7 +268,7 @@ const BookLogCard = ({ bookLog }) => {
                       <h3
                         className="book-title"
                         style={{ margin: 0, cursor: book.goodreads_link ? "pointer" : "default" }}
-                        onClick={handleGoodreadsSearch}
+                        onClick={openBookDetails}
                       >
                         {book.title}
                       </h3>

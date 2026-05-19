@@ -20,6 +20,7 @@ const EditBookInfoModal = ({ isOpen, onClose, row, onUpdated }) => {
     cover_image: book.cover_image || "",
     release_year: book.release_year || "",
     goodreads_link: book.goodreads_link || "",
+    book_description: book.book_description || "",
   });
 
   const [formData, setFormData] = useState(buildInitial());
@@ -60,6 +61,7 @@ const EditBookInfoModal = ({ isOpen, onClose, row, onUpdated }) => {
           data.release_year != null
             ? String(data.release_year)
             : prev.release_year,
+        book_description: data.description || prev.book_description,
       }));
     } catch (err) {
       setFetchError(err.message || "Failed to fetch from Goodreads.");
@@ -95,6 +97,7 @@ const EditBookInfoModal = ({ isOpen, onClose, row, onUpdated }) => {
           ? Number(formData.release_year) || null
           : null,
         goodreads_link: formData.goodreads_link || null,
+        book_description: formData.book_description || null,
       };
       const updated = await updateBookEntry(bookEntryId, updates);
       const merged = updated || { id: bookEntryId, ...updates };

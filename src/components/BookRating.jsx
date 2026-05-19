@@ -7,6 +7,8 @@ import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import AddBookLogButton from "./AddBookLogButton.jsx";
 import { getBookInfo } from "../utils/bookInfo.js";
 import { getRatingDateInfo } from "../utils/ratingDate.js";
+import { useNavigate } from "react-router-dom";
+import { bookDetailsRoute } from "../utils/goodreads.js";
 
 function BookRating({
   bookLog,
@@ -19,11 +21,13 @@ function BookRating({
 }) {
   const { rateBook } = useBookRatings();
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const navigate = useNavigate();
   const book = getBookInfo(bookLog);
 
-  const handleGoodreadsSearch = () => {
-    if (book.goodreads_link) {
-      window.open(book.goodreads_link, "_blank");
+  const openBookDetails = () => {
+    const route = bookDetailsRoute(book.goodreads_link);
+    if (route) {
+      navigate(route, { state: { book: bookLog.book_entries || book } });
     }
   };
 
@@ -69,14 +73,14 @@ function BookRating({
               e.target.src = "/placeholderimage.jpg";
             }}
             className="rating-poster"
-            onClick={handleGoodreadsSearch}
+            onClick={openBookDetails}
             style={{ cursor: book.goodreads_link ? "pointer" : "default" }}
             alt={`${book.title} cover`}
           />
         </div>
         <div className="right-stuff">
           <div className="title-and-star">
-            <p className="movie-title" onClick={handleGoodreadsSearch} style={{ cursor: book.goodreads_link ? "pointer" : "default" }}>
+            <p className="movie-title" onClick={openBookDetails} style={{ cursor: book.goodreads_link ? "pointer" : "default" }}>
               {book.title}{" "}
             </p>
             {(rankNumber || showRankControls) && (

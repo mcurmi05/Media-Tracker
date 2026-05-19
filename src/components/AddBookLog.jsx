@@ -10,6 +10,7 @@ const emptyForm = {
   cover_image: "",
   release_year: "",
   goodreads_link: "",
+  book_description: "",
 };
 
 const AddBookLog = ({
@@ -72,6 +73,7 @@ const AddBookLog = ({
         cover_image: data.cover_image || prev.cover_image,
         release_year:
           data.release_year != null ? String(data.release_year) : prev.release_year,
+        book_description: data.description || prev.book_description,
       }));
       setHasFetched(true);
     } catch (err) {

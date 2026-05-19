@@ -108,6 +108,64 @@ function parseGoodreadsHtml(html) {
   // Cover
   cover_image = (jsonLd?.image && String(jsonLd.image)) || ogImage || null;
 
+  // Description: prefer the Apollo book description, then JSON-LD, then the
+  // visible description block, then the og:description meta as a last resort.
+  let description = null;
+  if (nextBook?.description) {
+    description = stripTags(String(nextBook.description));
+  }
+  if (!description && jsonLd?.description) {
+    description = stripTags(String(jsonLd.description));
+  }
+  if (!description) {
+    const m = html.match(
+      /data-testid=["']description["'][\s\S]{0,400}?<span[^>]*class=["'][^"']*Formatted[^"']*["'][^>]*>([\s\S]*?)<\/span>/i,
+    );
+    if (m) description = stripTags(m[1]);
+  }
+  if (!description) {
+    description = matchMeta(html, "og:description") || null;
+  }
+
+  // Rating + ratings count: prefer the Work stats from Apollo, then JSON-LD's
+  // aggregateRating, then a regex scrape of the visible rating widget.
+  let rating = null;
+  let ratings_count = null;
+  const workStats = nextBook?._work?.stats;
+  if (workStats) {
+    if (typeof workStats.averageRating === "number") {
+      rating = workStats.averageRating;
+    }
+    if (typeof workStats.ratingsCount === "number") {
+      ratings_count = workStats.ratingsCount;
+    }
+  }
+  if ((rating == null || ratings_count == null) && jsonLd?.aggregateRating) {
+    const ar = jsonLd.aggregateRating;
+    if (rating == null && ar.ratingValue != null) {
+      const v = Number(ar.ratingValue);
+      if (!Number.isNaN(v)) rating = v;
+    }
+    if (ratings_count == null && ar.ratingCount != null) {
+      const c = Number(ar.ratingCount);
+      if (!Number.isNaN(c)) ratings_count = c;
+    }
+  }
+  if (rating == null) {
+    const m = html.match(/RatingStatistics__rating[^>]*>\s*([\d.]+)/i);
+    if (m) rating = parseFloat(m[1]);
+  }
+  if (ratings_count == null) {
+    const m = html.match(/([\d,]+)\s*ratings?/i);
+    if (m) {
+      const c = parseInt(m[1].replace(/,/g, ""), 10);
+      if (!Number.isNaN(c)) ratings_count = c;
+    }
+  }
+  if (typeof rating === "number") {
+    rating = Math.round(rating * 100) / 100;
+  }
+
   // Release year: prefer the Work's first-publication time, then the
   // "First published ... YYYY" text on the page, then edition-level data.
   const workPubTime = nextBook?._work?.details?.publicationTime;
@@ -136,7 +194,26 @@ function parseGoodreadsHtml(html) {
     }
   }
 
-  return { title, author, cover_image, release_year };
+  return {
+    title,
+    author,
+    cover_image,
+    release_year,
+    description,
+    rating,
+    ratings_count,
+  };
+}
+
+function stripTags(s) {
+  return decodeHtml(
+    String(s)
+      .replace(/<br\s*\/?>/gi, " ")
+      .replace(/<\/p>/gi, " ")
+      .replace(/<[^>]+>/g, ""),
+  )
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function matchMeta(html, property) {
@@ -222,10 +299,16 @@ function extractNextDataBook(html) {
     });
   }
 
-  // Work entry holds first-publication info, separate from the edition shown.
+  // Work entry holds first-publication info and aggregate rating stats,
+  // separate from the edition shown.
   const workRef = best.work?.__ref;
   if (workRef && apollo[workRef]) {
-    best._work = apollo[workRef];
+    const work = { ...apollo[workRef] };
+    const statsRef = work.stats?.__ref;
+    if (statsRef && apollo[statsRef]) {
+      work.stats = apollo[statsRef];
+    }
+    best._work = work;
   }
 
   return best;
@@ -233,7 +316,7 @@ function extractNextDataBook(html) {
 
 function normalizeTitleSeries(title) {
   if (!title) return null;
-  // "Title (Series, #N)" → "Title (Series #N)"
+  // "Title (Series, #N)" -> "Title (Series #N)"
   return title.replace(
     /\(([^()]+?),\s*#(\d+(?:\.\d+)?)\)/,
     "($1 #$2)",

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/MovieCard.css";
 import "../styles/MovieRatingStar.css";
 import AddBookLogButton from "./AddBookLogButton.jsx";
 import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import BookRatingStar from "./BookRatingStar.jsx";
 import EditBookInfoModal from "./EditBookInfoModal.jsx";
+import { bookDetailsRoute } from "../utils/goodreads.js";
 
 function parseTitle(rawTitle) {
   const match = (rawTitle || "").match(
@@ -23,6 +25,7 @@ function parseTitle(rawTitle) {
 function BookCard({ book: bookProp }) {
   const [book, setBook] = useState(bookProp);
   const [showEditModal, setShowEditModal] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setBook(bookProp);
@@ -31,10 +34,9 @@ function BookCard({ book: bookProp }) {
   const goodreadsLink = book?.goodreads_link || null;
   const { mainTitle, seriesName, seriesIndex } = parseTitle(book?.title);
 
-  const openGoodreads = () => {
-    if (goodreadsLink) {
-      window.open(goodreadsLink, "_blank", "noopener,noreferrer");
-    }
+  const openBookDetails = () => {
+    const route = bookDetailsRoute(goodreadsLink);
+    if (route) navigate(route, { state: { book } });
   };
 
   const handleUpdated = (updated) => {
@@ -55,7 +57,7 @@ function BookCard({ book: bookProp }) {
     <div className="movie-card">
       <div
         className="movie-poster"
-        onClick={openGoodreads}
+        onClick={openBookDetails}
         style={{ cursor: goodreadsLink ? "pointer" : "default" }}
       >
         <img
@@ -73,7 +75,7 @@ function BookCard({ book: bookProp }) {
       <div className="movie-info" style={{ justifyContent: "center" }}>
         <div className="title-and-addlog" style={{ marginTop: "4px" }}>
           <h3
-            onClick={openGoodreads}
+            onClick={openBookDetails}
             style={{ cursor: goodreadsLink ? "pointer" : "default" }}
           >
             {mainTitle}

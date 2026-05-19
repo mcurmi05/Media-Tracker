@@ -1,0 +1,204 @@
+.bd-page {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.bd-card {
+  max-width: 70%;
+  width: 70%;
+}
+
+/* Cover on the left, everything else on the right - mimics the movie
+   details poster/trailer row, with the right side replacing the trailer. */
+.bd-main {
+  display: flex;
+  gap: 2rem;
+  align-items: stretch;
+}
+
+.bd-cover {
+  width: 30%;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #1d1d1d;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.bd-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* When the title fits on one line, the actions sit beside it; a long
+   (wrapping) title makes them drop onto their own row below the series. */
+.bd-head-inline {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.bd-title {
+  margin: 0;
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+.bd-series {
+  color: #e8e4dc;
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-top: 4px;
+}
+
+.bd-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+/* Beside the title there is no row above it to space away from. */
+.bd-head-inline .bd-actions {
+  margin-top: 0;
+}
+
+/* Nudge only the rating star down, without affecting the title's layout.
+   It needs a touch more when the actions sit on their own row. */
+.bd-actions .user-rating-movie-card {
+  transform: translateY(16px);
+}
+
+.bd-head-inline .bd-actions .user-rating-movie-card {
+  transform: translateY(10px);
+}
+
+.bd-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transform: translateY(-4px);
+}
+
+.bd-rank {
+  display: inline-block;
+  transform: translateY(-4px);
+}
+
+.bd-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.bd-meta-text {
+  font-size: 1.15rem;
+}
+
+.bd-gr-link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.bd-gr-link img {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.bd-gr-rating {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.bd-rating-star {
+  color: #f5c518;
+  font-size: 1.3rem;
+  margin-right: 4px;
+}
+
+.bd-rating-count {
+  font-size: 1.15rem;
+  margin-left: 5px;
+}
+
+.bd-description {
+  margin-top: 20px;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.bd-muted {
+  color: #888;
+}
+
+@media (max-width: 900px) {
+  .bd-card {
+    max-width: 100%;
+    width: 100%;
+    padding: 0 10px;
+    box-sizing: border-box;
+  }
+
+  .bd-main {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .bd-cover {
+    width: 55%;
+    max-width: 240px;
+  }
+
+  .bd-right {
+    width: 100%;
+    max-height: none !important;
+  }
+
+  .bd-description {
+    overflow-y: visible;
+  }
+
+  .bd-title {
+    text-align: center;
+  }
+
+  .bd-head-inline {
+    justify-content: center;
+  }
+
+  .bd-series {
+    text-align: center;
+  }
+
+  .bd-actions {
+    justify-content: center;
+  }
+
+  .bd-meta {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 700px) {
+  .bd-title {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 350px) {
+  .bd-title {
+    font-size: 1.3rem;
+  }
+}

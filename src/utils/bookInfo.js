@@ -10,6 +10,7 @@ export function getBookInfo(row) {
       cover_image: null,
       release_year: null,
       goodreads_link: null,
+      book_description: null,
     };
   }
   const entry = row.book_entries || {};
@@ -19,5 +20,6 @@ export function getBookInfo(row) {
     cover_image: entry.cover_image ?? row.cover_image ?? null,
     release_year: entry.release_year ?? row.release_year ?? null,
     goodreads_link: entry.goodreads_link ?? row.goodreads_link ?? null,
+    book_description: entry.book_description ?? row.book_description ?? null,
   };
 }
