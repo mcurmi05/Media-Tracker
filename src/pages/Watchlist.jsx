@@ -30,6 +30,12 @@ function Watchlist() {
   const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
   const [yearOp, setYearOp] = useState(location.state?.yearOp || "none");
   const [yearValue, setYearValue] = useState(location.state?.yearValue || "");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const activeFilterCount =
+    (newSeasonFilter ? 1 : 0) +
+    (yearOp !== "none" && yearValue ? 1 : 0) +
+    (sortKey !== "date" || sortDir !== "desc" ? 1 : 0);
 
   const goToRatings = () => {
     navigate("/ratings", {
@@ -326,91 +332,122 @@ function Watchlist() {
           <option value="tv">TV</option>
           <option value="books">Books</option>
         </select>
-        <div
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setFiltersOpen((v) => !v)}
+          title={filtersOpen ? "Hide extra filters" : "Show extra filters"}
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "4px",
+            height: "32px",
+            padding: "0 12px",
+            border:
+              (filtersOpen || activeFilterCount > 0 ? "2px" : "1px") +
+              " solid " +
+              (filtersOpen || activeFilterCount > 0 ? "#ffffff" : "#cccccc"),
+            borderRadius: "6px",
+            backgroundColor:
+              filtersOpen || activeFilterCount > 0 ? "#e50914" : "#3b3b3b",
+            color: "#ffffff",
+            fontSize: "0.8rem",
+            fontWeight: "bold",
+            cursor: "pointer",
             margin: "6px",
+            outline: "none",
+            whiteSpace: "nowrap",
           }}
         >
-          <select
-            value={yearOp}
-            onChange={(e) => setYearOp(e.target.value)}
-            style={{
-              height: "32px",
-              padding: "0 10px",
-              border: "1px solid #cccccc",
-              borderRadius: "6px",
-              backgroundColor: "#3b3b3b",
-              color: "#ffffff",
-              fontSize: "0.8rem",
-              outline: "none",
-              textAlign: "center",
-            }}
-          >
-            <option value="none">Year</option>
-            <option value="before">Before</option>
-            <option value="after">After</option>
-          </select>
-          {yearOp !== "none" && (
-            <input
-              className="filter-input"
-              type="number"
-              placeholder="Year"
-              value={yearValue}
-              onChange={(e) => setYearValue(e.target.value)}
+          Extra Filters
+          {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+        </button>
+        {filtersOpen && (
+          <>
+            <div
               style={{
-                padding: "8px",
-                borderRadius: "6px",
-                border: "1px solid #ccc",
-                width: "80px",
-                textAlign: "center",
-                backgroundColor: "#3b3b3b",
-                color: "#ffffff",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                margin: "6px",
               }}
+            >
+              <select
+                value={yearOp}
+                onChange={(e) => setYearOp(e.target.value)}
+                style={{
+                  height: "32px",
+                  padding: "0 10px",
+                  border: "1px solid #cccccc",
+                  borderRadius: "6px",
+                  backgroundColor: "#3b3b3b",
+                  color: "#ffffff",
+                  fontSize: "0.8rem",
+                  outline: "none",
+                  textAlign: "center",
+                }}
+              >
+                <option value="none">Year</option>
+                <option value="before">Before</option>
+                <option value="after">After</option>
+              </select>
+              {yearOp !== "none" && (
+                <input
+                  className="filter-input"
+                  type="number"
+                  placeholder="Year"
+                  value={yearValue}
+                  onChange={(e) => setYearValue(e.target.value)}
+                  style={{
+                    padding: "8px",
+                    borderRadius: "6px",
+                    border: "1px solid #ccc",
+                    width: "80px",
+                    textAlign: "center",
+                    backgroundColor: "#3b3b3b",
+                    color: "#ffffff",
+                  }}
+                />
+              )}
+            </div>
+            <SortByMenu
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onChange={(k, d) => {
+                setSortKey(k);
+                setSortDir(d);
+              }}
+              options={SORT_OPTIONS}
             />
-          )}
-        </div>
-        <SortByMenu
-          sortKey={sortKey}
-          sortDir={sortDir}
-          onChange={(k, d) => {
-            setSortKey(k);
-            setSortDir(d);
-          }}
-          options={SORT_OPTIONS}
-        />
-        {mediaTypeFilter !== "books" && (
-          <button
-            onClick={() => {
-              const next = !newSeasonFilter;
-              setNewSeasonFilter(next);
-              if (next) setMediaTypeFilter("tv");
-              else setMediaTypeFilter("all");
-            }}
-            style={{
-              height: "32px",
-              boxSizing: "border-box",
-              padding: "0 12px",
-              border:
-                (newSeasonFilter ? "2px" : "1px") +
-                " solid " +
-                (newSeasonFilter ? "#ffffff" : "#cccccc"),
-              borderRadius: "6px",
-              backgroundColor: newSeasonFilter ? "#e50914" : "#3b3b3b",
-              color: "#ffffff",
-              fontSize: "0.8rem",
-              fontWeight: "bold",
-              cursor: "pointer",
-              margin: "6px",
-              whiteSpace: "nowrap",
-              transition: "background 0.2s, border-color 0.2s",
-              outline: "none",
-            }}
-          >
-            {String.fromCharCode(0x2605)} New Season
-          </button>
+            {mediaTypeFilter !== "books" && (
+              <button
+                onClick={() => {
+                  const next = !newSeasonFilter;
+                  setNewSeasonFilter(next);
+                  if (next) setMediaTypeFilter("tv");
+                  else setMediaTypeFilter("all");
+                }}
+                style={{
+                  height: "32px",
+                  boxSizing: "border-box",
+                  padding: "0 12px",
+                  border:
+                    (newSeasonFilter ? "2px" : "1px") +
+                    " solid " +
+                    (newSeasonFilter ? "#ffffff" : "#cccccc"),
+                  borderRadius: "6px",
+                  backgroundColor: newSeasonFilter ? "#e50914" : "#3b3b3b",
+                  color: "#ffffff",
+                  fontSize: "0.8rem",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  margin: "6px",
+                  whiteSpace: "nowrap",
+                  transition: "background 0.2s, border-color 0.2s",
+                  outline: "none",
+                }}
+              >
+                {String.fromCharCode(0x2605)} New Season
+              </button>
+            )}
+          </>
         )}
         <button
           onClick={goToRatings}

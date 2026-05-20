@@ -33,8 +33,14 @@ function Ratings() {
   const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
   const [yearOp, setYearOp] = useState(location.state?.yearOp || "none");
   const [yearValue, setYearValue] = useState(location.state?.yearValue || "");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   // Rank mode: none | movies | tv | books
   const [rankModeType, setRankModeType] = useState("none");
+
+  const activeFilterCount =
+    (ratingFilter !== "all" ? 1 : 0) +
+    (yearOp !== "none" && yearValue ? 1 : 0) +
+    (sortKey !== "date" || sortDir !== "desc" ? 1 : 0);
 
   const goToLog = () => {
     navigate("/log", {
@@ -489,86 +495,117 @@ function Ratings() {
           <option value="tv">TV</option>
           <option value="books">Books</option>
         </select>
-        <select
-          value={ratingFilter}
-          onChange={(e) => handleRatingFilterChange(e.target.value)}
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setFiltersOpen((v) => !v)}
+          title={filtersOpen ? "Hide extra filters" : "Show extra filters"}
           style={{
             height: "32px",
-            padding: "0 10px",
-            border: "1px solid #cccccc",
+            padding: "0 12px",
+            border:
+              (filtersOpen || activeFilterCount > 0 ? "2px" : "1px") +
+              " solid " +
+              (filtersOpen || activeFilterCount > 0 ? "#ffffff" : "#cccccc"),
             borderRadius: "6px",
-            backgroundColor: "#3b3b3b",
+            backgroundColor:
+              filtersOpen || activeFilterCount > 0 ? "#e50914" : "#3b3b3b",
             color: "#ffffff",
             fontSize: "0.8rem",
+            fontWeight: "bold",
+            cursor: "pointer",
+            margin: "6px",
             outline: "none",
-            textAlign: "center",
-            margin: "6px",
+            whiteSpace: "nowrap",
           }}
         >
-          <option value="all" style={{ whiteSpace: "nowrap" }}>
-            All Ratings
-          </option>
-          {[...Array(10)].map((_, i) => (
-            <option key={10 - i} value={10 - i}>
-              {10 - i}
-            </option>
-          ))}
-        </select>
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "4px",
-            margin: "6px",
-          }}
-        >
-          <select
-            value={yearOp}
-            onChange={(e) => setYearOp(e.target.value)}
-            style={{
-              height: "32px",
-              padding: "0 10px",
-              border: "1px solid #cccccc",
-              borderRadius: "6px",
-              backgroundColor: "#3b3b3b",
-              color: "#ffffff",
-              fontSize: "0.8rem",
-              outline: "none",
-              textAlign: "center",
-            }}
-          >
-            <option value="none">Year</option>
-            <option value="before">Before</option>
-            <option value="after">After</option>
-          </select>
-          {yearOp !== "none" && (
-            <input
-              className="filter-input"
-              type="number"
-              placeholder="Year"
-              value={yearValue}
-              onChange={(e) => setYearValue(e.target.value)}
+          Extra Filters
+          {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+        </button>
+        {filtersOpen && (
+          <>
+            <select
+              value={ratingFilter}
+              onChange={(e) => handleRatingFilterChange(e.target.value)}
               style={{
-                padding: "8px",
+                height: "32px",
+                padding: "0 10px",
+                border: "1px solid #cccccc",
                 borderRadius: "6px",
-                border: "1px solid #ccc",
-                width: "80px",
-                textAlign: "center",
                 backgroundColor: "#3b3b3b",
                 color: "#ffffff",
+                fontSize: "0.8rem",
+                outline: "none",
+                textAlign: "center",
+                margin: "6px",
               }}
+            >
+              <option value="all" style={{ whiteSpace: "nowrap" }}>
+                All Ratings
+              </option>
+              {[...Array(10)].map((_, i) => (
+                <option key={10 - i} value={10 - i}>
+                  {10 - i}
+                </option>
+              ))}
+            </select>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                margin: "6px",
+              }}
+            >
+              <select
+                value={yearOp}
+                onChange={(e) => setYearOp(e.target.value)}
+                style={{
+                  height: "32px",
+                  padding: "0 10px",
+                  border: "1px solid #cccccc",
+                  borderRadius: "6px",
+                  backgroundColor: "#3b3b3b",
+                  color: "#ffffff",
+                  fontSize: "0.8rem",
+                  outline: "none",
+                  textAlign: "center",
+                }}
+              >
+                <option value="none">Year</option>
+                <option value="before">Before</option>
+                <option value="after">After</option>
+              </select>
+              {yearOp !== "none" && (
+                <input
+                  className="filter-input"
+                  type="number"
+                  placeholder="Year"
+                  value={yearValue}
+                  onChange={(e) => setYearValue(e.target.value)}
+                  style={{
+                    padding: "8px",
+                    borderRadius: "6px",
+                    border: "1px solid #ccc",
+                    width: "80px",
+                    textAlign: "center",
+                    backgroundColor: "#3b3b3b",
+                    color: "#ffffff",
+                  }}
+                />
+              )}
+            </div>
+            <SortByMenu
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onChange={(k, d) => {
+                setSortKey(k);
+                setSortDir(d);
+              }}
+              options={SORT_OPTIONS}
             />
-          )}
-        </div>
-        <SortByMenu
-          sortKey={sortKey}
-          sortDir={sortDir}
-          onChange={(k, d) => {
-            setSortKey(k);
-            setSortDir(d);
-          }}
-          options={SORT_OPTIONS}
-        />
+          </>
+        )}
 
         {/* Rank mode toggles */}
         {[
