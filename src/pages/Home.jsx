@@ -69,15 +69,53 @@ const byRank = (a, b) =>
 
 /* ---------- small presentational pieces ---------- */
 
-function Section({ label, hint, children }) {
+function Section({ label, hint, children, panel }) {
   return (
-    <section className="hp-section">
+    <section className={`hp-section${panel ? " hp-section-panel" : ""}`}>
       <div className="hp-section-head">
         <h2>{label}</h2>
         {hint && <span className="hp-section-hint">{hint}</span>}
       </div>
       {children}
     </section>
+  );
+}
+
+function DecadeChart({ decades, counts, max }) {
+  const [hover, setHover] = useState(null);
+  return (
+    <div className="hp-chart">
+      <div className="hp-chart-bars">
+        {decades.map((d, i) => {
+          const active = hover === i;
+          return (
+            <div
+              className="hp-chart-col"
+              key={d}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+            >
+              <div className="hp-bar-pair">
+                {active && (
+                  <div className="hp-chart-tip">
+                    <div className="hp-chart-tip-head">{`${d}s`}</div>
+                    <div className="hp-chart-tip-row hp-chart-tip-total">
+                      <span>Titles</span>
+                      <b>{counts[i]}</b>
+                    </div>
+                  </div>
+                )}
+                <div
+                  className="hp-bar hp-bar-decade"
+                  style={{ height: `${(counts[i] / max) * 100}%` }}
+                />
+              </div>
+              <div className="hp-chart-x">{`${d}s`}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -198,9 +236,6 @@ export default function Home() {
     const thisYear = userLogs.filter(
       (l) => new Date(l.created_at).getFullYear() === CURRENT_YEAR,
     ).length;
-    const perfect =
-      userRatings.filter((r) => Number(r.rating) === 10).length +
-      bookRatings.filter((r) => Number(r.book_rating) === 10).length;
     return [
       {
         num: userLogs.filter((l) => !isTV(l.movie_object)).length,
@@ -219,15 +254,10 @@ export default function Home() {
         onClick: () =>
           navigate("/log", { state: { mediaTypeFilter: "books" } }),
       },
-      { num: avg, label: "Avg screen rating" },
       { num: thisYear, label: "Logged this year" },
-      {
-        num: perfect,
-        label: "Perfect 10s",
-        onClick: () => navigate("/ratings", { state: { ratingFilter: "10" } }),
-      },
+      { num: avg, label: "Avg screen rating" },
     ];
-  }, [userRatings, userLogs, bookRatings, bookLogs, navigate]);
+  }, [userRatings, userLogs, bookLogs, navigate]);
 
   /* ---------- top 4 ranked per category ---------- */
 
@@ -278,6 +308,41 @@ export default function Home() {
     return { film, tv, book, total, max };
   }, [userRatings, bookRatings]);
 
+  /* ---------- decade breakdown: by release year, rated vs logged ---------- */
+
+  const decades = useMemo(() => {
+    const decadeOf = (year) => {
+      const n = Number(year);
+      if (!Number.isFinite(n) || n < 1000) return null;
+      return Math.floor(n / 10) * 10;
+    };
+    const ratedCounts = new Map();
+    const loggedCounts = new Map();
+    const bump = (map, d) => d != null && map.set(d, (map.get(d) || 0) + 1);
+
+    userRatings.forEach((r) => bump(ratedCounts, decadeOf(r.movie_object?.startYear)));
+    bookRatings.forEach((r) => bump(ratedCounts, decadeOf(r.book_entries?.release_year)));
+    userLogs.forEach((l) => bump(loggedCounts, decadeOf(l.movie_object?.startYear)));
+    bookLogs.forEach((l) => bump(loggedCounts, decadeOf(l.book_entries?.release_year)));
+
+    const all = [...ratedCounts.keys(), ...loggedCounts.keys()];
+    if (all.length === 0) return null;
+    const min = Math.min(...all);
+    const max = Math.max(...all);
+    const decadeList = [];
+    for (let d = min; d <= max; d += 10) decadeList.push(d);
+
+    const rated = decadeList.map((d) => ratedCounts.get(d) || 0);
+    const logged = decadeList.map((d) => loggedCounts.get(d) || 0);
+    return {
+      decades: decadeList,
+      rated,
+      logged,
+      ratedMax: Math.max(1, ...rated),
+      loggedMax: Math.max(1, ...logged),
+    };
+  }, [userRatings, bookRatings, userLogs, bookLogs]);
+
   /* ---------- unified recent activity feed ---------- */
 
   const activity = useMemo(() => {
@@ -293,6 +358,8 @@ export default function Home() {
         ? () => navigate(route, { state: { book: entry } })
         : undefined;
     };
+    const goRatings = (title) => () =>
+      navigate("/ratings", { state: { searchTerm: title || "" } });
     userRatings.forEach((r) =>
       ev.push({
         date: r.created_at,
@@ -300,7 +367,7 @@ export default function Home() {
         media: "screen",
         text: `Rated ${r.movie_object?.primaryTitle || "a title"}`,
         meta: `${r.rating}`,
-        onClick: goMovie(r.movie_object?.id),
+        onClick: goRatings(r.movie_object?.primaryTitle),
       }),
     );
     userLogs.forEach((l) => {
@@ -345,7 +412,7 @@ export default function Home() {
         media: "book",
         text: `Rated ${stripSeries(r.book_entries?.title) || "a book"}`,
         meta: `${r.book_rating}`,
-        onClick: goBook(r.book_entries),
+        onClick: goRatings(stripSeries(r.book_entries?.title)),
       }),
     );
     bookLogs.forEach((l) => {
@@ -388,7 +455,15 @@ export default function Home() {
     userLogs.forEach((l) => {
       const seasons = l.season_info || [];
       // a season counts as in-progress only if not finished and not DNF
-      if (seasons.length && seasons.some((s) => !s.finished && !s.dnf))
+      if (seasons.length && seasons.some((s) => !s.finished && !s.dnf)) {
+        items.push({
+          ...movieTile(l.movie_object, {}),
+          onClick: goLog(l.movie_object?.primaryTitle),
+        });
+        return;
+      }
+      // multi-day movie logs that haven't been finished or DNFed yet
+      if (l.multi_day && !l.movie_end_date && !l.dnf)
         items.push({
           ...movieTile(l.movie_object, {}),
           onClick: goLog(l.movie_object?.primaryTitle),
@@ -439,28 +514,6 @@ export default function Home() {
     hits.sort((a, b) => b.dt - a.dt);
     return hits[0] || null;
   }, [userRatings, bookLogs, navigate]);
-
-  /* ---------- genre breakdown (screen only) ---------- */
-
-  const genres = useMemo(() => {
-    const seen = new Map();
-    [...userRatings, ...userLogs].forEach((x) => {
-      const mo = x.movie_object;
-      const id = mo?.id || x.imdb_movie_id;
-      if (id && mo && !seen.has(id)) seen.set(id, mo);
-    });
-    const counts = {};
-    seen.forEach((mo) => {
-      (mo.interests || []).forEach((g) => {
-        counts[g] = (counts[g] || 0) + 1;
-      });
-    });
-    const sorted = Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6);
-    const max = sorted.length ? sorted[0][1] : 1;
-    return { sorted, max };
-  }, [userRatings, userLogs]);
 
   /* ---------- recent strips ---------- */
 
@@ -611,6 +664,12 @@ export default function Home() {
 
       <div className="hp-two-col">
         <div className="hp-col-left">
+          {/* currently watching / reading */}
+          {inProgress.length > 0 && (
+            <Section label="Currently Watching & Reading">
+              <CoverStrip tiles={inProgress} empty="" />
+            </Section>
+          )}
           {/* top 4 ranked */}
           <Section label="4 Favourites">
         <div className="hp-sub-label">Movies</div>
@@ -632,8 +691,38 @@ export default function Home() {
         </div>
 
         <div className="hp-col-right">
-          {/* ratings distribution */}
-          <Section label="Ratings Distribution">
+          {/* recent activity feed */}
+          <Section label="Recent Activity">
+        {activity.length === 0 ? (
+          <p className="hp-empty">Nothing logged yet.</p>
+        ) : (
+          <ul className="hp-feed">
+            {activity.map((e, i) => (
+              <li
+                key={i}
+                className="hp-feed-item"
+                onClick={e.onClick}
+                style={{ cursor: e.onClick ? "pointer" : "default" }}
+              >
+                <span className={`hp-feed-dot hp-feed-dot-${e.type}`} />
+                <img
+                  className="hp-feed-media-icon"
+                  src={e.media === "book" ? "/book.png" : "/movie.png"}
+                  alt={e.media === "book" ? "Book" : "Movie/TV"}
+                />
+                <span className="hp-feed-body">
+                  <span className="hp-feed-text">{e.text}</span>
+                  {e.meta && <span className="hp-feed-rating">{e.meta}</span>}
+                </span>
+                <span className="hp-feed-date">{timeAgo(e.date)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      {/* ratings distribution */}
+      <Section label="Ratings Distribution">
         <div className="hp-chart">
           <div className="hp-chart-bars">
             {[5, 6, 7, 8, 9, 10].map((rating) => {
@@ -695,48 +784,11 @@ export default function Home() {
           </div>
         </div>
       </Section>
-
-      {/* recent activity feed */}
-      <Section label="Recent Activity">
-        {activity.length === 0 ? (
-          <p className="hp-empty">Nothing logged yet.</p>
-        ) : (
-          <ul className="hp-feed">
-            {activity.map((e, i) => (
-              <li
-                key={i}
-                className="hp-feed-item"
-                onClick={e.onClick}
-                style={{ cursor: e.onClick ? "pointer" : "default" }}
-              >
-                <span className={`hp-feed-dot hp-feed-dot-${e.type}`} />
-                <img
-                  className="hp-feed-media-icon"
-                  src={e.media === "book" ? "/book.png" : "/movie.png"}
-                  alt={e.media === "book" ? "Book" : "Movie/TV"}
-                />
-                <span className="hp-feed-body">
-                  <span className="hp-feed-text">{e.text}</span>
-                  {e.meta && <span className="hp-feed-rating">{e.meta}</span>}
-                </span>
-                <span className="hp-feed-date">{timeAgo(e.date)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
         </div>
       </div>
 
-      {/* currently watching / reading */}
-      {inProgress.length > 0 && (
-        <Section label="Currently Watching & Reading">
-          <CoverStrip tiles={inProgress} empty="" />
-        </Section>
-      )}
-
       {/* recent logs */}
-      <Section label="Recent Logs">
+      <Section label="Recent Logs" panel>
         <div className="hp-sub-label">Movies</div>
         <CoverStrip tiles={recentFilmLogs} empty="No movie logs yet." />
         <div className="hp-sub-label">TV Shows</div>
@@ -746,7 +798,7 @@ export default function Home() {
       </Section>
 
       {/* recent ratings */}
-      <Section label="Recent Ratings">
+      <Section label="Recent Ratings" panel>
         <div className="hp-sub-label">Movies</div>
         <CoverStrip tiles={recentFilmRatings} empty="No movie ratings yet." />
         <div className="hp-sub-label">TV Shows</div>
@@ -755,13 +807,31 @@ export default function Home() {
         <CoverStrip tiles={recentBookRatings} empty="No book ratings yet." />
       </Section>
 
-      {/* recently added to watchlist */}
-      <Section label="Recently Added to Watchlist">
-        <CoverStrip tiles={recentWatchlist} empty="Watchlist is empty." />
-      </Section>
+      {/* decade breakdown */}
+      {decades && (
+        <Section label="Decade Breakdown" hint="by release year" panel>
+          <div className="hp-sub-label">Rated</div>
+          <DecadeChart
+            decades={decades.decades}
+            counts={decades.rated}
+            max={decades.ratedMax}
+          />
+          <div className="hp-sub-label" style={{ marginTop: 16 }}>
+            Logged
+          </div>
+          <DecadeChart
+            decades={decades.decades}
+            counts={decades.logged}
+            max={decades.loggedMax}
+          />
+        </Section>
+      )}
 
-      {/* recently added to TBR */}
-      <Section label="Recently Added to TBR">
+      {/* recently added to watchlist + TBR */}
+      <Section label="Recently Added to Watchlist & TBR" panel>
+        <div className="hp-sub-label">Watchlist</div>
+        <CoverStrip tiles={recentWatchlist} empty="Watchlist is empty." />
+        <div className="hp-sub-label">TBR</div>
         <CoverStrip tiles={recentTbr} empty="TBR is empty." />
       </Section>
 
@@ -797,6 +867,7 @@ export default function Home() {
       {/* recently DNFed */}
       {(dnfTvLogs.length > 0 || dnfBookLogs.length > 0) && (
         <Section
+          panel
           label={
             <>
               Recent <span className="hp-dnf-badge">DNFS</span>
@@ -807,26 +878,6 @@ export default function Home() {
           <CoverStrip tiles={dnfTvLogs} empty="No DNFed TV shows." />
           <div className="hp-sub-label">Books</div>
           <CoverStrip tiles={dnfBookLogs} empty="No DNFed books." />
-        </Section>
-      )}
-
-      {/* genre breakdown */}
-      {genres.sorted.length > 0 && (
-        <Section label="Most-Watched Genres" hint="movies & TV">
-          <div className="hp-genres">
-            {genres.sorted.map(([name, count]) => (
-              <div className="hp-genre-row" key={name}>
-                <span className="hp-genre-name">{name}</span>
-                <span className="hp-genre-track">
-                  <span
-                    className="hp-genre-fill"
-                    style={{ width: `${(count / genres.max) * 100}%` }}
-                  />
-                </span>
-                <span className="hp-genre-count">{count}</span>
-              </div>
-            ))}
-          </div>
         </Section>
       )}
     </div>

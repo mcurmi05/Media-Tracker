@@ -5,6 +5,13 @@ import BookRating from "../components/BookRating.jsx";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getBookInfo } from "../utils/bookInfo.js";
+import SortByMenu from "../components/SortByMenu.jsx";
+
+const SORT_OPTIONS = [
+  { value: "date", label: "Date Added" },
+  { value: "year", label: "Release Date" },
+  { value: "rating", label: "Rating" },
+];
 
 function Ratings() {
   const { userRatings, userRatingsLoaded, updateRanking } = useRatings();
@@ -22,19 +29,71 @@ function Ratings() {
   const [mediaTypeFilter, setMediaTypeFilter] = useState(
     location.state?.mediaTypeFilter || "all",
   );
+  const [sortKey, setSortKey] = useState(location.state?.sortKey || "date");
+  const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
+  const [yearOp, setYearOp] = useState(location.state?.yearOp || "none");
+  const [yearValue, setYearValue] = useState(location.state?.yearValue || "");
   // Rank mode: none | movies | tv | books
   const [rankModeType, setRankModeType] = useState("none");
 
   const goToLog = () => {
     navigate("/log", {
-      state: { searchTerm, ratingFilter, mediaTypeFilter },
+      state: {
+        searchTerm,
+        ratingFilter,
+        mediaTypeFilter,
+        sortKey,
+        sortDir,
+        yearOp,
+        yearValue,
+      },
     });
   };
 
   const goToWatchlist = () => {
     navigate("/watchlist", {
-      state: { searchTerm, mediaTypeFilter },
+      state: {
+        searchTerm,
+        mediaTypeFilter,
+        sortKey,
+        sortDir,
+        yearOp,
+        yearValue,
+      },
     });
+  };
+
+  const yearMatchesFilter = (y) => {
+    if (yearOp === "none" || !yearValue) return true;
+    if (y == null) return false;
+    const n = Number(yearValue);
+    if (!Number.isFinite(n)) return true;
+    return yearOp === "before" ? y < n : y > n;
+  };
+
+  // Sort helpers
+  const movieYear = (r) => {
+    const y = Number(r.movie_object?.startYear);
+    return Number.isFinite(y) && y > 0 ? y : null;
+  };
+  const bookYear = (r) => {
+    const y = Number(r.book_entries?.release_year ?? r.release_year);
+    return Number.isFinite(y) && y > 0 ? y : null;
+  };
+  const movieRatingValue = (r) => {
+    const v = Number(r.rating);
+    return Number.isFinite(v) ? v : null;
+  };
+  const bookRatingValue = (r) => {
+    const v = Number(r.book_rating);
+    return Number.isFinite(v) ? v : null;
+  };
+  // Nulls sink to the bottom regardless of direction.
+  const compareNumeric = (a, b) => {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return sortDir === "asc" ? a - b : b - a;
   };
 
   // When rank mode is enabled, force rating filter and media filter appropriately
@@ -101,6 +160,7 @@ function Ratings() {
     if (ratingFilter !== "all") {
       if (Number(rating.rating) !== Number(ratingFilter)) return false;
     }
+    if (!yearMatchesFilter(movieYear(rating))) return false;
     return true;
   });
 
@@ -125,15 +185,30 @@ function Ratings() {
 
   // Display list respects rank when filtering 10s, otherwise default date sort
   const sortedRatings = useMemo(() => {
+    if (sortKey === "year") {
+      return filteredRatings.slice().sort((a, b) => {
+        const yc = compareNumeric(movieYear(a), movieYear(b));
+        if (yc !== 0) return yc;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
+    if (sortKey === "rating") {
+      return filteredRatings.slice().sort((a, b) => {
+        const rc = compareNumeric(movieRatingValue(a), movieRatingValue(b));
+        if (rc !== 0) return rc;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
     if (ratingFilter === "10") {
       return [...allTens].sort(rankSort);
     }
     return filteredRatings.slice().sort((a, b) => {
       const dateA = new Date(a.created_at);
       const dateB = new Date(b.created_at);
-      return dateB - dateA;
+      return sortDir === "asc" ? dateA - dateB : dateB - dateA;
     });
-  }, [filteredRatings, allTens, ratingFilter, rankSort]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredRatings, allTens, ratingFilter, rankSort, sortKey, sortDir]);
 
   // Books: every row in book_ratings is a rated book
   const filteredBooks = useMemo(() => {
@@ -150,9 +225,11 @@ function Ratings() {
         if (Number(bookRating.book_rating) !== Number(ratingFilter))
           return false;
       }
+      if (!yearMatchesFilter(bookYear(bookRating))) return false;
       return true;
     });
-  }, [bookRatings, searchTerm, ratingFilter, includeBooks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookRatings, searchTerm, ratingFilter, includeBooks, yearOp, yearValue]);
 
   const bookSortDate = (b) => new Date(b.created_at);
 
@@ -164,13 +241,32 @@ function Ratings() {
   }, []);
 
   const sortedBooks = useMemo(() => {
+    if (sortKey === "year") {
+      return filteredBooks.slice().sort((a, b) => {
+        const yc = compareNumeric(bookYear(a), bookYear(b));
+        if (yc !== 0) return yc;
+        return bookSortDate(b) - bookSortDate(a);
+      });
+    }
+    if (sortKey === "rating") {
+      return filteredBooks.slice().sort((a, b) => {
+        const rc = compareNumeric(bookRatingValue(a), bookRatingValue(b));
+        if (rc !== 0) return rc;
+        return bookSortDate(b) - bookSortDate(a);
+      });
+    }
     if (rankModeType === "books") {
       return filteredBooks.slice().sort(bookRankSort);
     }
     return filteredBooks
       .slice()
-      .sort((a, b) => bookSortDate(b) - bookSortDate(a));
-  }, [filteredBooks, rankModeType, bookRankSort]);
+      .sort((a, b) =>
+        sortDir === "asc"
+          ? bookSortDate(a) - bookSortDate(b)
+          : bookSortDate(b) - bookSortDate(a),
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredBooks, rankModeType, bookRankSort, sortKey, sortDir]);
 
   // Move rank up/down among 10s by swapping ranking values and normalizing
   // Note: normalization handled implicitly by applyRankOrder indices
@@ -266,15 +362,31 @@ function Ratings() {
       id: `rating-${r.id || r.imdb_movie_id}`,
       data: r,
       date: new Date(r.created_at),
+      year: movieYear(r),
+      rating: movieRatingValue(r),
     }));
     const bookItems = sortedBooks.map((b) => ({
       kind: "book",
       id: `book-${b.id}`,
       data: b,
       date: bookSortDate(b),
+      year: bookYear(b),
+      rating: bookRatingValue(b),
     }));
-    return [...ratingItems, ...bookItems].sort((a, b) => b.date - a.date);
-  }, [isAllView, sortedRatings, sortedBooks]);
+    return [...ratingItems, ...bookItems].sort((a, b) => {
+      if (sortKey === "year") {
+        const yc = compareNumeric(a.year, b.year);
+        if (yc !== 0) return yc;
+      } else if (sortKey === "rating") {
+        const rc = compareNumeric(a.rating, b.rating);
+        if (rc !== 0) return rc;
+      } else if (sortKey === "date" && sortDir === "asc") {
+        return a.date - b.date;
+      }
+      return b.date - a.date;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAllView, sortedRatings, sortedBooks, sortKey, sortDir]);
 
   const displayCount = isAllView
     ? combinedAll.length
@@ -402,6 +514,61 @@ function Ratings() {
             </option>
           ))}
         </select>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            margin: "6px",
+          }}
+        >
+          <select
+            value={yearOp}
+            onChange={(e) => setYearOp(e.target.value)}
+            style={{
+              height: "32px",
+              padding: "0 10px",
+              border: "1px solid #cccccc",
+              borderRadius: "6px",
+              backgroundColor: "#3b3b3b",
+              color: "#ffffff",
+              fontSize: "0.8rem",
+              outline: "none",
+              textAlign: "center",
+            }}
+          >
+            <option value="none">Year</option>
+            <option value="before">Before</option>
+            <option value="after">After</option>
+          </select>
+          {yearOp !== "none" && (
+            <input
+              className="filter-input"
+              type="number"
+              placeholder="Year"
+              value={yearValue}
+              onChange={(e) => setYearValue(e.target.value)}
+              style={{
+                padding: "8px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+                width: "80px",
+                textAlign: "center",
+                backgroundColor: "#3b3b3b",
+                color: "#ffffff",
+              }}
+            />
+          )}
+        </div>
+        <SortByMenu
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onChange={(k, d) => {
+            setSortKey(k);
+            setSortDir(d);
+          }}
+          options={SORT_OPTIONS}
+        />
 
         {/* Rank mode toggles */}
         {[

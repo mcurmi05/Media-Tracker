@@ -2,7 +2,7 @@
 
 .home-page {
   width: 100%;
-  max-width: 1080px;
+  max-width: 1123px;
   margin: 0 auto;
   color: #e8e8e8;
 }
@@ -81,6 +81,9 @@
 .hp-col-right {
   min-width: 0;
 }
+.hp-col-left > .hp-section:first-child {
+  margin-bottom: 25px;
+}
 .hp-col-left > .hp-section:last-child,
 .hp-col-right > .hp-section:last-child {
   margin-bottom: 0;
@@ -109,6 +112,12 @@
 /* ---- section shell ---- */
 .hp-section {
   margin-bottom: 40px;
+}
+.hp-section-panel {
+  background: #2c2c2c;
+  border: 1px solid #363636;
+  border-radius: 10px;
+  padding: 18px 18px 14px;
 }
 .hp-section-head {
   display: flex;
@@ -277,6 +286,11 @@
 .hp-bar-active {
   background: #ec6a64;
 }
+.hp-bar-decade {
+  width: 60%;
+  max-width: 38px;
+  background: linear-gradient(180deg, #7fc4bb, #5fb0a7);
+}
 .hp-chart-x {
   font-size: 0.72rem;
   color: #8c8c8c;
@@ -355,7 +369,7 @@
   list-style: none;
   margin: 0;
   padding: 0 8px 0 0;
-  max-height: 460px;
+  max-height: 740px;
   overflow-y: auto;
   scrollbar-width: thin;
 }
@@ -467,43 +481,6 @@
   margin-top: 3px;
 }
 
-/* ---- genre breakdown ---- */
-.hp-genres {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-.hp-genre-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.8rem;
-}
-.hp-genre-name {
-  width: 110px;
-  flex-shrink: 0;
-  color: #d4d4d4;
-}
-.hp-genre-track {
-  flex: 1;
-  height: 8px;
-  background: #333;
-  border-radius: 4px;
-  overflow: hidden;
-}
-.hp-genre-fill {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #5fb0a7, #e0a45a);
-  border-radius: 4px;
-}
-.hp-genre-count {
-  width: 28px;
-  text-align: right;
-  color: #8c8c8c;
-  flex-shrink: 0;
-}
-
 /* ---- responsive ---- */
 @media (max-width: 600px) {
   .hp-stat {
@@ -522,9 +499,6 @@
   }
   .hp-bar {
     width: 9px;
-  }
-  .hp-genre-name {
-    width: 80px;
   }
   .hp-feed-date {
     min-width: 52px;

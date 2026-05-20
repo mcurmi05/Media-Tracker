@@ -8,6 +8,13 @@ import BookLogCard from "../components/BookLogCard.jsx";
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getBookInfo } from "../utils/bookInfo.js";
+import SortByMenu from "../components/SortByMenu.jsx";
+
+const SORT_OPTIONS = [
+  { value: "date", label: "Date Added" },
+  { value: "year", label: "Release Date" },
+  { value: "rating", label: "Rating" },
+];
 //
 function Log() {
   const { userLogs, userLogsLoaded } = useLogs();
@@ -25,17 +32,74 @@ function Log() {
   const [mediaTypeFilter, setMediaTypeFilter] = useState(
     location.state?.mediaTypeFilter || "all",
   );
+  const [sortKey, setSortKey] = useState(location.state?.sortKey || "date");
+  const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
+  const [yearOp, setYearOp] = useState(location.state?.yearOp || "none");
+  const [yearValue, setYearValue] = useState(location.state?.yearValue || "");
 
   const goToRatings = () => {
     navigate("/ratings", {
-      state: { searchTerm, ratingFilter, mediaTypeFilter },
+      state: {
+        searchTerm,
+        ratingFilter,
+        mediaTypeFilter,
+        sortKey,
+        sortDir,
+        yearOp,
+        yearValue,
+      },
     });
   };
 
   const goToWatchlist = () => {
     navigate("/watchlist", {
-      state: { searchTerm, mediaTypeFilter },
+      state: {
+        searchTerm,
+        mediaTypeFilter,
+        sortKey,
+        sortDir,
+        yearOp,
+        yearValue,
+      },
     });
+  };
+
+  const yearMatchesFilter = (y) => {
+    if (yearOp === "none" || !yearValue) return true;
+    if (y == null) return false;
+    const n = Number(yearValue);
+    if (!Number.isFinite(n)) return true;
+    return yearOp === "before" ? y < n : y > n;
+  };
+
+  // Release year helpers used by the release-date sort.
+  const movieYear = (log) => {
+    const y = Number(log.movie_object?.startYear);
+    return Number.isFinite(y) && y > 0 ? y : null;
+  };
+  const bookYear = (bookLog) => {
+    const y = Number(
+      bookLog.book_entries?.release_year ?? bookLog.release_year,
+    );
+    return Number.isFinite(y) && y > 0 ? y : null;
+  };
+  const movieRating = (log) => {
+    const id = log.movie_object?.id;
+    if (!id) return null;
+    const found = userRatings.find((r) => r.imdb_movie_id === id);
+    const v = found ? Number(found.rating) : null;
+    return Number.isFinite(v) ? v : null;
+  };
+  const bookRating = (bookLog) => {
+    const v = Number(findRatingForBook(bookLog)?.book_rating);
+    return Number.isFinite(v) ? v : null;
+  };
+  // Nulls sink to the bottom regardless of direction.
+  const compareNumeric = (a, b) => {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return sortDir === "asc" ? a - b : b - a;
   };
 
   useEffect(() => {
@@ -127,9 +191,21 @@ function Log() {
             if (rating == null) return false;
             if (Number(rating) !== Number(ratingFilter)) return false;
           }
+          if (!yearMatchesFilter(bookYear(bookLog))) return false;
           return true;
         })
-        .sort((a, b) => getMostRecentBookDate(b) - getMostRecentBookDate(a))
+        .sort((a, b) => {
+          if (sortKey === "year") {
+            const yc = compareNumeric(bookYear(a), bookYear(b));
+            if (yc !== 0) return yc;
+          } else if (sortKey === "rating") {
+            const rc = compareNumeric(bookRating(a), bookRating(b));
+            if (rc !== 0) return rc;
+          } else if (sortKey === "date" && sortDir === "asc") {
+            return getMostRecentBookDate(a) - getMostRecentBookDate(b);
+          }
+          return getMostRecentBookDate(b) - getMostRecentBookDate(a);
+        })
     : [];
 
   const filteredLogs = needsMovieData
@@ -160,9 +236,21 @@ function Log() {
             if (ratingValue === null) return false;
             if (Number(ratingValue) !== Number(ratingFilter)) return false;
           }
+          if (!yearMatchesFilter(movieYear(log))) return false;
           return true;
         })
-        .sort((a, b) => getMostRecentDate(b) - getMostRecentDate(a))
+        .sort((a, b) => {
+          if (sortKey === "year") {
+            const yc = compareNumeric(movieYear(a), movieYear(b));
+            if (yc !== 0) return yc;
+          } else if (sortKey === "rating") {
+            const rc = compareNumeric(movieRating(a), movieRating(b));
+            if (rc !== 0) return rc;
+          } else if (sortKey === "date" && sortDir === "asc") {
+            return getMostRecentDate(a) - getMostRecentDate(b);
+          }
+          return getMostRecentDate(b) - getMostRecentDate(a);
+        })
     : [];
 
   // Combined sorted list for "All" view (movies, TV, books interleaved by date)
@@ -174,14 +262,29 @@ function Log() {
             id: `log-${log.id}`,
             data: log,
             date: getMostRecentDate(log),
+            year: movieYear(log),
+            rating: movieRating(log),
           })),
           ...filteredBookLogs.map((bookLog) => ({
             kind: "book",
             id: `book-${bookLog.id}`,
             data: bookLog,
             date: getMostRecentBookDate(bookLog),
+            year: bookYear(bookLog),
+            rating: bookRating(bookLog),
           })),
-        ].sort((a, b) => b.date - a.date)
+        ].sort((a, b) => {
+          if (sortKey === "year") {
+            const yc = compareNumeric(a.year, b.year);
+            if (yc !== 0) return yc;
+          } else if (sortKey === "rating") {
+            const rc = compareNumeric(a.rating, b.rating);
+            if (rc !== 0) return rc;
+          } else if (sortKey === "date" && sortDir === "asc") {
+            return a.date - b.date;
+          }
+          return b.date - a.date;
+        })
       : null;
 
   const displayCount =
@@ -308,6 +411,61 @@ function Log() {
             </option>
           ))}
         </select>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            margin: "6px",
+          }}
+        >
+          <select
+            value={yearOp}
+            onChange={(e) => setYearOp(e.target.value)}
+            style={{
+              height: "32px",
+              padding: "0 10px",
+              border: "1px solid #cccccc",
+              borderRadius: "6px",
+              backgroundColor: "#3b3b3b",
+              color: "#ffffff",
+              fontSize: "0.8rem",
+              outline: "none",
+              textAlign: "center",
+            }}
+          >
+            <option value="none">Year</option>
+            <option value="before">Before</option>
+            <option value="after">After</option>
+          </select>
+          {yearOp !== "none" && (
+            <input
+              className="filter-input"
+              type="number"
+              placeholder="Year"
+              value={yearValue}
+              onChange={(e) => setYearValue(e.target.value)}
+              style={{
+                padding: "8px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+                width: "80px",
+                textAlign: "center",
+                backgroundColor: "#3b3b3b",
+                color: "#ffffff",
+              }}
+            />
+          )}
+        </div>
+        <SortByMenu
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onChange={(k, d) => {
+            setSortKey(k);
+            setSortDir(d);
+          }}
+          options={SORT_OPTIONS}
+        />
         <button
           onClick={goToRatings}
           title="View ratings with these filters"

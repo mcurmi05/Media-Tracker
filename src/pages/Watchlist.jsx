@@ -6,6 +6,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useWatchlist } from "../contexts/UserWatchlistContext.jsx";
 import { useBookTbr } from "../contexts/UserBookTbrContext.jsx";
 import { getBookInfo } from "../utils/bookInfo.js";
+import SortByMenu from "../components/SortByMenu.jsx";
+
+const SORT_OPTIONS = [
+  { value: "date", label: "Date Added" },
+  { value: "year", label: "Release Date" },
+];
 
 function Watchlist() {
   const { userWatchlist, userWatchlistLoaded } = useWatchlist();
@@ -20,17 +26,59 @@ function Watchlist() {
     location.state?.mediaTypeFilter || "all",
   );
   const [newSeasonFilter, setNewSeasonFilter] = useState(false);
+  const [sortKey, setSortKey] = useState(location.state?.sortKey || "date");
+  const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
+  const [yearOp, setYearOp] = useState(location.state?.yearOp || "none");
+  const [yearValue, setYearValue] = useState(location.state?.yearValue || "");
 
   const goToRatings = () => {
     navigate("/ratings", {
-      state: { searchTerm, mediaTypeFilter },
+      state: {
+        searchTerm,
+        mediaTypeFilter,
+        sortKey,
+        sortDir,
+        yearOp,
+        yearValue,
+      },
     });
   };
 
   const goToLog = () => {
     navigate("/log", {
-      state: { searchTerm, mediaTypeFilter },
+      state: {
+        searchTerm,
+        mediaTypeFilter,
+        sortKey,
+        sortDir,
+        yearOp,
+        yearValue,
+      },
     });
+  };
+
+  const yearMatchesFilter = (y) => {
+    if (yearOp === "none" || !yearValue) return true;
+    if (y == null) return false;
+    const n = Number(yearValue);
+    if (!Number.isFinite(n)) return true;
+    return yearOp === "before" ? y < n : y > n;
+  };
+
+  // Release year helpers for the release-date sort.
+  const movieYear = (item) => {
+    const y = Number(item.movie_object?.startYear);
+    return Number.isFinite(y) && y > 0 ? y : null;
+  };
+  const bookYear = (item) => {
+    const y = Number(item.book_entries?.release_year ?? item.release_year);
+    return Number.isFinite(y) && y > 0 ? y : null;
+  };
+  const compareNumeric = (a, b) => {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return sortDir === "asc" ? a - b : b - a;
   };
 
   useEffect(() => {
@@ -51,7 +99,7 @@ function Watchlist() {
 
   const filteredWatchlist = useMemo(() => {
     if (!needsMovieData) return [];
-    return userWatchlist.filter((item) => {
+    const filtered = userWatchlist.filter((item) => {
       if (newSeasonFilter && !item.new_season_to_watch) return false;
       const type = (item.movie_object?.type || "").toLowerCase();
       const titleType = (item.movie_object?.titleType || "").toLowerCase();
@@ -61,24 +109,76 @@ function Watchlist() {
         item.movie_object?.episodes;
       if (mediaTypeFilter === "movies" && isTV) return false;
       if (mediaTypeFilter === "tv" && !isTV) return false;
-      if (!searchTerm.trim()) return true;
-      const title = item.movie_object?.primaryTitle || "";
-      return title.toLowerCase().includes(searchTerm.toLowerCase());
+      if (searchTerm.trim()) {
+        const title = item.movie_object?.primaryTitle || "";
+        if (!title.toLowerCase().includes(searchTerm.toLowerCase()))
+          return false;
+      }
+      if (!yearMatchesFilter(movieYear(item))) return false;
+      return true;
     });
-  }, [userWatchlist, newSeasonFilter, mediaTypeFilter, searchTerm, needsMovieData]);
+    if (sortKey === "year") {
+      return filtered.sort((a, b) => {
+        const yc = compareNumeric(movieYear(a), movieYear(b));
+        if (yc !== 0) return yc;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
+    return filtered.sort((a, b) =>
+      sortDir === "asc"
+        ? new Date(a.created_at) - new Date(b.created_at)
+        : new Date(b.created_at) - new Date(a.created_at),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    userWatchlist,
+    newSeasonFilter,
+    mediaTypeFilter,
+    searchTerm,
+    needsMovieData,
+    sortKey,
+    sortDir,
+    yearOp,
+    yearValue,
+  ]);
 
   const filteredBookTbr = useMemo(() => {
     if (!needsBookData) return [];
     if (newSeasonFilter) return [];
-    return userBookTbr.filter((item) => {
-      if (!searchTerm.trim()) return true;
-      const search = searchTerm.toLowerCase();
-      const info = getBookInfo(item);
-      const title = (info.title || "").toLowerCase();
-      const author = (info.author || "").toLowerCase();
-      return title.includes(search) || author.includes(search);
+    const filtered = userBookTbr.filter((item) => {
+      if (searchTerm.trim()) {
+        const search = searchTerm.toLowerCase();
+        const info = getBookInfo(item);
+        const title = (info.title || "").toLowerCase();
+        const author = (info.author || "").toLowerCase();
+        if (!title.includes(search) && !author.includes(search)) return false;
+      }
+      if (!yearMatchesFilter(bookYear(item))) return false;
+      return true;
     });
-  }, [userBookTbr, newSeasonFilter, searchTerm, needsBookData]);
+    if (sortKey === "year") {
+      return filtered.sort((a, b) => {
+        const yc = compareNumeric(bookYear(a), bookYear(b));
+        if (yc !== 0) return yc;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
+    return filtered.sort((a, b) =>
+      sortDir === "asc"
+        ? new Date(a.created_at) - new Date(b.created_at)
+        : new Date(b.created_at) - new Date(a.created_at),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    userBookTbr,
+    newSeasonFilter,
+    searchTerm,
+    needsBookData,
+    sortKey,
+    sortDir,
+    yearOp,
+    yearValue,
+  ]);
 
   const isAllView = mediaTypeFilter === "all";
   const isBooksView = mediaTypeFilter === "books";
@@ -90,15 +190,26 @@ function Watchlist() {
       id: `movie-${item.id}`,
       data: item,
       date: new Date(item.created_at),
+      year: movieYear(item),
     }));
     const bookItems = filteredBookTbr.map((item) => ({
       kind: "book",
       id: `book-${item.id}`,
       data: item,
       date: new Date(item.created_at),
+      year: bookYear(item),
     }));
-    return [...movieItems, ...bookItems].sort((a, b) => b.date - a.date);
-  }, [isAllView, filteredWatchlist, filteredBookTbr]);
+    return [...movieItems, ...bookItems].sort((a, b) => {
+      if (sortKey === "year") {
+        const yc = compareNumeric(a.year, b.year);
+        if (yc !== 0) return yc;
+      } else if (sortKey === "date" && sortDir === "asc") {
+        return a.date - b.date;
+      }
+      return b.date - a.date;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAllView, filteredWatchlist, filteredBookTbr, sortKey, sortDir]);
 
   const displayCount = isAllView
     ? combinedAll.length
@@ -215,6 +326,61 @@ function Watchlist() {
           <option value="tv">TV</option>
           <option value="books">Books</option>
         </select>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            margin: "6px",
+          }}
+        >
+          <select
+            value={yearOp}
+            onChange={(e) => setYearOp(e.target.value)}
+            style={{
+              height: "32px",
+              padding: "0 10px",
+              border: "1px solid #cccccc",
+              borderRadius: "6px",
+              backgroundColor: "#3b3b3b",
+              color: "#ffffff",
+              fontSize: "0.8rem",
+              outline: "none",
+              textAlign: "center",
+            }}
+          >
+            <option value="none">Year</option>
+            <option value="before">Before</option>
+            <option value="after">After</option>
+          </select>
+          {yearOp !== "none" && (
+            <input
+              className="filter-input"
+              type="number"
+              placeholder="Year"
+              value={yearValue}
+              onChange={(e) => setYearValue(e.target.value)}
+              style={{
+                padding: "8px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+                width: "80px",
+                textAlign: "center",
+                backgroundColor: "#3b3b3b",
+                color: "#ffffff",
+              }}
+            />
+          )}
+        </div>
+        <SortByMenu
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onChange={(k, d) => {
+            setSortKey(k);
+            setSortDir(d);
+          }}
+          options={SORT_OPTIONS}
+        />
         {mediaTypeFilter !== "books" && (
           <button
             onClick={() => {
@@ -243,7 +409,7 @@ function Watchlist() {
               outline: "none",
             }}
           >
-            {"★"} New Season
+            {String.fromCharCode(0x2605)} New Season
           </button>
         )}
         <button
