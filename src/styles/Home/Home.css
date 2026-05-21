@@ -81,9 +81,6 @@
 .hp-col-right {
   min-width: 0;
 }
-.hp-col-left > .hp-section:first-child {
-  margin-bottom: 25px;
-}
 .hp-col-left > .hp-section:last-child,
 .hp-col-right > .hp-section:last-child {
   margin-bottom: 0;
@@ -322,8 +319,8 @@
   background: #ec6a64;
 }
 .hp-bar-decade {
-  width: 60%;
-  max-width: 38px;
+  width: 36%;
+  max-width: 18px;
   background: #e50914;
   transition: background 0.15s ease;
 }
@@ -343,7 +340,7 @@
   vertical-align: middle;
 }
 .hp-chart-x {
-  font-size: 0.72rem;
+  font-size: 0.6rem;
   color: #8c8c8c;
   margin-top: 6px;
 }
@@ -420,7 +417,7 @@
   list-style: none;
   margin: 0;
   padding: 0 8px 0 0;
-  max-height: 509px;
+  max-height: 715px;
   overflow-y: auto;
   scrollbar-width: thin;
 }

@@ -8,7 +8,7 @@ import { useBookRatings } from "../contexts/UserBookRatingsContext";
 import { useBookLogs } from "../contexts/UserBookLogsContext";
 import { useBookTbr } from "../contexts/UserBookTbrContext";
 import { useCache } from "../contexts/PopularMoviesCacheContext";
-import { getPopularMovies } from "../services/api.js";
+import { getPopularMovies, getPopularTV } from "../services/api.js";
 import { SignIn } from "./SignIn.jsx";
 import { bookDetailsRoute } from "../utils/goodreads.js";
 import "../styles/Home/Home.css";
@@ -231,7 +231,14 @@ export default function Home() {
   const { bookRatings } = useBookRatings();
   const { bookLogs } = useBookLogs();
   const { userBookTbr } = useBookTbr();
-  const { popularMovies, popularMoviesLoaded, cachePopularMovies } = useCache();
+  const {
+    popularMovies,
+    popularMoviesLoaded,
+    cachePopularMovies,
+    popularTV,
+    popularTVLoaded,
+    cachePopularTV,
+  } = useCache();
 
   useEffect(() => {
     if (popularMoviesLoaded) return;
@@ -243,6 +250,17 @@ export default function Home() {
       cancelled = true;
     };
   }, [popularMoviesLoaded, cachePopularMovies]);
+
+  useEffect(() => {
+    if (popularTVLoaded) return;
+    let cancelled = false;
+    getPopularTV().then((t) => {
+      if (!cancelled && t) cachePopularTV(t);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [popularTVLoaded, cachePopularTV]);
 
   const [hoverRating, setHoverRating] = useState(null);
 
@@ -419,25 +437,20 @@ export default function Home() {
 
   const activity = useMemo(() => {
     const ev = [];
-    const goMovie = (id) => () => id && navigate(`/mediadetails/${id}`);
     // Open the Logs page with its search bar pre-filled with this title.
     const goLog = (title) => () =>
       navigate("/log", { state: { searchTerm: title || "" } });
-    // Open a book's details page, when it has a usable Goodreads link.
-    const goBook = (entry) => {
-      const route = bookDetailsRoute(entry?.goodreads_link);
-      return route
-        ? () => navigate(route, { state: { book: entry } })
-        : undefined;
-    };
     const goRatings = (title) => () =>
       navigate("/ratings", { state: { searchTerm: title || "" } });
+    const goWatchlist = (title) => () =>
+      navigate("/watchlist", { state: { searchTerm: title || "" } });
     userRatings.forEach((r) =>
       ev.push({
         date: r.created_at,
         type: "rate",
         media: "screen",
-        text: `Rated ${r.movie_object?.primaryTitle || "a title"}`,
+        prefix: "Rated",
+        title: r.movie_object?.primaryTitle || "a title",
         meta: `${r.rating}`,
         onClick: goRatings(r.movie_object?.primaryTitle),
       }),
@@ -446,24 +459,53 @@ export default function Home() {
       const title = l.movie_object?.primaryTitle || "a title";
       const seasons = l.season_info || [];
       if (isTV(l.movie_object) && seasons.length > 0) {
-        // one event per season the show was started
-        seasons.forEach((s) =>
+        // one event per season the show was started, plus one when finished
+        seasons.forEach((s) => {
           ev.push({
             date: s.start_date || s.created_at || l.created_at,
             type: "log",
             media: "screen",
-            text: `Started watching Season ${s.season} of ${title}`,
+            prefix: `Started watching Season ${s.season} of`,
+            title,
             onClick: goLog(l.movie_object?.primaryTitle),
-          }),
-        );
+          });
+          if (s.end_date && s.finished) {
+            ev.push({
+              date: s.end_date,
+              type: "finish",
+              media: "screen",
+              prefix: `Finished watching Season ${s.season} of`,
+              title,
+              onClick: goLog(l.movie_object?.primaryTitle),
+            });
+          }
+        });
+      } else if (!isTV(l.movie_object) && l.multi_day) {
+        ev.push({
+          date: l.created_at,
+          type: "log",
+          media: "screen",
+          prefix: "Started watching",
+          title,
+          onClick: goLog(l.movie_object?.primaryTitle),
+        });
+        if (l.movie_end_date) {
+          ev.push({
+            date: l.movie_end_date,
+            type: "finish",
+            media: "screen",
+            prefix: "Finished watching",
+            title,
+            onClick: goLog(l.movie_object?.primaryTitle),
+          });
+        }
       } else {
         ev.push({
           date: l.created_at,
           type: "log",
           media: "screen",
-          text: isTV(l.movie_object)
-            ? `Started watching ${title}`
-            : `Logged ${title}`,
+          prefix: isTV(l.movie_object) ? "Started watching" : "Logged",
+          title,
           onClick: goLog(l.movie_object?.primaryTitle),
         });
       }
@@ -473,8 +515,10 @@ export default function Home() {
         date: w.created_at,
         type: "add",
         media: "screen",
-        text: `Added ${w.movie_object?.primaryTitle || "a title"} to watchlist`,
-        onClick: goMovie(w.movie_object?.id),
+        prefix: "Added",
+        title: w.movie_object?.primaryTitle || "a title",
+        suffix: " to watchlist",
+        onClick: goWatchlist(w.movie_object?.primaryTitle),
       }),
     );
     bookRatings.forEach((r) =>
@@ -482,7 +526,8 @@ export default function Home() {
         date: r.created_at,
         type: "rate",
         media: "book",
-        text: `Rated ${stripSeries(r.book_entries?.title) || "a book"}`,
+        prefix: "Rated",
+        title: stripSeries(r.book_entries?.title) || "a book",
         meta: `${r.book_rating}`,
         onClick: goRatings(stripSeries(r.book_entries?.title)),
       }),
@@ -493,7 +538,8 @@ export default function Home() {
         date: l.start_date || l.created_at,
         type: "log",
         media: "book",
-        text: `Started reading ${bookTitle}`,
+        prefix: "Started reading",
+        title: bookTitle,
         onClick: goLog(stripSeries(l.book_entries?.title)),
       });
       if (l.end_date)
@@ -501,7 +547,8 @@ export default function Home() {
           date: l.end_date,
           type: "finish",
           media: "book",
-          text: `Finished reading ${bookTitle}`,
+          prefix: "Finished reading",
+          title: bookTitle,
           onClick: goLog(stripSeries(l.book_entries?.title)),
         });
     });
@@ -510,8 +557,10 @@ export default function Home() {
         date: t.created_at,
         type: "add",
         media: "book",
-        text: `Added ${stripSeries(t.book_entries?.title) || "a book"} to TBR`,
-        onClick: goBook(t.book_entries),
+        prefix: "Added",
+        title: stripSeries(t.book_entries?.title) || "a book",
+        suffix: " to TBR",
+        onClick: goWatchlist(stripSeries(t.book_entries?.title)),
       }),
     );
     return ev
@@ -697,6 +746,10 @@ export default function Home() {
     () => (popularMovies || []).slice(0, 10).map((m) => movieTile(m)),
     [popularMovies, movieTile],
   );
+  const trendingTV = useMemo(
+    () => (popularTV || []).slice(0, 10).map((m) => movieTile(m)),
+    [popularTV, movieTile],
+  );
 
   /* ---------- render ---------- */
 
@@ -747,6 +800,19 @@ export default function Home() {
               <CoverStrip tiles={inProgress} empty="" />
             </Section>
           )}
+          {/* trending movies + tv strips */}
+          <Section label="What's Trending?" panel>
+            <div className="hp-sub-label">Movies</div>
+            <CoverStrip
+              tiles={trendingMovies}
+              empty={popularMoviesLoaded ? "No trending movies." : "Loading..."}
+            />
+            <div className="hp-sub-label">TV Shows</div>
+            <CoverStrip
+              tiles={trendingTV}
+              empty={popularTVLoaded ? "No trending TV." : "Loading..."}
+            />
+          </Section>
           {/* top 4 ranked */}
           <Section label="4 Favourites" panel>
         <div className="hp-sub-label">Movies</div>
@@ -768,14 +834,6 @@ export default function Home() {
         </div>
 
         <div className="hp-col-right">
-          {/* trending movies strip */}
-          <Section label="What's Trending?" panel>
-            <CoverStrip
-              tiles={trendingMovies}
-              empty={popularMoviesLoaded ? "No trending movies." : "Loading..."}
-            />
-          </Section>
-
           {/* recent activity feed */}
           <Section label="Recent Activity">
         {activity.length === 0 ? (
@@ -789,14 +847,27 @@ export default function Home() {
                 onClick={e.onClick}
                 style={{ cursor: e.onClick ? "pointer" : "default" }}
               >
-                <span className={`hp-feed-dot hp-feed-dot-${e.type}`} />
                 <img
                   className="hp-feed-media-icon"
                   src={e.media === "book" ? "/book.png" : "/movie.png"}
                   alt={e.media === "book" ? "Book" : "Movie/TV"}
                 />
+                <img
+                  className="hp-feed-media-icon"
+                  src={
+                    e.type === "rate"
+                      ? "/ratings.png"
+                      : e.type === "add"
+                        ? "/watchlist-navbar.png"
+                        : "/log.png"
+                  }
+                  alt={e.type}
+                />
                 <span className="hp-feed-body">
-                  <span className="hp-feed-text">{e.text}</span>
+                  <span className="hp-feed-text">
+                    {e.prefix} <strong>{e.title}</strong>
+                    {e.suffix || ""}
+                  </span>
                   {e.meta && <span className="hp-feed-rating">{e.meta}</span>}
                 </span>
                 <span className="hp-feed-date">{timeAgo(e.date)}</span>
@@ -879,36 +950,6 @@ export default function Home() {
           </div>
         </div>
       </Section>
-        </div>
-      </div>
-
-      {/* recent logs */}
-      <Section label="Recent Logs" panel>
-        <div className="hp-sub-label">Movies</div>
-        <CoverStrip tiles={recentFilmLogs} empty="No movie logs yet." />
-        <div className="hp-sub-label">TV Shows</div>
-        <CoverStrip tiles={recentTvLogs} empty="No TV logs yet." />
-        <div className="hp-sub-label">Books</div>
-        <CoverStrip tiles={recentBookLogs} empty="No book logs yet." />
-      </Section>
-
-      {/* recent ratings */}
-      <Section label="Recent Ratings" panel>
-        <div className="hp-sub-label">Movies</div>
-        <CoverStrip tiles={recentFilmRatings} empty="No movie ratings yet." />
-        <div className="hp-sub-label">TV Shows</div>
-        <CoverStrip tiles={recentTvRatings} empty="No TV ratings yet." />
-        <div className="hp-sub-label">Books</div>
-        <CoverStrip tiles={recentBookRatings} empty="No book ratings yet." />
-      </Section>
-
-      {/* recently added to watchlist + TBR */}
-      <Section label="Recently Added to Watchlist & TBR" panel>
-        <div className="hp-sub-label">Watchlist</div>
-        <CoverStrip tiles={recentWatchlist} empty="Watchlist is empty." />
-        <div className="hp-sub-label">TBR</div>
-        <CoverStrip tiles={recentTbr} empty="TBR is empty." />
-      </Section>
 
       {/* decade breakdown */}
       {(decades.rated || decades.logged || decades.watchlist) && (
@@ -969,6 +1010,36 @@ export default function Home() {
           )}
         </Section>
       )}
+        </div>
+      </div>
+
+      {/* recent logs */}
+      <Section label="Recent Logs" panel>
+        <div className="hp-sub-label">Movies</div>
+        <CoverStrip tiles={recentFilmLogs} empty="No movie logs yet." />
+        <div className="hp-sub-label">TV Shows</div>
+        <CoverStrip tiles={recentTvLogs} empty="No TV logs yet." />
+        <div className="hp-sub-label">Books</div>
+        <CoverStrip tiles={recentBookLogs} empty="No book logs yet." />
+      </Section>
+
+      {/* recent ratings */}
+      <Section label="Recent Ratings" panel>
+        <div className="hp-sub-label">Movies</div>
+        <CoverStrip tiles={recentFilmRatings} empty="No movie ratings yet." />
+        <div className="hp-sub-label">TV Shows</div>
+        <CoverStrip tiles={recentTvRatings} empty="No TV ratings yet." />
+        <div className="hp-sub-label">Books</div>
+        <CoverStrip tiles={recentBookRatings} empty="No book ratings yet." />
+      </Section>
+
+      {/* recently added to watchlist + TBR */}
+      <Section label="Recently Added to Watchlist & TBR" panel>
+        <div className="hp-sub-label">Watchlist</div>
+        <CoverStrip tiles={recentWatchlist} empty="Watchlist is empty." />
+        <div className="hp-sub-label">TBR</div>
+        <CoverStrip tiles={recentTbr} empty="TBR is empty." />
+      </Section>
 
       {/* on this day */}
       {onThisDay && (
