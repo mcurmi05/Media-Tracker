@@ -15,6 +15,8 @@ const SORT_OPTIONS = [
   { value: "year", label: "Release Date" },
   { value: "rating", label: "Rating" },
 ];
+
+const DECADES = Array.from({ length: 13 }, (_, i) => 2020 - i * 10);
 //
 function Log() {
   const { userLogs, userLogsLoaded } = useLogs();
@@ -36,7 +38,15 @@ function Log() {
   const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
   const [yearOp, setYearOp] = useState(location.state?.yearOp || "none");
   const [yearValue, setYearValue] = useState(location.state?.yearValue || "");
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(() => {
+    const s = location.state || {};
+    return (
+      (s.ratingFilter && s.ratingFilter !== "all") ||
+      (s.yearOp && s.yearOp !== "none") ||
+      (s.sortKey && s.sortKey !== "date") ||
+      (s.sortDir && s.sortDir !== "desc")
+    );
+  });
 
   const activeFilterCount =
     (ratingFilter !== "all" ? 1 : 0) +
@@ -75,7 +85,20 @@ function Log() {
     if (y == null) return false;
     const n = Number(yearValue);
     if (!Number.isFinite(n)) return true;
-    return yearOp === "before" ? y < n : y > n;
+    if (yearOp === "before") return y < n;
+    if (yearOp === "after") return y > n;
+    if (yearOp === "decade") return y >= n && y < n + 10;
+    return true;
+  };
+
+  const handleYearOpChange = (newOp) => {
+    setYearOp(newOp);
+    if (newOp === "decade" && yearValue) {
+      const n = Number(yearValue);
+      if (Number.isFinite(n)) {
+        setYearValue(String(Math.floor(n / 10) * 10));
+      }
+    }
   };
 
   // Release year helpers used by the release-date sort.
@@ -456,7 +479,7 @@ function Log() {
             >
               <select
                 value={yearOp}
-                onChange={(e) => setYearOp(e.target.value)}
+                onChange={(e) => handleYearOpChange(e.target.value)}
                 style={{
                   height: "32px",
                   padding: "0 10px",
@@ -469,11 +492,35 @@ function Log() {
                   textAlign: "center",
                 }}
               >
-                <option value="none">Year</option>
+                <option value="none">All Years</option>
                 <option value="before">Before</option>
                 <option value="after">After</option>
+                <option value="decade">Decade</option>
               </select>
-              {yearOp !== "none" && (
+              {yearOp === "decade" ? (
+                <select
+                  value={yearValue}
+                  onChange={(e) => setYearValue(e.target.value)}
+                  style={{
+                    height: "32px",
+                    padding: "0 10px",
+                    border: "1px solid #cccccc",
+                    borderRadius: "6px",
+                    backgroundColor: "#3b3b3b",
+                    color: "#ffffff",
+                    fontSize: "0.8rem",
+                    outline: "none",
+                    textAlign: "center",
+                  }}
+                >
+                  <option value="">Pick</option>
+                  {DECADES.map((d) => (
+                    <option key={d} value={d}>
+                      {d}s
+                    </option>
+                  ))}
+                </select>
+              ) : yearOp !== "none" ? (
                 <input
                   className="filter-input"
                   type="number"
@@ -490,7 +537,7 @@ function Log() {
                     color: "#ffffff",
                   }}
                 />
-              )}
+              ) : null}
             </div>
             <SortByMenu
               sortKey={sortKey}

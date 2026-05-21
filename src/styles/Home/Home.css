@@ -151,19 +151,54 @@
 }
 
 /* ---- cover strip ---- */
+.hp-strip-wrap {
+  position: relative;
+}
 .hp-strip {
   display: flex;
   gap: 14px;
   overflow-x: auto;
   padding-bottom: 8px;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 .hp-strip::-webkit-scrollbar {
-  height: 5px;
+  display: none;
 }
-.hp-strip::-webkit-scrollbar-thumb {
-  background: #4a4a4a;
-  border-radius: 3px;
+.hp-strip-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(calc(-50% - 25px));
+  z-index: 3;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #4a4a4a;
+  background: rgba(20, 20, 20, 0.85);
+  color: #ffffff;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 4px;
+  transition: background 0.15s, transform 0.15s;
+  outline: none;
+}
+.hp-strip-arrow:focus,
+.hp-strip-arrow:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.hp-strip-arrow:hover {
+  background: rgba(50, 50, 50, 0.95);
+  transform: translateY(calc(-50% - 25px)) scale(1.05);
+}
+.hp-strip-arrow-left {
+  left: -6px;
+}
+.hp-strip-arrow-right {
+  right: -6px;
 }
 .cv-tile {
   width: 108px;
@@ -289,7 +324,23 @@
 .hp-bar-decade {
   width: 60%;
   max-width: 38px;
-  background: linear-gradient(180deg, #7fc4bb, #5fb0a7);
+  background: #e50914;
+  transition: background 0.15s ease;
+}
+.hp-chart-col:hover .hp-bar-decade {
+  background: #ff2a36;
+}
+.hp-avg-pill {
+  margin-left: 8px;
+  font-size: 0.66rem;
+  color: #c8c8c8;
+  background: rgba(229, 9, 20, 0.18);
+  border: 1px solid rgba(229, 9, 20, 0.5);
+  border-radius: 999px;
+  padding: 1px 8px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  vertical-align: middle;
 }
 .hp-chart-x {
   font-size: 0.72rem;
@@ -369,7 +420,7 @@
   list-style: none;
   margin: 0;
   padding: 0 8px 0 0;
-  max-height: 740px;
+  max-height: 509px;
   overflow-y: auto;
   scrollbar-width: thin;
 }

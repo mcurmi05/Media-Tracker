@@ -7,6 +7,8 @@ import { useWatchlist } from "../contexts/UserWatchlistContext";
 import { useBookRatings } from "../contexts/UserBookRatingsContext";
 import { useBookLogs } from "../contexts/UserBookLogsContext";
 import { useBookTbr } from "../contexts/UserBookTbrContext";
+import { useCache } from "../contexts/PopularMoviesCacheContext";
+import { getPopularMovies } from "../services/api.js";
 import { SignIn } from "./SignIn.jsx";
 import { bookDetailsRoute } from "../utils/goodreads.js";
 import "../styles/Home/Home.css";
@@ -81,19 +83,22 @@ function Section({ label, hint, children, panel }) {
   );
 }
 
-function DecadeChart({ decades, counts, max }) {
+function DecadeChart({ decades, counts, max, onBarClick }) {
   const [hover, setHover] = useState(null);
   return (
     <div className="hp-chart">
       <div className="hp-chart-bars">
         {decades.map((d, i) => {
           const active = hover === i;
+          const clickable = !!onBarClick && counts[i] > 0;
           return (
             <div
               className="hp-chart-col"
               key={d}
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
+              onClick={clickable ? () => onBarClick(d) : undefined}
+              style={{ cursor: clickable ? "pointer" : "default" }}
             >
               <div className="hp-bar-pair">
                 {active && (
@@ -121,52 +126,96 @@ function DecadeChart({ decades, counts, max }) {
 
 function CoverStrip({ tiles, empty }) {
   const stripRef = useRef(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
 
-  // Translate vertical wheel scrolling into horizontal movement of the strip.
+  const updateArrows = useCallback(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 0);
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
   useEffect(() => {
     const el = stripRef.current;
     if (!el) return;
+    updateArrows();
+    el.addEventListener("scroll", updateArrows, { passive: true });
+    window.addEventListener("resize", updateArrows);
+    // Translate vertical wheel scrolling into horizontal movement of the strip.
     const onWheel = (e) => {
-      if (el.scrollWidth <= el.clientWidth) return; // nothing to scroll
-      // Leave genuine horizontal (trackpad) gestures to the browser.
+      if (el.scrollWidth <= el.clientWidth) return;
       if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
       e.preventDefault();
       el.scrollLeft += e.deltaY;
     };
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [tiles.length]);
+    return () => {
+      el.removeEventListener("scroll", updateArrows);
+      window.removeEventListener("resize", updateArrows);
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, [updateArrows, tiles.length]);
+
+  const scrollByDir = (dir) => {
+    const el = stripRef.current;
+    if (!el) return;
+    const amount = Math.max(220, el.clientWidth * 0.8);
+    el.scrollBy({ left: dir * amount, behavior: "smooth" });
+  };
 
   if (!tiles.length) return <p className="hp-empty">{empty}</p>;
   return (
-    <div className="hp-strip" ref={stripRef}>
-      {tiles.map((t, i) => (
-        <div
-          key={`${t.key || "x"}-${i}`}
-          className="cv-tile"
-          onClick={t.onClick}
-          style={{ cursor: t.onClick ? "pointer" : "default" }}
+    <div className="hp-strip-wrap">
+      {canLeft && (
+        <button
+          type="button"
+          className="hp-strip-arrow hp-strip-arrow-left"
+          onClick={() => scrollByDir(-1)}
+          aria-label="Scroll left"
         >
-          <div className="cv-poster">
-            <img
-              src={t.cover || "/placeholderimage.jpg"}
-              alt=""
-              decoding="async"
-              style={{ objectFit: t.fit || "cover" }}
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "/placeholderimage.jpg";
-              }}
-            />
-            {t.rank != null && (
-              <span className={`cv-rank cv-rank-${t.rank}`}>{t.rank}</span>
-            )}
-            {t.badge != null && <span className="cv-badge">{t.badge}</span>}
+          {String.fromCharCode(0x2039)}
+        </button>
+      )}
+      <div className="hp-strip" ref={stripRef}>
+        {tiles.map((t, i) => (
+          <div
+            key={`${t.key || "x"}-${i}`}
+            className="cv-tile"
+            onClick={t.onClick}
+            style={{ cursor: t.onClick ? "pointer" : "default" }}
+          >
+            <div className="cv-poster">
+              <img
+                src={t.cover || "/placeholderimage.jpg"}
+                alt=""
+                decoding="async"
+                style={{ objectFit: t.fit || "cover" }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/placeholderimage.jpg";
+                }}
+              />
+              {t.rank != null && (
+                <span className={`cv-rank cv-rank-${t.rank}`}>{t.rank}</span>
+              )}
+              {t.badge != null && <span className="cv-badge">{t.badge}</span>}
+            </div>
+            <div className="cv-title">{t.title}</div>
+            {t.sub && <div className="cv-sub">{t.sub}</div>}
           </div>
-          <div className="cv-title">{t.title}</div>
-          {t.sub && <div className="cv-sub">{t.sub}</div>}
-        </div>
-      ))}
+        ))}
+      </div>
+      {canRight && (
+        <button
+          type="button"
+          className="hp-strip-arrow hp-strip-arrow-right"
+          onClick={() => scrollByDir(1)}
+          aria-label="Scroll right"
+        >
+          {String.fromCharCode(0x203a)}
+        </button>
+      )}
     </div>
   );
 }
@@ -182,6 +231,18 @@ export default function Home() {
   const { bookRatings } = useBookRatings();
   const { bookLogs } = useBookLogs();
   const { userBookTbr } = useBookTbr();
+  const { popularMovies, popularMoviesLoaded, cachePopularMovies } = useCache();
+
+  useEffect(() => {
+    if (popularMoviesLoaded) return;
+    let cancelled = false;
+    getPopularMovies().then((m) => {
+      if (!cancelled && m) cachePopularMovies(m);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [popularMoviesLoaded, cachePopularMovies]);
 
   const [hoverRating, setHoverRating] = useState(null);
 
@@ -311,37 +372,48 @@ export default function Home() {
   /* ---------- decade breakdown: by release year, rated vs logged ---------- */
 
   const decades = useMemo(() => {
-    const decadeOf = (year) => {
-      const n = Number(year);
-      if (!Number.isFinite(n) || n < 1000) return null;
-      return Math.floor(n / 10) * 10;
+    const movieYear = (mo) => {
+      const n = Number(mo?.startYear);
+      return Number.isFinite(n) && n > 1000 ? n : null;
     };
-    const ratedCounts = new Map();
-    const loggedCounts = new Map();
-    const bump = (map, d) => d != null && map.set(d, (map.get(d) || 0) + 1);
+    const bookYearOf = (be) => {
+      const n = Number(be?.release_year);
+      return Number.isFinite(n) && n > 1000 ? n : null;
+    };
+    // Build one series: drops decades with zero items, averages contributing years.
+    const series = (years) => {
+      const valid = years.filter((y) => y != null);
+      if (!valid.length) return null;
+      const counts = new Map();
+      valid.forEach((y) => {
+        const d = Math.floor(y / 10) * 10;
+        counts.set(d, (counts.get(d) || 0) + 1);
+      });
+      const decadeList = [...counts.keys()].sort((a, b) => a - b);
+      const list = decadeList.map((d) => counts.get(d));
+      return {
+        decades: decadeList,
+        counts: list,
+        max: Math.max(1, ...list),
+        avg: Math.round(valid.reduce((s, v) => s + v, 0) / valid.length),
+      };
+    };
 
-    userRatings.forEach((r) => bump(ratedCounts, decadeOf(r.movie_object?.startYear)));
-    bookRatings.forEach((r) => bump(ratedCounts, decadeOf(r.book_entries?.release_year)));
-    userLogs.forEach((l) => bump(loggedCounts, decadeOf(l.movie_object?.startYear)));
-    bookLogs.forEach((l) => bump(loggedCounts, decadeOf(l.book_entries?.release_year)));
-
-    const all = [...ratedCounts.keys(), ...loggedCounts.keys()];
-    if (all.length === 0) return null;
-    const min = Math.min(...all);
-    const max = Math.max(...all);
-    const decadeList = [];
-    for (let d = min; d <= max; d += 10) decadeList.push(d);
-
-    const rated = decadeList.map((d) => ratedCounts.get(d) || 0);
-    const logged = decadeList.map((d) => loggedCounts.get(d) || 0);
     return {
-      decades: decadeList,
-      rated,
-      logged,
-      ratedMax: Math.max(1, ...rated),
-      loggedMax: Math.max(1, ...logged),
+      rated: series([
+        ...userRatings.map((r) => movieYear(r.movie_object)),
+        ...bookRatings.map((r) => bookYearOf(r.book_entries)),
+      ]),
+      logged: series([
+        ...userLogs.map((l) => movieYear(l.movie_object)),
+        ...bookLogs.map((l) => bookYearOf(l.book_entries)),
+      ]),
+      watchlist: series([
+        ...userWatchlist.map((w) => movieYear(w.movie_object)),
+        ...userBookTbr.map((t) => bookYearOf(t.book_entries)),
+      ]),
     };
-  }, [userRatings, bookRatings, userLogs, bookLogs]);
+  }, [userRatings, bookRatings, userLogs, bookLogs, userWatchlist, userBookTbr]);
 
   /* ---------- unified recent activity feed ---------- */
 
@@ -522,7 +594,7 @@ export default function Home() {
       [...userRatings]
         .filter((r) => !isTV(r.movie_object))
         .sort(byDateDesc("created_at"))
-        .slice(0, 12)
+        .slice(0, 36)
         .map((r) => movieTile(r.movie_object, { badge: r.rating })),
     [userRatings, movieTile],
   );
@@ -531,7 +603,7 @@ export default function Home() {
       [...userRatings]
         .filter((r) => isTV(r.movie_object))
         .sort(byDateDesc("created_at"))
-        .slice(0, 12)
+        .slice(0, 36)
         .map((r) => movieTile(r.movie_object, { badge: r.rating })),
     [userRatings, movieTile],
   );
@@ -539,7 +611,7 @@ export default function Home() {
     () =>
       [...bookRatings]
         .sort(byDateDesc("created_at"))
-        .slice(0, 12)
+        .slice(0, 36)
         .map((r) => bookTile(r.book_entries, { badge: r.book_rating })),
     [bookRatings, bookTile],
   );
@@ -548,7 +620,7 @@ export default function Home() {
       [...userLogs]
         .filter((l) => !isTV(l.movie_object))
         .sort((a, b) => mostRecentLogDate(b) - mostRecentLogDate(a))
-        .slice(0, 12)
+        .slice(0, 36)
         .map((l) => ({
           ...movieTile(l.movie_object, {}),
           onClick: goLog(l.movie_object?.primaryTitle),
@@ -560,7 +632,7 @@ export default function Home() {
       [...userLogs]
         .filter((l) => isTV(l.movie_object))
         .sort((a, b) => mostRecentLogDate(b) - mostRecentLogDate(a))
-        .slice(0, 12)
+        .slice(0, 36)
         .map((l) => ({
           ...movieTile(l.movie_object, {}),
           onClick: goLog(l.movie_object?.primaryTitle),
@@ -571,7 +643,7 @@ export default function Home() {
     () =>
       [...bookLogs]
         .sort((a, b) => mostRecentBookLogDate(b) - mostRecentBookLogDate(a))
-        .slice(0, 12)
+        .slice(0, 36)
         .map((l) => bookTile(l.book_entries, {})),
     [bookLogs, bookTile],
   );
@@ -608,7 +680,7 @@ export default function Home() {
     () =>
       [...userWatchlist]
         .sort(byDateDesc("created_at"))
-        .slice(0, 12)
+        .slice(0, 36)
         .map((w) => movieTile(w.movie_object, {})),
     [userWatchlist, movieTile],
   );
@@ -616,9 +688,14 @@ export default function Home() {
     () =>
       [...userBookTbr]
         .sort(byDateDesc("created_at"))
-        .slice(0, 12)
+        .slice(0, 36)
         .map((t) => bookTile(t.book_entries, {})),
     [userBookTbr, bookTile],
+  );
+
+  const trendingMovies = useMemo(
+    () => (popularMovies || []).slice(0, 10).map((m) => movieTile(m)),
+    [popularMovies, movieTile],
   );
 
   /* ---------- render ---------- */
@@ -666,12 +743,12 @@ export default function Home() {
         <div className="hp-col-left">
           {/* currently watching / reading */}
           {inProgress.length > 0 && (
-            <Section label="Currently Watching & Reading">
+            <Section label="Currently Watching & Reading" panel>
               <CoverStrip tiles={inProgress} empty="" />
             </Section>
           )}
           {/* top 4 ranked */}
-          <Section label="4 Favourites">
+          <Section label="4 Favourites" panel>
         <div className="hp-sub-label">Movies</div>
         <CoverStrip
           tiles={topMovies}
@@ -691,6 +768,14 @@ export default function Home() {
         </div>
 
         <div className="hp-col-right">
+          {/* trending movies strip */}
+          <Section label="What's Trending?" panel>
+            <CoverStrip
+              tiles={trendingMovies}
+              empty={popularMoviesLoaded ? "No trending movies." : "Loading..."}
+            />
+          </Section>
+
           {/* recent activity feed */}
           <Section label="Recent Activity">
         {activity.length === 0 ? (
@@ -730,12 +815,22 @@ export default function Home() {
               const active = hoverRating === rating;
               // 5 = red, 10 = green, through yellow in between
               const hue = ((rating - 5) / 5) * 120;
+              const clickable = total > 0;
               return (
                 <div
                   className="hp-chart-col"
                   key={rating}
                   onMouseEnter={() => setHoverRating(rating)}
                   onMouseLeave={() => setHoverRating(null)}
+                  onClick={
+                    clickable
+                      ? () =>
+                          navigate("/ratings", {
+                            state: { ratingFilter: String(rating) },
+                          })
+                      : undefined
+                  }
+                  style={{ cursor: clickable ? "pointer" : "default" }}
                 >
                   <div className="hp-bar-pair">
                     {active && (
@@ -807,26 +902,6 @@ export default function Home() {
         <CoverStrip tiles={recentBookRatings} empty="No book ratings yet." />
       </Section>
 
-      {/* decade breakdown */}
-      {decades && (
-        <Section label="Decade Breakdown" hint="by release year" panel>
-          <div className="hp-sub-label">Rated</div>
-          <DecadeChart
-            decades={decades.decades}
-            counts={decades.rated}
-            max={decades.ratedMax}
-          />
-          <div className="hp-sub-label" style={{ marginTop: 16 }}>
-            Logged
-          </div>
-          <DecadeChart
-            decades={decades.decades}
-            counts={decades.logged}
-            max={decades.loggedMax}
-          />
-        </Section>
-      )}
-
       {/* recently added to watchlist + TBR */}
       <Section label="Recently Added to Watchlist & TBR" panel>
         <div className="hp-sub-label">Watchlist</div>
@@ -834,6 +909,66 @@ export default function Home() {
         <div className="hp-sub-label">TBR</div>
         <CoverStrip tiles={recentTbr} empty="TBR is empty." />
       </Section>
+
+      {/* decade breakdown */}
+      {(decades.rated || decades.logged || decades.watchlist) && (
+        <Section label="Decade Breakdown" hint="by release year" panel>
+          {decades.rated && (
+            <>
+              <div className="hp-sub-label">
+                Rated
+                <span className="hp-avg-pill">avg {decades.rated.avg}</span>
+              </div>
+              <DecadeChart
+                decades={decades.rated.decades}
+                counts={decades.rated.counts}
+                max={decades.rated.max}
+                onBarClick={(d) =>
+                  navigate("/ratings", {
+                    state: { yearOp: "decade", yearValue: String(d) },
+                  })
+                }
+              />
+            </>
+          )}
+          {decades.logged && (
+            <>
+              <div className="hp-sub-label" style={{ marginTop: 16 }}>
+                Logged
+                <span className="hp-avg-pill">avg {decades.logged.avg}</span>
+              </div>
+              <DecadeChart
+                decades={decades.logged.decades}
+                counts={decades.logged.counts}
+                max={decades.logged.max}
+                onBarClick={(d) =>
+                  navigate("/log", {
+                    state: { yearOp: "decade", yearValue: String(d) },
+                  })
+                }
+              />
+            </>
+          )}
+          {decades.watchlist && (
+            <>
+              <div className="hp-sub-label" style={{ marginTop: 16 }}>
+                On Watchlist
+                <span className="hp-avg-pill">avg {decades.watchlist.avg}</span>
+              </div>
+              <DecadeChart
+                decades={decades.watchlist.decades}
+                counts={decades.watchlist.counts}
+                max={decades.watchlist.max}
+                onBarClick={(d) =>
+                  navigate("/watchlist", {
+                    state: { yearOp: "decade", yearValue: String(d) },
+                  })
+                }
+              />
+            </>
+          )}
+        </Section>
+      )}
 
       {/* on this day */}
       {onThisDay && (
