@@ -1,15 +1,18 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Dev-only middleware that mounts the /api/goodreads serverless function
-// so `npm run dev` works the same as the Vercel deploy.
-const goodreadsDevApi = () => ({
-  name: 'goodreads-dev-api',
+// Dev-only middleware that mounts the /api/* serverless functions so
+// `npm run dev` behaves like the Vercel deploy. Routes /api/<name> to
+// the default export of /api/<name>.js.
+const devApi = () => ({
+  name: 'dev-api',
   configureServer(server) {
-    server.middlewares.use('/api/goodreads', async (req, res) => {
+    server.middlewares.use('/api', async (req, res, next) => {
+      const fullUrl = new URL(req.url, 'http://localhost')
+      const name = fullUrl.pathname.replace(/^\/+/, '').split('/')[0]
+      if (!name) return next()
       try {
-        const { default: handler } = await server.ssrLoadModule('/api/goodreads.js')
-        const fullUrl = new URL(req.url, 'http://localhost')
+        const { default: handler } = await server.ssrLoadModule(`/api/${name}.js`)
         req.query = Object.fromEntries(fullUrl.searchParams)
         const proxy = {
           status(code) { res.statusCode = code; return this },
@@ -30,10 +33,19 @@ const goodreadsDevApi = () => ({
 })
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), goodreadsDevApi()],
-  optimizeDeps: {
-    exclude: ['chunk-3HWLUFA5', 'chunk-JSO3YDVX']
+export default defineConfig(({ mode }) => {
+  // Mirror Vercel: expose non-VITE_ env vars (e.g. IMDB_API_KEY) to the
+  // dev API handlers through process.env. They are never bundled into the
+  // client; only VITE_-prefixed vars are.
+  const env = loadEnv(mode, process.cwd(), '')
+  for (const [k, v] of Object.entries(env)) {
+    if (!(k in process.env)) process.env[k] = v
+  }
+
+  return {
+    plugins: [react(), devApi()],
+    optimizeDeps: {
+      exclude: ['chunk-3HWLUFA5', 'chunk-JSO3YDVX'],
+    },
   }
 })
-

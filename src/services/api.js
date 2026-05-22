@@ -1,59 +1,32 @@
-const VITE_IMDB_API_KEY = import.meta.env.VITE_IMDB_API_KEY;
+// Thin client wrappers around the /api/imdb serverless proxy. The RapidAPI
+// key lives only on the server, so nothing here ever touches it.
+
+const API = "/api/imdb";
 
 export const getPopularMovies = async () => {
-  const url = "https://imdb236.p.rapidapi.com/api/imdb/most-popular-movies";
-  const options = {
-    method: "GET",
-    headers: {
-      "x-rapidapi-key": VITE_IMDB_API_KEY,
-      "x-rapidapi-host": "imdb236.p.rapidapi.com",
-    },
-  };
-
   try {
-    const response = await fetch(url, options);
-    const results = await response.json();
-    console.log("Top 100 Popular Movies (received directly from api):", results);
-    return results;
+    const response = await fetch(`${API}?action=popular-movies`);
+    return await response.json();
   } catch (error) {
     console.error(error);
   }
 };
 
 export const getPopularTV = async () => {
-  const url = "https://imdb236.p.rapidapi.com/api/imdb/most-popular-tv";
-  const options = {
-    method: "GET",
-    headers: {
-      "x-rapidapi-key": VITE_IMDB_API_KEY,
-      "x-rapidapi-host": "imdb236.p.rapidapi.com",
-    },
-  };
-
   try {
-    const response = await fetch(url, options);
-    const results = await response.json();
-    console.log("Top 100 TV Shows (received directly from api):", results);
-    return results;
+    const response = await fetch(`${API}?action=popular-tv`);
+    return await response.json();
   } catch (error) {
     console.error(error);
   }
 };
 
 export const searchMovies = async (query) => {
-  const url = `https://imdb236.p.rapidapi.com/api/imdb/search?primaryTitleAutocomplete=${query}&rows=100&sortOrder=DESC&sortField=numVotes`;
-  const options = {
-    method: "GET",
-    headers: {
-      "x-rapidapi-key": VITE_IMDB_API_KEY,
-      "x-rapidapi-host": "imdb236.p.rapidapi.com",
-    },
-  };
-
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(
+      `${API}?action=search&rows=100&query=${encodeURIComponent(query)}`,
+    );
     const results = await response.json();
-    console.log("Searched movie received from api:", results.results);
     return results.results;
   } catch (error) {
     console.error(error);
@@ -61,19 +34,11 @@ export const searchMovies = async (query) => {
 };
 
 export const searchMoviesFIRSTFIVEONLY = async (query) => {
-  const url = `https://imdb236.p.rapidapi.com/api/imdb/search?primaryTitleAutocomplete=${query}&rows=5&sortOrder=DESC&sortField=numVotes`;
-  const options = {
-    method: "GET",
-    headers: {
-      "x-rapidapi-key": VITE_IMDB_API_KEY,
-      "x-rapidapi-host": "imdb236.p.rapidapi.com",
-    },
-  };
-
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(
+      `${API}?action=search&rows=5&query=${encodeURIComponent(query)}`,
+    );
     const results = await response.json();
-    console.log("5 dropdown movies (received directly from API:)",results.results);
     return results.results;
   } catch (error) {
     console.error(error);
@@ -81,21 +46,11 @@ export const searchMoviesFIRSTFIVEONLY = async (query) => {
 };
 
 export const getMovieById = async (id) => {
-  const url = `https://imdb236.p.rapidapi.com/api/imdb/${id}`;
-  const options = {
-    method: "GET",
-    headers: {
-      "x-rapidapi-key": VITE_IMDB_API_KEY,
-      "x-rapidapi-host": "imdb236.p.rapidapi.com",
-    },
-  };
-
   try {
-    const response = await fetch(url, options);
-    const result = await response.json();
-    console.log("Movie with extra detail, received by ID (directly from API)", result);
-    console.log(result);
-    return result;
+    const response = await fetch(
+      `${API}?action=title&id=${encodeURIComponent(id)}`,
+    );
+    return await response.json();
   } catch (error) {
     console.error(error);
   }
