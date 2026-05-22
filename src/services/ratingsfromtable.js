@@ -68,11 +68,19 @@ export const getUserWatchlist = async (user) => {
   return data || [];
 };
 
-// Book entries (canonical metadata, referenced by all book child tables)
+// Book entries (per-user book metadata, referenced by that user's book child tables)
 export const createBookEntry = async (payload) => {
+  // Resolve the signed-in user so the row is stamped with its owner. This is
+  // required by the book_entries INSERT policy (with check: auth.uid() = user_id).
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("User must be authenticated to create a book entry");
+  }
   const { data, error } = await supabase
     .from("book_entries")
-    .insert(payload)
+    .insert({ ...payload, user_id: user.id })
     .select();
   if (error) throw error;
   return data[0];
