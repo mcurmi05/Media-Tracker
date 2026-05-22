@@ -504,7 +504,7 @@ export default function Home() {
           date: l.created_at,
           type: "log",
           media: "screen",
-          prefix: isTV(l.movie_object) ? "Started watching" : "Logged",
+          prefix: isTV(l.movie_object) ? "Started watching" : "Watched",
           title,
           onClick: goLog(l.movie_object?.primaryTitle),
         });
