@@ -65,6 +65,23 @@ function mostRecentBookLogDate(bookLog) {
   return new Date(bookLog.created_at);
 }
 
+// Completion date of the most-recently-finished season of a TV log, or null
+// if no season was finished. Used to order DNFed series by when the user
+// last actually finished a season before abandoning the show.
+function lastFinishedSeasonDate(log) {
+  const seasons = log.season_info;
+  if (!Array.isArray(seasons)) return null;
+  let latest = null;
+  seasons.forEach((s) => {
+    if (!s.finished) return;
+    const raw = s.end_date || s.finished_at;
+    if (!raw) return;
+    const d = new Date(raw);
+    if (!latest || d > latest) latest = d;
+  });
+  return latest;
+}
+
 // rank ascending (1 is best); unranked sinks to the bottom
 const byRank = (a, b) =>
   (a.ranking ?? Number.MAX_SAFE_INTEGER) - (b.ranking ?? Number.MAX_SAFE_INTEGER);
@@ -575,8 +592,13 @@ export default function Home() {
     const items = [];
     userLogs.forEach((l) => {
       const seasons = l.season_info || [];
-      // a season counts as in-progress only if not finished and not DNF
-      if (seasons.length && seasons.some((s) => !s.finished && !s.dnf)) {
+      // a season counts as in-progress only if the series isn't DNFed and the
+      // season itself is neither finished nor DNF
+      if (
+        seasons.length &&
+        !l.dnf &&
+        seasons.some((s) => !s.finished && !s.dnf)
+      ) {
         items.push({
           ...movieTile(l.movie_object, {}),
           onClick: goLog(l.movie_object?.primaryTitle),
@@ -699,16 +721,24 @@ export default function Home() {
 
   /* ---------- recently DNFed, per category, in Log page order ---------- */
 
+  // A show is DNFed if the whole series was abandoned (log-level `dnf`) or any
+  // individual season was marked DNF. Ordered by the last season the user
+  // finished, so a show dropped after season 1 sorts by that finish date.
   const dnfTvLogs = useMemo(
     () =>
       [...userLogs]
         .filter(
           (l) =>
             isTV(l.movie_object) &&
-            Array.isArray(l.season_info) &&
-            l.season_info.some((s) => s.dnf),
+            (l.dnf ||
+              (Array.isArray(l.season_info) &&
+                l.season_info.some((s) => s.dnf))),
         )
-        .sort((a, b) => mostRecentLogDate(b) - mostRecentLogDate(a))
+        .sort(
+          (a, b) =>
+            (lastFinishedSeasonDate(b) || mostRecentLogDate(b)) -
+            (lastFinishedSeasonDate(a) || mostRecentLogDate(a)),
+        )
         .slice(0, 12)
         .map((l) => ({
           ...movieTile(l.movie_object, {}),

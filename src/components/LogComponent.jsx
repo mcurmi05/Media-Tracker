@@ -95,7 +95,9 @@ export default function LogComponent({
   const liveLog = userLogs.find((l) => l.id === log_id);
   const movieEndDate = liveLog?.movie_end_date ?? movie_end_date;
   const isMultiDay = !!liveLog?.multi_day;
-  const movieDnf = !!liveLog?.dnf;
+  // Log-level DNF flag: marks a multi-day movie or a whole TV series as
+  // abandoned. Shared `dnf` column on the logs table.
+  const logDnf = !!liveLog?.dnf;
 
   // Persist a partial update to this movie log, then sync local state.
   async function persistLog(updates, failMsg) {
@@ -135,6 +137,16 @@ export default function LogComponent({
   function handleMovieDnf(value) {
     return persistLog(
       value ? { dnf: true, movie_end_date: null } : { dnf: false },
+      "Failed to update DNF state. Please try again.",
+    );
+  }
+
+  // Mark the whole TV series as DNF, or undo it. Unlike a movie DNF this
+  // leaves every season's dates intact - the user is abandoning the show,
+  // not erasing the seasons they did finish.
+  function handleSeriesDnf(value) {
+    return persistLog(
+      { dnf: !!value },
       "Failed to update DNF state. Please try again.",
     );
   }
@@ -201,7 +213,7 @@ export default function LogComponent({
       onClick: handleClearEndDate,
       disabled: !movieEndDate,
     });
-    if (!movieDnf) {
+    if (!logDnf) {
       movieActions.push({
         label: "DNF",
         onClick: () => handleMovieDnf(true),
@@ -243,7 +255,7 @@ export default function LogComponent({
           </div>
 
           {isMultiDay &&
-            (movieDnf ? (
+            (logDnf ? (
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
@@ -456,12 +468,15 @@ export default function LogComponent({
                             iconGap="8px"
                             minWidth="110px"
                             extraActions={
-                              !s.finished && !s.dnf
+                              // DNF the whole series from an in-progress last
+                              // season - one with a start date but no finish
+                              // date yet. A finished last season offers DNF
+                              // from its "Finished:" picker instead.
+                              idx === arr.length - 1 && !logDnf && !s.finished
                                 ? [
                                     {
                                       label: "DNF",
-                                      onClick: () =>
-                                        setSeasonDnf(log_id, idx, true),
+                                      onClick: () => handleSeriesDnf(true),
                                       danger: true,
                                     },
                                   ]
@@ -498,7 +513,36 @@ export default function LogComponent({
                               dateColor="#fff"
                               iconGap="6px"
                               minWidth="120px"
+                              extraActions={
+                                // DNF the whole series from the last season's
+                                // finish-date picker - only reachable once that
+                                // season has an end date.
+                                idx === arr.length - 1 && !logDnf
+                                  ? [
+                                      {
+                                        label: "DNF",
+                                        onClick: () => handleSeriesDnf(true),
+                                        danger: true,
+                                      },
+                                    ]
+                                  : []
+                              }
                             />
+                          </div>
+                        )}
+
+                        {/* Series DNF badge - sits next to the last season's
+                            finished date once the whole show is marked DNF.
+                            Click to undo. */}
+                        {idx === arr.length - 1 && logDnf && (
+                          <div className="season-chunk">
+                            <span
+                              className="dnf-badge"
+                              onClick={() => handleSeriesDnf(false)}
+                              title="This series is marked DNF - click to undo"
+                            >
+                              DNF
+                            </span>
                           </div>
                         )}
 
