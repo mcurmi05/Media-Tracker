@@ -142,6 +142,16 @@ function ReleaseYearFilter({ from, to, onChange, minYear, maxYear }) {
               </div>
             )}
           </div>
+          <div className="range-filter-footer">
+            <button
+              type="button"
+              className="range-filter-clear-all"
+              onClick={() => onChange({ from: "", to: "" })}
+              disabled={!from && !to}
+            >
+              Clear All
+            </button>
+          </div>
         </div>
       )}
     </div>

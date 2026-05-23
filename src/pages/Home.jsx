@@ -350,7 +350,19 @@ export default function Home() {
         onClick: () =>
           navigate("/log", { state: { mediaTypeFilter: "books" } }),
       },
-      { num: thisYear, label: "Logged this year" },
+      {
+        num: thisYear,
+        label: "Logged this year",
+        onClick: () => {
+          const y = new Date().getFullYear();
+          navigate("/log", {
+            state: {
+              addedFrom: `${y}-01-01`,
+              addedTo: `${y}-12-31`,
+            },
+          });
+        },
+      },
       { num: avg, label: "Avg screen rating" },
     ];
   }, [userRatings, userLogs, bookLogs, navigate]);

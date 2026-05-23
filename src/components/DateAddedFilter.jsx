@@ -68,6 +68,12 @@ function DateAddedFilter({ from, to, onChange }) {
     setToMonth(new Date());
   };
 
+  const clearAll = () => {
+    onChange({ from: "", to: "" });
+    setFromMonth(new Date());
+    setToMonth(new Date());
+  };
+
   return (
     <div ref={wrapRef} className="range-filter-wrap">
       <button
@@ -79,47 +85,59 @@ function DateAddedFilter({ from, to, onChange }) {
       </button>
       {open && (
         <div className="range-filter-popover range-filter-popover-dates">
-          <div className="range-filter-column">
-            <div className="range-filter-column-head">From</div>
-            <button
-              type="button"
-              className="range-filter-clear"
-              onClick={clearFrom}
-              disabled={!from}
-            >
-              Clear
-            </button>
-            <DayPicker
-              mode="single"
-              selected={fromDate}
-              onSelect={(d) => {
-                onChange({ from: d ? isoFromDate(d) : "", to });
-                if (d) setFromMonth(d);
-              }}
-              month={fromMonth}
-              onMonthChange={setFromMonth}
-            />
+          <div className="range-filter-dates-grid">
+            <div className="range-filter-column">
+              <div className="range-filter-column-head">From</div>
+              <button
+                type="button"
+                className="range-filter-clear"
+                onClick={clearFrom}
+                disabled={!from}
+              >
+                Clear
+              </button>
+              <DayPicker
+                mode="single"
+                selected={fromDate}
+                onSelect={(d) => {
+                  onChange({ from: d ? isoFromDate(d) : "", to });
+                  if (d) setFromMonth(d);
+                }}
+                month={fromMonth}
+                onMonthChange={setFromMonth}
+              />
+            </div>
+            <div className="range-filter-column">
+              <div className="range-filter-column-head">To</div>
+              <button
+                type="button"
+                className="range-filter-clear"
+                onClick={clearTo}
+                disabled={!to}
+              >
+                Clear
+              </button>
+              <DayPicker
+                mode="single"
+                selected={toDate}
+                onSelect={(d) => {
+                  onChange({ from, to: d ? isoFromDate(d) : "" });
+                  if (d) setToMonth(d);
+                }}
+                month={toMonth}
+                onMonthChange={setToMonth}
+              />
+            </div>
           </div>
-          <div className="range-filter-column">
-            <div className="range-filter-column-head">To</div>
+          <div className="range-filter-footer">
             <button
               type="button"
-              className="range-filter-clear"
-              onClick={clearTo}
-              disabled={!to}
+              className="range-filter-clear-all"
+              onClick={clearAll}
+              disabled={!from && !to}
             >
-              Clear
+              Clear All
             </button>
-            <DayPicker
-              mode="single"
-              selected={toDate}
-              onSelect={(d) => {
-                onChange({ from, to: d ? isoFromDate(d) : "" });
-                if (d) setToMonth(d);
-              }}
-              month={toMonth}
-              onMonthChange={setToMonth}
-            />
           </div>
         </div>
       )}

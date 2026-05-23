@@ -51,12 +51,46 @@
 }
 
 .range-filter-popover-dates {
-  flex-direction: row;
+  flex-direction: column;
+}
+
+.range-filter-dates-grid {
+  display: flex;
+  gap: 8px;
 }
 
 .range-filter-columns {
   display: flex;
   gap: 8px;
+}
+
+.range-filter-footer {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid #3a3a3a;
+  padding-top: 8px;
+}
+
+.range-filter-clear-all {
+  padding: 6px 16px;
+  border: 1px solid #4a4a4a;
+  border-radius: 6px;
+  background: transparent;
+  color: #d4d4d4;
+  font-size: 0.78rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.range-filter-clear-all:hover:not(:disabled) {
+  background: #c91919;
+  border-color: #c91919;
+  color: #ffffff;
+}
+
+.range-filter-clear-all:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .range-filter-column {
