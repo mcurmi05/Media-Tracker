@@ -206,7 +206,11 @@ function CoverStrip({ tiles, empty }) {
               <img
                 src={t.cover || "/placeholderimage.jpg"}
                 alt=""
-                decoding="async"
+                loading="eager"
+                decoding="sync"
+                fetchPriority="high"
+                width="108"
+                height="162"
                 style={{ objectFit: t.fit || "cover" }}
                 onError={(e) => {
                   e.target.onerror = null;
@@ -952,21 +956,15 @@ export default function Home() {
                           Rated {rating}
                         </div>
                         <div className="hp-chart-tip-row">
-                          <span>
-                            <i className="hp-dot hp-dot-film" /> Movies
-                          </span>
+                          <span>Movies</span>
                           <b>{dist.film[rating]}</b>
                         </div>
                         <div className="hp-chart-tip-row">
-                          <span>
-                            <i className="hp-dot hp-dot-tv" /> TV
-                          </span>
+                          <span>TV</span>
                           <b>{dist.tv[rating]}</b>
                         </div>
                         <div className="hp-chart-tip-row">
-                          <span>
-                            <i className="hp-dot hp-dot-book" /> Books
-                          </span>
+                          <span>Books</span>
                           <b>{dist.book[rating]}</b>
                         </div>
                         <div className="hp-chart-tip-row hp-chart-tip-total">
@@ -1008,7 +1006,7 @@ export default function Home() {
                 max={decades.rated.max}
                 onBarClick={(d) =>
                   navigate("/ratings", {
-                    state: { yearOp: "decade", yearValue: String(d) },
+                    state: { yearFrom: String(d), yearTo: String(d + 9) },
                   })
                 }
               />
@@ -1026,7 +1024,7 @@ export default function Home() {
                 max={decades.logged.max}
                 onBarClick={(d) =>
                   navigate("/log", {
-                    state: { yearOp: "decade", yearValue: String(d) },
+                    state: { yearFrom: String(d), yearTo: String(d + 9) },
                   })
                 }
               />
@@ -1044,7 +1042,7 @@ export default function Home() {
                 max={decades.watchlist.max}
                 onBarClick={(d) =>
                   navigate("/watchlist", {
-                    state: { yearOp: "decade", yearValue: String(d) },
+                    state: { yearFrom: String(d), yearTo: String(d + 9) },
                   })
                 }
               />
