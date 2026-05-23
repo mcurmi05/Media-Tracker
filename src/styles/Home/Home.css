@@ -417,7 +417,7 @@
   list-style: none;
   margin: 0;
   padding: 0 8px 0 0;
-  max-height: 715px;
+  height: 700px;
   overflow-y: auto;
   scrollbar-width: thin;
 }

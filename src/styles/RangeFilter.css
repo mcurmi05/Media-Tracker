@@ -1,0 +1,226 @@
+.range-filter-wrap {
+  position: relative;
+  display: inline-block;
+  margin: 6px;
+}
+
+.range-filter-trigger {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  background-color: #3b3b3b;
+  color: #ffffff;
+  font-size: 0.8rem;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+}
+
+.range-filter-trigger:focus,
+.range-filter-trigger:focus-visible,
+.range-filter-trigger:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.range-filter-trigger.has-value {
+  border-color: #c91919;
+  color: #ffffff;
+}
+
+.range-filter-trigger:hover {
+  background-color: #4a4a4a;
+}
+
+.range-filter-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  background: #2c2c2c;
+  border: 1px solid #4a4a4a;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.range-filter-popover-dates {
+  flex-direction: row;
+}
+
+.range-filter-columns {
+  display: flex;
+  gap: 8px;
+}
+
+.range-filter-column {
+  display: flex;
+  flex-direction: column;
+  width: 130px;
+}
+
+.range-filter-popover-dates .range-filter-column {
+  width: auto;
+}
+
+.range-filter-column-head {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a8a8a;
+  text-align: center;
+  padding: 4px 4px 6px;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.range-filter-clear {
+  margin: 6px 4px;
+  padding: 4px 6px;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  background: transparent;
+  color: #b0b0b0;
+  font-size: 0.72rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.range-filter-clear:hover:not(:disabled) {
+  background: #3b3b3b;
+  color: #ffffff;
+}
+
+.range-filter-clear:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.range-filter-year-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 4px;
+  scrollbar-width: thin;
+}
+
+.range-filter-year-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.range-filter-year-list::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+  border-radius: 3px;
+}
+
+.range-filter-option {
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #d4d4d4;
+  font-size: 0.78rem;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.1s, color 0.1s;
+}
+
+.range-filter-option:hover {
+  background: #3b3b3b;
+  color: #ffffff;
+}
+
+.range-filter-option.selected {
+  background: #c91919;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.range-filter-decade-row {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  padding-top: 4px;
+  border-top: 1px solid #3a3a3a;
+}
+
+.range-filter-decade-trigger {
+  padding: 6px 14px;
+  border: 1px solid #4a4a4a;
+  border-radius: 6px;
+  background: #3b3b3b;
+  color: #ffffff;
+  font-size: 0.78rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.range-filter-decade-trigger:hover {
+  background: #4a4a4a;
+}
+
+.range-filter-decade-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  background: #2c2c2c;
+  border: 1px solid #4a4a4a;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+  min-width: 100px;
+}
+
+.range-filter-decade-option {
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: #d4d4d4;
+  font-size: 0.78rem;
+  cursor: pointer;
+  outline: none;
+  text-align: center;
+  border-radius: 4px;
+}
+
+.range-filter-decade-option:hover {
+  background: #3b3b3b;
+  color: #ffffff;
+}
+
+/* no blue focus ring on any button inside the popovers */
+.range-filter-popover button,
+.range-filter-popover button:focus,
+.range-filter-popover button:focus-visible,
+.range-filter-popover button:active,
+.range-filter-decade-menu button,
+.range-filter-decade-menu button:focus,
+.range-filter-decade-menu button:focus-visible,
+.range-filter-decade-menu button:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* tweak react-day-picker default theme to fit dark background */
+.range-filter-popover .rdp-root {
+  --rdp-accent-color: #c91919;
+  --rdp-accent-background-color: #3a1010;
+  --rdp-today-color: #c91919;
+  margin: 0;
+  color: #d4d4d4;
+}

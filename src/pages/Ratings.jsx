@@ -6,14 +6,14 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getBookInfo } from "../utils/bookInfo.js";
 import SortByMenu from "../components/SortByMenu.jsx";
+import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
+import DateAddedFilter from "../components/DateAddedFilter.jsx";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
   { value: "year", label: "Release Date" },
   { value: "rating", label: "Rating" },
 ];
-
-const DECADES = Array.from({ length: 13 }, (_, i) => 2020 - i * 10);
 
 function Ratings() {
   const { userRatings, userRatingsLoaded, updateRanking } = useRatings();
@@ -33,13 +33,18 @@ function Ratings() {
   );
   const [sortKey, setSortKey] = useState(location.state?.sortKey || "date");
   const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
-  const [yearOp, setYearOp] = useState(location.state?.yearOp || "none");
-  const [yearValue, setYearValue] = useState(location.state?.yearValue || "");
+  const [yearFrom, setYearFrom] = useState(location.state?.yearFrom || "");
+  const [yearTo, setYearTo] = useState(location.state?.yearTo || "");
+  const [addedFrom, setAddedFrom] = useState(location.state?.addedFrom || "");
+  const [addedTo, setAddedTo] = useState(location.state?.addedTo || "");
   const [filtersOpen, setFiltersOpen] = useState(() => {
     const s = location.state || {};
     return (
       (s.ratingFilter && s.ratingFilter !== "all") ||
-      (s.yearOp && s.yearOp !== "none") ||
+      s.yearFrom ||
+      s.yearTo ||
+      s.addedFrom ||
+      s.addedTo ||
       (s.sortKey && s.sortKey !== "date") ||
       (s.sortDir && s.sortDir !== "desc")
     );
@@ -49,7 +54,8 @@ function Ratings() {
 
   const activeFilterCount =
     (ratingFilter !== "all" ? 1 : 0) +
-    (yearOp !== "none" && yearValue ? 1 : 0) +
+    (yearFrom || yearTo ? 1 : 0) +
+    (addedFrom || addedTo ? 1 : 0) +
     (sortKey !== "date" || sortDir !== "desc" ? 1 : 0);
 
   const goToLog = () => {
@@ -60,8 +66,10 @@ function Ratings() {
         mediaTypeFilter,
         sortKey,
         sortDir,
-        yearOp,
-        yearValue,
+        yearFrom,
+        yearTo,
+        addedFrom,
+        addedTo,
       },
     });
   };
@@ -73,31 +81,36 @@ function Ratings() {
         mediaTypeFilter,
         sortKey,
         sortDir,
-        yearOp,
-        yearValue,
+        yearFrom,
+        yearTo,
+        addedFrom,
+        addedTo,
       },
     });
   };
 
   const yearMatchesFilter = (y) => {
-    if (yearOp === "none" || !yearValue) return true;
+    if (!yearFrom && !yearTo) return true;
     if (y == null) return false;
-    const n = Number(yearValue);
-    if (!Number.isFinite(n)) return true;
-    if (yearOp === "before") return y < n;
-    if (yearOp === "after") return y > n;
-    if (yearOp === "decade") return y >= n && y < n + 10;
+    if (yearFrom) {
+      const n = Number(yearFrom);
+      if (Number.isFinite(n) && y < n) return false;
+    }
+    if (yearTo) {
+      const n = Number(yearTo);
+      if (Number.isFinite(n) && y > n) return false;
+    }
     return true;
   };
 
-  const handleYearOpChange = (newOp) => {
-    setYearOp(newOp);
-    if (newOp === "decade" && yearValue) {
-      const n = Number(yearValue);
-      if (Number.isFinite(n)) {
-        setYearValue(String(Math.floor(n / 10) * 10));
-      }
-    }
+  const addedMatchesFilter = (dateStr) => {
+    if (!addedFrom && !addedTo) return true;
+    if (!dateStr) return false;
+    const ymd = String(dateStr).slice(0, 10);
+    if (!ymd) return false;
+    if (addedFrom && ymd < addedFrom) return false;
+    if (addedTo && ymd > addedTo) return false;
+    return true;
   };
 
   // Sort helpers
@@ -124,6 +137,21 @@ function Ratings() {
     if (b == null) return -1;
     return sortDir === "asc" ? a - b : b - a;
   };
+
+  const yearRange = useMemo(() => {
+    const years = [];
+    userRatings.forEach((r) => {
+      const y = movieYear(r);
+      if (y != null) years.push(y);
+    });
+    bookRatings.forEach((r) => {
+      const y = bookYear(r);
+      if (y != null) years.push(y);
+    });
+    const now = new Date().getFullYear();
+    const max = years.length ? Math.max(now + 1, Math.max(...years)) : now + 1;
+    return { min: 1500, max };
+  }, [userRatings, bookRatings]);
 
   // When rank mode is enabled, force rating filter and media filter appropriately
   useEffect(() => {
@@ -190,6 +218,7 @@ function Ratings() {
       if (Number(rating.rating) !== Number(ratingFilter)) return false;
     }
     if (!yearMatchesFilter(movieYear(rating))) return false;
+    if (!addedMatchesFilter(rating.created_at)) return false;
     return true;
   });
 
@@ -255,10 +284,11 @@ function Ratings() {
           return false;
       }
       if (!yearMatchesFilter(bookYear(bookRating))) return false;
+      if (!addedMatchesFilter(bookRating.created_at)) return false;
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookRatings, searchTerm, ratingFilter, includeBooks, yearOp, yearValue]);
+  }, [bookRatings, searchTerm, ratingFilter, includeBooks, yearFrom, yearTo, addedFrom, addedTo]);
 
   const bookSortDate = (b) => new Date(b.created_at);
 
@@ -527,12 +557,12 @@ function Ratings() {
             height: "32px",
             padding: "0 12px",
             border:
-              (filtersOpen || activeFilterCount > 0 ? "2px" : "1px") +
+              (activeFilterCount > 0 ? "2px" : "1px") +
               " solid " +
-              (filtersOpen || activeFilterCount > 0 ? "#ffffff" : "#cccccc"),
+              (activeFilterCount > 0 ? "#ffffff" : "#cccccc"),
             borderRadius: "6px",
             backgroundColor:
-              filtersOpen || activeFilterCount > 0 ? "#e50914" : "#3b3b3b",
+              activeFilterCount > 0 ? "#e50914" : "#3b3b3b",
             color: "#ffffff",
             fontSize: "0.8rem",
             fontWeight: "bold",
@@ -543,7 +573,6 @@ function Ratings() {
           }}
         >
           Extra Filters
-          {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
         </button>
         {filtersOpen && (
           <>
@@ -572,76 +601,24 @@ function Ratings() {
                 </option>
               ))}
             </select>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                margin: "6px",
+            <ReleaseYearFilter
+              from={yearFrom}
+              to={yearTo}
+              onChange={({ from, to }) => {
+                setYearFrom(from);
+                setYearTo(to);
               }}
-            >
-              <select
-                value={yearOp}
-                onChange={(e) => handleYearOpChange(e.target.value)}
-                style={{
-                  height: "32px",
-                  padding: "0 10px",
-                  border: "1px solid #cccccc",
-                  borderRadius: "6px",
-                  backgroundColor: "#3b3b3b",
-                  color: "#ffffff",
-                  fontSize: "0.8rem",
-                  outline: "none",
-                  textAlign: "center",
-                }}
-              >
-                <option value="none">All Years</option>
-                <option value="before">Before</option>
-                <option value="after">After</option>
-                <option value="decade">Decade</option>
-              </select>
-              {yearOp === "decade" ? (
-                <select
-                  value={yearValue}
-                  onChange={(e) => setYearValue(e.target.value)}
-                  style={{
-                    height: "32px",
-                    padding: "0 10px",
-                    border: "1px solid #cccccc",
-                    borderRadius: "6px",
-                    backgroundColor: "#3b3b3b",
-                    color: "#ffffff",
-                    fontSize: "0.8rem",
-                    outline: "none",
-                    textAlign: "center",
-                  }}
-                >
-                  <option value="">Pick</option>
-                  {DECADES.map((d) => (
-                    <option key={d} value={d}>
-                      {d}s
-                    </option>
-                  ))}
-                </select>
-              ) : yearOp !== "none" ? (
-                <input
-                  className="filter-input"
-                  type="number"
-                  placeholder="Year"
-                  value={yearValue}
-                  onChange={(e) => setYearValue(e.target.value)}
-                  style={{
-                    padding: "8px",
-                    borderRadius: "6px",
-                    border: "1px solid #ccc",
-                    width: "80px",
-                    textAlign: "center",
-                    backgroundColor: "#3b3b3b",
-                    color: "#ffffff",
-                  }}
-                />
-              ) : null}
-            </div>
+              minYear={yearRange.min}
+              maxYear={yearRange.max}
+            />
+            <DateAddedFilter
+              from={addedFrom}
+              to={addedTo}
+              onChange={({ from, to }) => {
+                setAddedFrom(from);
+                setAddedTo(to);
+              }}
+            />
             <SortByMenu
               sortKey={sortKey}
               sortDir={sortDir}

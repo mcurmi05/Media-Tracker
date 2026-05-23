@@ -4,7 +4,7 @@ import Trending from "./pages/Trending.jsx";
 import NavBar from "./components/NavBar.jsx";
 import { SearchProvider } from "./contexts/SearchContext";
 import { PopularMoviesCacheProvider } from "./contexts/PopularMoviesCacheContext.jsx";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import MediaDetails from "./pages/MediaDetails.jsx";
 import BookDetails from "./pages/BookDetails.jsx";
 import { SignIn } from "./pages/SignIn.jsx";
@@ -21,6 +21,14 @@ import { UserBookLogsProvider } from "./contexts/UserBookLogsContext.jsx";
 import { UserBookTbrProvider } from "./contexts/UserBookTbrContext.jsx";
 import { UserBookRatingsProvider } from "./contexts/UserBookRatingsContext.jsx";
 import Watchlist from "./pages/Watchlist.jsx";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 function App() {
   const [session, setSession] = useState(null);
@@ -46,6 +54,7 @@ function App() {
                   <UserBookLogsProvider>
                     <UserBookTbrProvider>
                       <UserBookRatingsProvider>
+                    <ScrollToTop />
                     <NavBar />
                     <main className="main-content">
                       <Routes>
