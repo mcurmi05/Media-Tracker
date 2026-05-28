@@ -630,7 +630,12 @@ export default function Home() {
     });
     bookLogs
       .filter((l) => !l.end_date && !l.dnf)
-      .forEach((l) => items.push(bookTile(l.book_entries, {})));
+      .forEach((l) =>
+        items.push({
+          ...bookTile(l.book_entries, {}),
+          onClick: goLog(stripSeries(l.book_entries?.title)),
+        }),
+      );
     return items;
   }, [userLogs, bookLogs, movieTile, bookTile, goLog]);
 
@@ -776,6 +781,14 @@ export default function Home() {
       [...userWatchlist]
         .sort(byDateDesc("created_at"))
         .slice(0, 36)
+        .map((w) => movieTile(w.movie_object, {})),
+    [userWatchlist, movieTile],
+  );
+  const newSeasonShows = useMemo(
+    () =>
+      userWatchlist
+        .filter((w) => w.new_season_to_watch)
+        .sort(byDateDesc("created_at"))
         .map((w) => movieTile(w.movie_object, {})),
     [userWatchlist, movieTile],
   );
@@ -1107,6 +1120,13 @@ export default function Home() {
               <div className="hp-otd-line">{onThisDay.line}</div>
             </div>
           </div>
+        </Section>
+      )}
+
+      {/* shows with a new season marked on the watchlist */}
+      {newSeasonShows.length > 0 && (
+        <Section label="New Seasons To Watch/Released/Coming Soon" panel>
+          <CoverStrip tiles={newSeasonShows} empty="" />
         </Section>
       )}
 
