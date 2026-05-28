@@ -895,11 +895,11 @@ export default function Home() {
         <div className="hp-col-right">
           {/* recent activity feed */}
           <Section label="Recent Activity">
-        {activity.length === 0 ? (
-          <p className="hp-empty">Nothing logged yet.</p>
-        ) : (
-          <ul className="hp-feed">
-            {activity.map((e, i) => (
+        <ul className="hp-feed">
+          {activity.length === 0 ? (
+            <li className="hp-feed-empty">Nothing logged yet.</li>
+          ) : (
+            activity.map((e, i) => (
               <li
                 key={i}
                 className="hp-feed-item"
@@ -931,9 +931,9 @@ export default function Home() {
                 </span>
                 <span className="hp-feed-date">{timeAgo(e.date)}</span>
               </li>
-            ))}
-          </ul>
-        )}
+            ))
+          )}
+        </ul>
       </Section>
 
       {/* ratings distribution */}

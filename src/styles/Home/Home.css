@@ -418,9 +418,15 @@
   list-style: none;
   margin: 0;
   padding: 0 8px 0 0;
-  height: 684px;
+  height: 712px;
   overflow-y: auto;
   scrollbar-width: thin;
+}
+.hp-section:has(.hp-feed) .hp-section-head {
+  margin-bottom: 3px;
+}
+.hp-section:has(.hp-feed) {
+  margin-bottom: 23px;
 }
 .hp-feed::-webkit-scrollbar {
   width: 5px;
@@ -428,6 +434,12 @@
 .hp-feed::-webkit-scrollbar-thumb {
   background: #4a4a4a;
   border-radius: 3px;
+}
+.hp-feed-empty {
+  list-style: none;
+  font-size: 0.82rem;
+  color: #777;
+  padding: 6px 2px 2px;
 }
 .hp-feed-item {
   display: flex;
