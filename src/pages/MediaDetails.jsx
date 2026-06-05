@@ -10,6 +10,7 @@ import CastList from "../components/CastList.jsx";
 import AddLog from "../components/AddLog.jsx";
 import AddWatchlist from "../components/AddWatchlist.jsx";
 import { useRatings } from "../contexts/UserRatingsContext.jsx";
+import Loader from "../components/Loader.jsx";
 
 function MediaDetails() {
   const { id } = useParams();
@@ -34,7 +35,7 @@ function MediaDetails() {
     fetchMovieDetails();
   }, [id]);
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <Loader />;
   if (error) return <div className="error">{error}</div>;
   if (!movie) return <div className="error">Movie not found</div>;
 

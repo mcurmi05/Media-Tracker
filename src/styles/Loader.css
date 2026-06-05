@@ -1,0 +1,22 @@
+/* Shared full-page loading spinner, matching the home-page loader. */
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.app-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 60vh;
+}
+.app-spinner {
+  display: inline-block;
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(232, 232, 232, 0.18);
+  border-top-color: #e50914;
+  border-radius: 50%;
+  animation: app-spin 0.7s linear infinite;
+}

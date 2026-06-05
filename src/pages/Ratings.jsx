@@ -8,6 +8,7 @@ import { getBookInfo } from "../utils/bookInfo.js";
 import SortByMenu from "../components/SortByMenu.jsx";
 import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import DateAddedFilter from "../components/DateAddedFilter.jsx";
+import Loader from "../components/Loader.jsx";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
@@ -458,6 +459,8 @@ function Ratings() {
       ? !bookRatingsLoaded
       : !userRatingsLoaded;
 
+  if (isLoading) return <Loader />;
+
   return (
     <div
       style={{
@@ -724,9 +727,7 @@ function Ratings() {
           {displayCount}
         </span>
       </div>
-      {isLoading ? (
-        <div style={{ textAlign: "center" }}>Loading...</div>
-      ) : displayCount === 0 ? (
+      {displayCount === 0 ? (
         <div style={{ textAlign: "center" }}>
           {isAllView
             ? `No ratings found${searchTerm ? ` for "${searchTerm}"` : ""}!`

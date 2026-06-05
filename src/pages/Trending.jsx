@@ -3,6 +3,7 @@ import { getPopularMovies, getPopularTV } from "../services/api.js";
 import { useCache } from "../contexts/PopularMoviesCacheContext";
 import "../styles/Trending.css";
 import MovieCard from "../components/MovieCard.jsx";
+import Loader from "../components/Loader.jsx";
 
 function Trending() {
   const {
@@ -109,6 +110,8 @@ function Trending() {
     popularTVLoaded,
   ]);
 
+  if (loading) return <Loader />;
+
   return (
     <div className="trending">
       <div
@@ -147,15 +150,11 @@ function Trending() {
       </div>
       {error && <div className="error-message">{error}</div>}
 
-      {loading ? (
-        <div className="loading">Loading...</div>
-      ) : (
-        <div className="movies-grid">
-          {movies.map((movie) => (
-            <MovieCard movie={movie} key={movie.id} />
-          ))}
-        </div>
-      )}
+      <div className="movies-grid">
+        {movies.map((movie) => (
+          <MovieCard movie={movie} key={movie.id} />
+        ))}
+      </div>
     </div>
   );
 }

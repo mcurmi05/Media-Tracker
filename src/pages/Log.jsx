@@ -11,6 +11,7 @@ import { getBookInfo } from "../utils/bookInfo.js";
 import SortByMenu from "../components/SortByMenu.jsx";
 import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import DateAddedFilter from "../components/DateAddedFilter.jsx";
+import Loader from "../components/Loader.jsx";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
@@ -171,22 +172,11 @@ function Log() {
   const needsBookData =
     mediaTypeFilter === "all" || mediaTypeFilter === "books";
 
-  if (needsMovieData && !userLogsLoaded) {
-    return (
-      <>
-        <h1 style={{ alignSelf: "center", marginTop: "-20px" }}>Your Log</h1>
-        <div style={{ alignSelf: "center" }}>Loading log...</div>
-      </>
-    );
-  }
-
-  if (needsBookData && !bookLogsLoaded) {
-    return (
-      <>
-        <h1 style={{ alignSelf: "center", marginTop: "-20px" }}>Your Log</h1>
-        <div style={{ alignSelf: "center" }}>Loading book logs...</div>
-      </>
-    );
+  if (
+    (needsMovieData && !userLogsLoaded) ||
+    (needsBookData && !bookLogsLoaded)
+  ) {
+    return <Loader />;
   }
 
   // Helper function to get the most recent activity date for a log

@@ -9,6 +9,7 @@ import { getBookInfo } from "../utils/bookInfo.js";
 import SortByMenu from "../components/SortByMenu.jsx";
 import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import DateAddedFilter from "../components/DateAddedFilter.jsx";
+import Loader from "../components/Loader.jsx";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
@@ -280,14 +281,7 @@ function Watchlist() {
       : filteredWatchlist.length;
 
   if (isLoading) {
-    return (
-      <>
-        <h1 style={{ alignSelf: "center", marginTop: "-20px" }}>
-          {isBooksView ? "Your TBR list" : "Your Watchlist"}
-        </h1>
-        <div style={{ alignSelf: "center" }}>Loading watchlist...</div>
-      </>
-    );
+    return <Loader />;
   }
 
   return (

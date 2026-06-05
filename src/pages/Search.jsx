@@ -4,6 +4,7 @@ import { useSearch } from "../contexts/SearchContext";
 import "../styles/Search.css";
 import MovieCard from "../components/MovieCard.jsx";
 import BookCard from "../components/BookCard.jsx";
+import Loader from "../components/Loader.jsx";
 import { searchMovies } from "../services/api";
 import {
   searchBookEntries,
@@ -160,7 +161,7 @@ function Search() {
         </div>
       )}
       {searchLoading ? (
-        <div className="loading">Loading...</div>
+        <Loader />
       ) : searchResults && searchResults.length > 0 ? (
         <div className="movies-grid">
           {isBooks
