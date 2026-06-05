@@ -134,6 +134,64 @@
   font-size: 0.72rem;
   color: #7a7a7a;
 }
+/* right-aligned control in a section header (e.g. the activity toggle) */
+.hp-section-action {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  /* pin to center so the toggle doesn't shift when the tick appears/disappears
+     and changes the button's baseline */
+  align-self: center;
+}
+
+/* ---- checkbox-style toggle ---- */
+.hp-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  /* smaller than the section title (0.8rem) */
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8c8c8c;
+  transition: color 0.15s;
+}
+.hp-toggle:hover {
+  color: #d4d4d4;
+}
+.hp-toggle:focus,
+.hp-toggle:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.hp-toggle-on {
+  color: #d4d4d4;
+}
+.hp-toggle-box {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  border: 1.5px solid #5a5a5a;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.hp-toggle-on .hp-toggle-box {
+  background: #e50914;
+  border-color: #e50914;
+}
+.hp-toggle-tick {
+  width: 11px;
+  height: 11px;
+  color: #fff;
+}
 .hp-sub-label {
   font-size: 0.68rem;
   text-transform: uppercase;
@@ -144,6 +202,41 @@
 .hp-empty {
   font-size: 0.82rem;
   color: #777;
+  padding: 6px 0 2px;
+}
+
+/* ---- loading spinners ---- */
+@keyframes hp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.hp-spinner {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid rgba(232, 232, 232, 0.18);
+  border-top-color: #e50914;
+  border-radius: 50%;
+  animation: hp-spin 0.7s linear infinite;
+}
+.hp-spinner-lg {
+  width: 44px;
+  height: 44px;
+  border-width: 4px;
+}
+/* full-page loader: centre the spinner in the viewport while data loads */
+.hp-page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+/* per-strip loader keeps the strip's footprint so layout doesn't jump */
+.hp-strip-loading {
+  display: flex;
+  align-items: center;
+  min-height: 162px;
   padding: 6px 0 2px;
 }
 
@@ -282,6 +375,22 @@
   border: 1px solid #383838;
   border-radius: 8px;
   padding: 18px 16px 12px;
+}
+/* Decade breakdown holds up to three sub-charts (rated / logged / watchlist).
+   Locking the body height keeps the section from growing or shrinking as those
+   series appear and disappear, so the column bottoms stay aligned. */
+.hp-decades-body {
+  height: 669px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+.hp-decades-body::-webkit-scrollbar {
+  width: 5px;
+}
+.hp-decades-body::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+  border-radius: 3px;
 }
 .hp-chart-bars {
   display: flex;

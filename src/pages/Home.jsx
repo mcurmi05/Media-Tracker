@@ -88,12 +88,21 @@ const byRank = (a, b) =>
 
 /* ---------- small presentational pieces ---------- */
 
-function Section({ label, hint, children, panel }) {
+function Spinner({ className = "" }) {
+  return <span className={`hp-spinner ${className}`.trim()} aria-hidden="true" />;
+}
+
+function Section({ label, hint, children, panel, className = "", action }) {
   return (
-    <section className={`hp-section${panel ? " hp-section-panel" : ""}`}>
+    <section
+      className={`hp-section${panel ? " hp-section-panel" : ""}${
+        className ? ` ${className}` : ""
+      }`}
+    >
       <div className="hp-section-head">
         <h2>{label}</h2>
         {hint && <span className="hp-section-hint">{hint}</span>}
+        {action && <div className="hp-section-action">{action}</div>}
       </div>
       {children}
     </section>
@@ -141,7 +150,7 @@ function DecadeChart({ decades, counts, max, onBarClick }) {
   );
 }
 
-function CoverStrip({ tiles, empty }) {
+function CoverStrip({ tiles, empty, loading }) {
   const stripRef = useRef(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
@@ -181,7 +190,15 @@ function CoverStrip({ tiles, empty }) {
     el.scrollBy({ left: dir * amount, behavior: "smooth" });
   };
 
-  if (!tiles.length) return <p className="hp-empty">{empty}</p>;
+  if (!tiles.length) {
+    if (loading)
+      return (
+        <div className="hp-strip-loading">
+          <Spinner />
+        </div>
+      );
+    return <p className="hp-empty">{empty}</p>;
+  }
   return (
     <div className="hp-strip-wrap">
       {canLeft && (
@@ -246,12 +263,12 @@ function CoverStrip({ tiles, empty }) {
 export default function Home() {
   const navigate = useNavigate();
   const { user, isAuthenticated, loading } = useAuth();
-  const { userRatings } = useRatings();
-  const { userLogs } = useLogs();
-  const { userWatchlist } = useWatchlist();
-  const { bookRatings } = useBookRatings();
-  const { bookLogs } = useBookLogs();
-  const { userBookTbr } = useBookTbr();
+  const { userRatings, userRatingsLoaded } = useRatings();
+  const { userLogs, userLogsLoaded } = useLogs();
+  const { userWatchlist, userWatchlistLoaded } = useWatchlist();
+  const { bookRatings, bookRatingsLoaded } = useBookRatings();
+  const { bookLogs, bookLogsLoaded } = useBookLogs();
+  const { userBookTbr, userBookTbrLoaded } = useBookTbr();
   const {
     popularMovies,
     popularMoviesLoaded,
@@ -284,6 +301,16 @@ export default function Home() {
   }, [popularTVLoaded, cachePopularTV]);
 
   const [hoverRating, setHoverRating] = useState(null);
+
+  // Whether "added to watchlist / TBR" events show in the recent-activity feed.
+  // Persisted so a user who hides them during a watchlisting spree keeps it off.
+  const [showListAdds, setShowListAdds] = useState(() => {
+    const v = localStorage.getItem("hp-show-list-adds");
+    return v === null ? false : v === "true";
+  });
+  useEffect(() => {
+    localStorage.setItem("hp-show-list-adds", String(showListAdds));
+  }, [showListAdds]);
 
   /* ---------- tile builders ---------- */
 
@@ -598,9 +625,10 @@ export default function Home() {
     );
     return ev
       .filter((e) => e.date)
+      .filter((e) => showListAdds || e.type !== "add")
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 36);
-  }, [userRatings, userLogs, userWatchlist, bookRatings, bookLogs, userBookTbr, navigate]);
+  }, [userRatings, userLogs, userWatchlist, bookRatings, bookLogs, userBookTbr, navigate, showListAdds]);
 
   /* ---------- in-progress: unfinished TV seasons + unfinished books ---------- */
 
@@ -820,6 +848,25 @@ export default function Home() {
     return <SignIn />;
   }
 
+  // Hold the whole page back until every library context has loaded, so the
+  // user never sees a half-built page where (e.g.) only the book strips have
+  // populated while the movie/TV data is still in flight.
+  const libraryReady =
+    userRatingsLoaded &&
+    userLogsLoaded &&
+    userWatchlistLoaded &&
+    bookRatingsLoaded &&
+    bookLogsLoaded &&
+    userBookTbrLoaded;
+
+  if (loading || !libraryReady) {
+    return (
+      <div className="home-page hp-page-loading">
+        <Spinner className="hp-spinner-lg" />
+      </div>
+    );
+  }
+
   return (
     <div className="home-page">
       <header className="hp-header">
@@ -864,12 +911,14 @@ export default function Home() {
             <div className="hp-sub-label">Movies</div>
             <CoverStrip
               tiles={trendingMovies}
-              empty={popularMoviesLoaded ? "No trending movies." : "Loading..."}
+              loading={!popularMoviesLoaded}
+              empty="No trending movies."
             />
             <div className="hp-sub-label">TV Shows</div>
             <CoverStrip
               tiles={trendingTV}
-              empty={popularTVLoaded ? "No trending TV." : "Loading..."}
+              loading={!popularTVLoaded}
+              empty="No trending TV."
             />
           </Section>
           {/* top 4 ranked */}
@@ -894,7 +943,42 @@ export default function Home() {
 
         <div className="hp-col-right">
           {/* recent activity feed */}
-          <Section label="Recent Activity">
+          <Section
+            label="Recent Activity"
+            action={
+              <button
+                type="button"
+                className={`hp-toggle${showListAdds ? " hp-toggle-on" : ""}`}
+                onClick={() => setShowListAdds((v) => !v)}
+                aria-pressed={showListAdds}
+                title={
+                  showListAdds
+                    ? "Hide watchlist additions"
+                    : "Show watchlist additions"
+                }
+              >
+                <span className="hp-toggle-box">
+                  {showListAdds && (
+                    <svg
+                      className="hp-toggle-tick"
+                      viewBox="0 0 12 12"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M2.5 6.2l2.3 2.3 4.7-5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </span>
+                <span className="hp-toggle-label">Show watchlist additions</span>
+              </button>
+            }
+          >
         <ul className="hp-feed">
           {activity.length === 0 ? (
             <li className="hp-feed-empty">Nothing logged yet.</li>
@@ -1006,7 +1090,13 @@ export default function Home() {
 
       {/* decade breakdown */}
       {(decades.rated || decades.logged || decades.watchlist) && (
-        <Section label="Decade Breakdown" hint="by release year" panel>
+        <Section
+          label="Decade Breakdown"
+          hint="by release year"
+          panel
+          className="hp-section-decades"
+        >
+          <div className="hp-decades-body">
           {decades.rated && (
             <>
               <div className="hp-sub-label">
@@ -1061,6 +1151,7 @@ export default function Home() {
               />
             </>
           )}
+          </div>
         </Section>
       )}
         </div>
