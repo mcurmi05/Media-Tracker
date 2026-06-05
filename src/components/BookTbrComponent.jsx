@@ -7,6 +7,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import { useBookTbr } from "../contexts/UserBookTbrContext.jsx";
 import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
+import { useWatchlist } from "../contexts/UserWatchlistContext.jsx";
 import { deleteBookTbr } from "../services/ratingsfromtable.js";
 import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import AddBookLogButton from "./AddBookLogButton.jsx";
@@ -14,6 +15,23 @@ import RatingModal from "./RatingModal.jsx";
 import { getBookInfo } from "../utils/bookInfo.js";
 import { useNavigate } from "react-router-dom";
 import { bookDetailsRoute } from "../utils/goodreads.js";
+
+const queueBtnStyle = {
+  border: "1px solid #cccccc",
+  background: "#2a2a2a",
+  color: "#fff",
+  borderRadius: 4,
+  padding: 0,
+  cursor: "pointer",
+  width: 22,
+  height: 22,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  outline: "none",
+  boxShadow: "none",
+  WebkitTapHighlightColor: "transparent",
+};
 
 const modalStyle = {
   position: "absolute",
@@ -29,15 +47,34 @@ const modalStyle = {
   fontWeight: "bold",
 };
 
-export default function BookTbrComponent({ tbrEntry }) {
+export default function BookTbrComponent({
+  tbrEntry,
+  queueMode = false,
+  rankNumber = null,
+  onMoveUp,
+  onMoveDown,
+  onSendTop,
+  onSendBottom,
+}) {
   const { removeBookTbr } = useBookTbr();
   const { rateBook, findRatingForBook } = useBookRatings();
+  const { watchlistQueue, addBookToQueue, removeFromQueue } = useWatchlist();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [visible, setVisible] = useState(true);
   const navigate = useNavigate();
   const book = getBookInfo(tbrEntry);
   const currentRating = findRatingForBook(tbrEntry)?.book_rating ?? 0;
+
+  const queueEntry = watchlistQueue.find(
+    (q) => q.book_tbr_id === tbrEntry.id,
+  );
+  const inQueue = !!queueEntry;
+
+  function handleQueueToggle() {
+    if (inQueue) removeFromQueue(queueEntry.id);
+    else addBookToQueue(tbrEntry.id);
+  }
 
   const handleRatingChange = async (newRating) => {
     try {
@@ -57,6 +94,9 @@ export default function BookTbrComponent({ tbrEntry }) {
 
   async function confirmDelete() {
     try {
+      // Remove the queue entry first so the TBR delete isn't blocked by the
+      // queue's foreign key reference.
+      if (queueEntry) await removeFromQueue(queueEntry.id);
       await deleteBookTbr(tbrEntry.id);
       removeBookTbr(tbrEntry.id);
       setVisible(false);
@@ -92,9 +132,38 @@ export default function BookTbrComponent({ tbrEntry }) {
     : "";
 
   return (
-    <div className="log-rating-wrapper">
+    <div
+      className={queueMode ? undefined : "log-rating-wrapper"}
+      style={queueMode ? { width: "100%" } : undefined}
+    >
       <div className="container">
         <div className="top-stuff">
+          {queueMode && rankNumber != null && (
+            <div
+              style={{
+                alignSelf: "center",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: "16px",
+              }}
+            >
+              <span
+                style={{
+                  background: "#3a3a3a",
+                  color: "#fff",
+                  borderRadius: 10,
+                  padding: "4px 10px",
+                  fontSize: "1.1rem",
+                  fontWeight: "bold",
+                  minWidth: 28,
+                  textAlign: "center",
+                }}
+              >
+                {`#${rankNumber}`}
+              </span>
+            </div>
+          )}
           <div className="poster-wrapper">
             <img
               src={book.cover_image || "/placeholderimage.jpg"}
@@ -121,6 +190,61 @@ export default function BookTbrComponent({ tbrEntry }) {
               >
                 {book.title}{" "}
               </p>
+              {queueMode && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                    marginLeft: 8,
+                  }}
+                >
+                  <button
+                    onClick={onSendTop}
+                    title="Send to top"
+                    style={queueBtnStyle}
+                  >
+                    <img
+                      src="/doublepromote.png"
+                      alt="Top"
+                      style={{ width: 12, height: 12 }}
+                    />
+                  </button>
+                  <button
+                    onClick={onMoveUp}
+                    title="Move up"
+                    style={queueBtnStyle}
+                  >
+                    <img
+                      src="/promote.png"
+                      alt="Up"
+                      style={{ width: 10, height: 10 }}
+                    />
+                  </button>
+                  <button
+                    onClick={onSendBottom}
+                    title="Send to bottom"
+                    style={queueBtnStyle}
+                  >
+                    <img
+                      src="/doubledemote.png"
+                      alt="Bottom"
+                      style={{ width: 12, height: 12 }}
+                    />
+                  </button>
+                  <button
+                    onClick={onMoveDown}
+                    title="Move down"
+                    style={queueBtnStyle}
+                  >
+                    <img
+                      src="/demote.png"
+                      alt="Down"
+                      style={{ width: 10, height: 10 }}
+                    />
+                  </button>
+                </div>
+              )}
               <div style={{ display: "flex" }}>
                 <div className="rating-star-div">
                   <span className="user-rating-movie-card">
@@ -161,6 +285,41 @@ export default function BookTbrComponent({ tbrEntry }) {
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <AddBookWatchlist book={tbrEntry} />
                   <AddBookLogButton book={tbrEntry} />
+                  {queueMode ? (
+                    <button
+                      onClick={() => removeFromQueue(queueEntry.id)}
+                      title="Remove from queue (keep in TBR)"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#aaa",
+                        cursor: "pointer",
+                        fontSize: "18px",
+                        lineHeight: 1,
+                        padding: "0 2px",
+                        marginLeft: "2px",
+                        marginBottom: "1px",
+                        outline: "none",
+                      }}
+                    >
+                      {String.fromCharCode(0x2715)}
+                    </button>
+                  ) : (
+                    <img
+                      src="/add-to-queue.png"
+                      onClick={handleQueueToggle}
+                      title={inQueue ? "Remove from queue" : "Add to queue"}
+                      style={{
+                        width: "22px",
+                        height: "22px",
+                        cursor: "pointer",
+                        opacity: inQueue ? 1 : 0.35,
+                        transition: "opacity 0.2s",
+                        marginLeft: "2px",
+                        marginBottom: "1px",
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -194,11 +353,13 @@ export default function BookTbrComponent({ tbrEntry }) {
           </div>
         </div>
       </div>
-      <img
-        src="/logdelete.png"
-        className="log-delete-icon"
-        onClick={() => setShowDeleteModal(true)}
-      />
+      {!queueMode && (
+        <img
+          src="/logdelete.png"
+          className="log-delete-icon"
+          onClick={() => setShowDeleteModal(true)}
+        />
+      )}
       <RatingModal
         open={showRatingModal}
         onClose={() => setShowRatingModal(false)}

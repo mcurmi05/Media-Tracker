@@ -1,5 +1,6 @@
 import WatchlistComponent from "../components/WatchlistComponent.jsx";
 import BookTbrComponent from "../components/BookTbrComponent.jsx";
+import Rating from "../components/Rating.jsx";
 import "../styles/Log.css";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -17,7 +18,13 @@ const SORT_OPTIONS = [
 ];
 
 function Watchlist() {
-  const { userWatchlist, userWatchlistLoaded } = useWatchlist();
+  const {
+    userWatchlist,
+    userWatchlistLoaded,
+    watchlistQueue,
+    updateQueueRank,
+    removeFromQueue,
+  } = useWatchlist();
   const { userBookTbr, userBookTbrLoaded } = useBookTbr();
 
   const navigate = useNavigate();
@@ -29,6 +36,8 @@ function Watchlist() {
     location.state?.mediaTypeFilter || "all",
   );
   const [newSeasonFilter, setNewSeasonFilter] = useState(false);
+  const [queueFilter, setQueueFilter] = useState("all");
+  const [queueOpen, setQueueOpen] = useState(true);
   const [sortKey, setSortKey] = useState(location.state?.sortKey || "date");
   const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
   const [yearFrom, setYearFrom] = useState(location.state?.yearFrom || "");
@@ -154,9 +163,127 @@ function Watchlist() {
     (needsMovieData && !userWatchlistLoaded) ||
     (needsBookData && !userBookTbrLoaded);
 
+  // Set of watchlist ids that currently live in the queue. These are pulled out
+  // of the main list and shown in the highlighted queue section at the top.
+  const queuedIds = useMemo(
+    () =>
+      new Set(
+        watchlistQueue
+          .filter((q) => q.watchlist_id != null)
+          .map((q) => q.watchlist_id),
+      ),
+    [watchlistQueue],
+  );
+
+  // Book TBR ids that currently live in the queue (pulled out of the main list).
+  const queuedBookIds = useMemo(
+    () =>
+      new Set(
+        watchlistQueue
+          .filter((q) => q.book_tbr_id != null)
+          .map((q) => q.book_tbr_id),
+      ),
+    [watchlistQueue],
+  );
+
+  // Which movie/TV queue category a watchlist item belongs to.
+  const queueCategoryOf = (m) => {
+    const type = (m?.type || "").toLowerCase();
+    const titleType = (m?.titleType || "").toLowerCase();
+    const isTV =
+      type.includes("tv") || titleType.includes("tv") || !!m?.episodes;
+    return isTV ? "tv" : "movies";
+  };
+
+  // Queue rows joined with their watchlist/book data, grouped by category and
+  // each group ordered by queue_rank. Ranks are tracked per category, so movies,
+  // TV, and books each start their numbering at 1.
+  const queueByCategory = useMemo(() => {
+    const groups = { movies: [], tv: [], books: [] };
+    watchlistQueue
+      .slice()
+      .sort(
+        (a, b) =>
+          (a.queue_rank ?? Number.MAX_SAFE_INTEGER) -
+          (b.queue_rank ?? Number.MAX_SAFE_INTEGER),
+      )
+      .forEach((q) => {
+        if (q.book_tbr_id != null) {
+          const entry = userBookTbr.find((b) => b.id === q.book_tbr_id);
+          if (!entry) return;
+          groups.books.push({
+            queue_id: q.id,
+            queue_rank: q.queue_rank,
+            book_tbr_id: q.book_tbr_id,
+            book: entry,
+          });
+        } else if (q.watchlist_id != null) {
+          const entry = userWatchlist.find((w) => w.id === q.watchlist_id);
+          if (!entry) return;
+          groups[queueCategoryOf(entry.movie_object)].push({
+            queue_id: q.id,
+            queue_rank: q.queue_rank,
+            watchlist_id: q.watchlist_id,
+            movie: entry.movie_object,
+          });
+        }
+      });
+    return groups;
+  }, [watchlistQueue, userWatchlist, userBookTbr]);
+
+  const queueCount =
+    queueByCategory.movies.length +
+    queueByCategory.tv.length +
+    queueByCategory.books.length;
+
+  const QUEUE_CATEGORY_LABELS = { movies: "Movies", tv: "TV", books: "Books" };
+  const queueCategoriesToShow =
+    queueFilter === "all" ? ["movies", "tv", "books"] : [queueFilter];
+  const visibleQueueCount = queueCategoriesToShow.reduce(
+    (n, c) => n + queueByCategory[c].length,
+    0,
+  );
+
+  // Persist a new sequential ordering (1..n) for the given queue ids. Called
+  // per category so each category is renumbered independently.
+  const applyQueueOrder = async (orderedQueueIds) => {
+    for (let i = 0; i < orderedQueueIds.length; i++) {
+      await updateQueueRank(orderedQueueIds[i], i + 1);
+    }
+  };
+
+  const handleQueueMove = async (category, queueId, direction) => {
+    const ids = queueByCategory[category].map((q) => q.queue_id);
+    const index = ids.indexOf(queueId);
+    if (index === -1) return;
+    const swapWith = direction === "up" ? index - 1 : index + 1;
+    if (swapWith < 0 || swapWith >= ids.length) return;
+    [ids[index], ids[swapWith]] = [ids[swapWith], ids[index]];
+    await applyQueueOrder(ids);
+  };
+
+  const handleQueueSendTop = async (category, queueId) => {
+    const ids = queueByCategory[category].map((q) => q.queue_id);
+    const index = ids.indexOf(queueId);
+    if (index <= 0) return;
+    const [moved] = ids.splice(index, 1);
+    ids.unshift(moved);
+    await applyQueueOrder(ids);
+  };
+
+  const handleQueueSendBottom = async (category, queueId) => {
+    const ids = queueByCategory[category].map((q) => q.queue_id);
+    const index = ids.indexOf(queueId);
+    if (index === -1 || index === ids.length - 1) return;
+    const [moved] = ids.splice(index, 1);
+    ids.push(moved);
+    await applyQueueOrder(ids);
+  };
+
   const filteredWatchlist = useMemo(() => {
     if (!needsMovieData) return [];
     const filtered = userWatchlist.filter((item) => {
+      if (queuedIds.has(item.id)) return false;
       if (newSeasonFilter && !item.new_season_to_watch) return false;
       const type = (item.movie_object?.type || "").toLowerCase();
       const titleType = (item.movie_object?.titleType || "").toLowerCase();
@@ -190,6 +317,7 @@ function Watchlist() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     userWatchlist,
+    queuedIds,
     newSeasonFilter,
     mediaTypeFilter,
     searchTerm,
@@ -206,6 +334,7 @@ function Watchlist() {
     if (!needsBookData) return [];
     if (newSeasonFilter) return [];
     const filtered = userBookTbr.filter((item) => {
+      if (queuedBookIds.has(item.id)) return false;
       if (searchTerm.trim()) {
         const search = searchTerm.toLowerCase();
         const info = getBookInfo(item);
@@ -232,6 +361,7 @@ function Watchlist() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     userBookTbr,
+    queuedBookIds,
     newSeasonFilter,
     searchTerm,
     needsBookData,
@@ -528,7 +658,197 @@ function Watchlist() {
           {displayCount}
         </span>
       </div>
-      {displayCount === 0 && (
+      {queueCount > 0 && (
+        <div
+          style={{
+            width: "min(900px, 92%)",
+            boxSizing: "border-box",
+            background: "#181818",
+            border: "1px solid #2e2e2e",
+            borderRadius: "14px",
+            padding: queueOpen ? "16px 16px 6px" : "12px 16px",
+            marginBottom: "32px",
+            boxShadow: "0 4px 18px rgba(0,0,0,0.35)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: queueOpen ? "16px" : "0",
+            }}
+          >
+            <img
+              src="/add-to-queue.png"
+              alt=""
+              style={{ width: 20, height: 20 }}
+            />
+            <h2 style={{ margin: 0, fontSize: "1.15rem" }}>Up Next</h2>
+            <span
+              style={{
+                fontWeight: "bold",
+                background: "#ff0000",
+                color: "white",
+                borderRadius: "12px",
+                padding: "2px 7px",
+                fontSize: "0.8em",
+              }}
+            >
+              {visibleQueueCount}
+            </span>
+            <select
+              value={queueFilter}
+              onChange={(e) => setQueueFilter(e.target.value)}
+              style={{
+                height: "30px",
+                padding: "0 10px",
+                border: "1px solid #cccccc",
+                borderRadius: "6px",
+                backgroundColor: "#3b3b3b",
+                color: "#ffffff",
+                fontSize: "0.8rem",
+                outline: "none",
+                textAlign: "center",
+                marginLeft: "auto",
+              }}
+            >
+              <option value="all">All</option>
+              <option value="movies">Movies</option>
+              <option value="tv">TV</option>
+              <option value="books">Books</option>
+            </select>
+            <button
+              onClick={() => setQueueOpen((v) => !v)}
+              title={queueOpen ? "Hide queue" : "Show queue"}
+              aria-label={queueOpen ? "Hide queue" : "Show queue"}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "4px",
+                outline: "none",
+                display: "inline-flex",
+                alignItems: "center",
+              }}
+            >
+              <img
+                src={queueOpen ? "/demote.png" : "/promote.png"}
+                alt=""
+                style={{ width: 14, height: 14 }}
+              />
+            </button>
+          </div>
+          {queueOpen &&
+            (visibleQueueCount === 0 ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  color: "#888",
+                  padding: "8px 0 14px",
+                }}
+              >
+                Nothing in your {QUEUE_CATEGORY_LABELS[queueFilter]} queue yet.
+              </div>
+            ) : (
+              queueCategoriesToShow.map((category) => {
+                const items = queueByCategory[category];
+                if (items.length === 0) return null;
+                return (
+                  <div key={category} style={{ marginBottom: "4px" }}>
+                    {queueFilter === "all" && (
+                      <div
+                        style={{
+                          color: "#9a9a9a",
+                          fontSize: "0.75rem",
+                          fontWeight: "bold",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.6px",
+                          margin: "4px 2px 0",
+                        }}
+                      >
+                        {QUEUE_CATEGORY_LABELS[category]}
+                      </div>
+                    )}
+                    {items.map((item, index) => (
+                      <div
+                        key={item.queue_id}
+                        style={{
+                          marginBottom: "0.15rem",
+                          width: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                        }}
+                      >
+                        {category === "books" ? (
+                          <BookTbrComponent
+                            tbrEntry={item.book}
+                            queueMode={true}
+                            rankNumber={index + 1}
+                            onMoveUp={() =>
+                              handleQueueMove(category, item.queue_id, "up")
+                            }
+                            onMoveDown={() =>
+                              handleQueueMove(category, item.queue_id, "down")
+                            }
+                            onSendTop={() =>
+                              handleQueueSendTop(category, item.queue_id)
+                            }
+                            onSendBottom={() =>
+                              handleQueueSendBottom(category, item.queue_id)
+                            }
+                          />
+                        ) : (
+                          <Rating
+                            movie_object={item.movie}
+                            ratingDate={null}
+                            rankNumber={index + 1}
+                            showRankControls={true}
+                            rankLeft={true}
+                            onMoveUp={() =>
+                              handleQueueMove(category, item.queue_id, "up")
+                            }
+                            onMoveDown={() =>
+                              handleQueueMove(category, item.queue_id, "down")
+                            }
+                            onSendTop={() =>
+                              handleQueueSendTop(category, item.queue_id)
+                            }
+                            onSendBottom={() =>
+                              handleQueueSendBottom(category, item.queue_id)
+                            }
+                            actionSlot={
+                              <button
+                                onClick={() => removeFromQueue(item.queue_id)}
+                                title="Remove from queue (keep in watchlist)"
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  color: "#aaa",
+                                  cursor: "pointer",
+                                  fontSize: "18px",
+                                  lineHeight: 1,
+                                  padding: "0 2px",
+                                  marginLeft: "2px",
+                                  marginBottom: "1px",
+                                  outline: "none",
+                                }}
+                              >
+                                {String.fromCharCode(0x2715)}
+                              </button>
+                            }
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })
+            ))}
+        </div>
+      )}
+      {displayCount === 0 && queueCount === 0 && (
         <div style={{ textAlign: "center" }}>
           {searchTerm
             ? `No watchlist items found for "${searchTerm}"!`

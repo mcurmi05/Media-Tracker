@@ -10,7 +10,7 @@ export default function AddWatchlist({movie, needMoreDetail}){
 
     const {user, isAuthenticated} = useAuth();
     const navigate = useNavigate();
-    const {addWatchlist, removeWatchlist, userWatchlist} = useWatchlist();
+    const {addWatchlist, removeWatchlist, userWatchlist, watchlistQueue, removeFromQueue} = useWatchlist();
     const [onWatchlist, setOnWatchlist] = useState(false);
 
     useEffect(() => {
@@ -57,6 +57,11 @@ export default function AddWatchlist({movie, needMoreDetail}){
                 console.error("Watchlist entry not found for deletion.");
                 return;
             }
+
+            // Remove the queue entry first so the watchlist delete isn't blocked
+            // by the queue's foreign key reference.
+            const queueEntry = watchlistQueue.find(q => q.watchlist_id === entry.id);
+            if (queueEntry) await removeFromQueue(queueEntry.id);
 
             const { error } = await supabase
                 .from("watchlist")

@@ -2,6 +2,7 @@ import "../styles/AddLog.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useBookTbr, isSameBook } from "../contexts/UserBookTbrContext.jsx";
+import { useWatchlist } from "../contexts/UserWatchlistContext.jsx";
 import {
   createBookTbr,
   deleteBookTbr,
@@ -13,6 +14,7 @@ export default function AddBookWatchlist({ book }) {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { userBookTbr, addBookTbr, removeBookTbr } = useBookTbr();
+  const { watchlistQueue, removeFromQueue } = useWatchlist();
 
   const knownBookId =
     book?.book_id ||
@@ -67,6 +69,12 @@ export default function AddBookWatchlist({ book }) {
       }
     } else {
       const toRemove = existing;
+      // Remove the queue entry first so the TBR delete isn't blocked by the
+      // queue's foreign key reference.
+      const queueEntry = watchlistQueue.find(
+        (q) => q.book_tbr_id === toRemove.id,
+      );
+      if (queueEntry) await removeFromQueue(queueEntry.id);
       removeBookTbr(toRemove.id);
       try {
         await deleteBookTbr(toRemove.id);

@@ -68,6 +68,54 @@ export const getUserWatchlist = async (user) => {
   return data || [];
 };
 
+// Watchlist queue: the user's ordered "watch next" list, referencing watchlist
+// rows by watchlist_id. queue_rank determines the display order (1 = next up).
+export const getUserWatchlistQueue = async (user) => {
+  if (!user)
+    throw new Error("User must be authenticated to view watchlist queue");
+  const { data, error } = await supabase
+    .from("watchlist-queue")
+    .select("*")
+    .order("queue_rank", { ascending: true })
+    .eq("user_id", user.id);
+  if (error) throw error;
+  return data || [];
+};
+
+// `refs` references either a watchlist row ({ watchlistId }) for movies/TV or a
+// book_tbr row ({ bookTbrId }) for books. Exactly one should be provided.
+export const addToWatchlistQueue = async (userId, refs, queueRank) => {
+  const { watchlistId = null, bookTbrId = null } = refs;
+  const { data, error } = await supabase
+    .from("watchlist-queue")
+    .insert({
+      user_id: userId,
+      watchlist_id: watchlistId,
+      book_tbr_id: bookTbrId,
+      queue_rank: queueRank,
+    })
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const removeFromWatchlistQueue = async (queueId) => {
+  const { error } = await supabase
+    .from("watchlist-queue")
+    .delete()
+    .eq("id", queueId);
+  if (error) throw error;
+};
+
+export const updateWatchlistQueueRank = async (queueId, queueRank) => {
+  const { data, error } = await supabase
+    .from("watchlist-queue")
+    .update({ queue_rank: queueRank })
+    .eq("id", queueId);
+  if (error) throw error;
+  return data;
+};
+
 // Book entries (per-user book metadata, referenced by that user's book child tables)
 export const createBookEntry = async (payload) => {
   // Resolve the signed-in user so the row is stamped with its owner. This is

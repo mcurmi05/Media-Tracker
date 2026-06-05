@@ -15,6 +15,7 @@ function Rating({
   addedToWatchlistDate,
   rankNumber = null,
   showRankControls = false,
+  rankLeft = false,
   onMoveUp,
   onMoveDown,
   onSendTop,
@@ -39,6 +40,32 @@ function Rating({
   return (
     <div className="container">
       <div className="top-stuff">
+        {rankLeft && rankNumber != null && (
+          <div
+            style={{
+              alignSelf: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: "16px",
+            }}
+          >
+            <span
+              style={{
+                background: "#3a3a3a",
+                color: "#fff",
+                borderRadius: 10,
+                padding: "4px 10px",
+                fontSize: "1.1rem",
+                fontWeight: "bold",
+                minWidth: 28,
+                textAlign: "center",
+              }}
+            >
+              {`#${rankNumber}`}
+            </span>
+          </div>
+        )}
         <div className="poster-wrapper">
           <img
             src={
@@ -69,6 +96,7 @@ function Rating({
                   marginLeft: 8,
                 }}
               >
+                {!rankLeft && (
                 <span
                   title={rankNumber ? `#${rankNumber}` : "Unranked"}
                   style={{
@@ -90,6 +118,7 @@ function Rating({
                 >
                   {rankNumber ? `#${rankNumber}` : "Unranked"}
                 </span>
+                )}
                 {showRankControls && (
                   <div style={{ display: "flex", gap: 3 }}>
                     <button

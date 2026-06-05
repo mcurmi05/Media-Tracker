@@ -29,8 +29,24 @@ export default function WatchlistComponent({
   newSeasonToWatch,
 }) {
   const [visible, setVisible] = useState(true);
-  const { removeWatchlist, updateNewSeason } = useWatchlist();
+  const {
+    removeWatchlist,
+    updateNewSeason,
+    watchlistQueue,
+    addToQueue,
+    removeFromQueue,
+  } = useWatchlist();
   const [newSeason, setNewSeason] = useState(!!newSeasonToWatch);
+
+  const queueEntry = watchlistQueue.find(
+    (q) => q.watchlist_id === watchlist_id,
+  );
+  const inQueue = !!queueEntry;
+
+  function handleQueueToggle() {
+    if (inQueue) removeFromQueue(queueEntry.id);
+    else addToQueue(watchlist_id);
+  }
 
   const isTV =
     (movie?.type || "").toLowerCase().includes("tv") ||
@@ -55,6 +71,9 @@ export default function WatchlistComponent({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   async function confirmDeleteWatchlist() {
+    // Remove the queue entry first so the watchlist delete isn't blocked by the
+    // queue's foreign key reference.
+    if (queueEntry) await removeFromQueue(queueEntry.id);
     const { error } = await supabase
       .from("watchlist")
       .delete()
@@ -86,24 +105,42 @@ export default function WatchlistComponent({
           formattedDate !== "Invalid Date" ? formattedDate : null
         }
         actionSlot={
-          isTV ? (
+          <>
             <img
-              src="/new_season_to_watch.png"
-              onClick={handleNewSeasonToggle}
-              title={
-                newSeason ? "Unmark new season" : "Mark as new season to watch"
-              }
+              src="/add-to-queue.png"
+              onClick={handleQueueToggle}
+              title={inQueue ? "Remove from queue" : "Add to queue"}
               style={{
                 width: "22px",
                 height: "22px",
                 cursor: "pointer",
-                opacity: newSeason ? 1 : 0.35,
+                opacity: inQueue ? 1 : 0.35,
                 transition: "opacity 0.2s",
                 marginLeft: "2px",
                 marginBottom: "1px",
               }}
             />
-          ) : null
+            {isTV ? (
+              <img
+                src="/new_season_to_watch.png"
+                onClick={handleNewSeasonToggle}
+                title={
+                  newSeason
+                    ? "Unmark new season"
+                    : "Mark as new season to watch"
+                }
+                style={{
+                  width: "22px",
+                  height: "22px",
+                  cursor: "pointer",
+                  opacity: newSeason ? 1 : 0.35,
+                  transition: "opacity 0.2s",
+                  marginLeft: "2px",
+                  marginBottom: "1px",
+                }}
+              />
+            ) : null}
+          </>
         }
       />
       <img
