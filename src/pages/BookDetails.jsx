@@ -10,7 +10,7 @@ import BookRatingStar from "../components/BookRatingStar.jsx";
 import AddBookWatchlist from "../components/AddBookWatchlist.jsx";
 import AddBookLogButton from "../components/AddBookLogButton.jsx";
 import EditBookInfoModal from "../components/EditBookInfoModal.jsx";
-import Loader from "../components/Loader.jsx";
+import Loader, { Spinner } from "../components/Loader.jsx";
 import "../styles/BookDetails.css";
 
 const GOODREADS_ICON =
@@ -303,9 +303,7 @@ export default function BookDetails() {
 
             <p className="bd-description">
               {description ||
-                (scrapeLoading
-                  ? "Loading description..."
-                  : "No description available.")}
+                (scrapeLoading ? <Spinner /> : "No description available.")}
             </p>
           </div>
         </div>

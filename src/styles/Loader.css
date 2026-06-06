@@ -20,3 +20,12 @@
   border-radius: 50%;
   animation: app-spin 0.7s linear infinite;
 }
+
+/* Small inline spinner for buttons, nav bar and inline text spots, so the UI
+   never falls back to a "Loading..." text label. */
+.app-spinner--sm {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+  vertical-align: middle;
+}

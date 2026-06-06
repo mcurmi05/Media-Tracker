@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSearch } from "../contexts/SearchContext";
 import { useAuth } from "../contexts/AuthContext";
 import SearchBar from "./SearchBar";
+import { Spinner } from "./Loader.jsx";
 import { useState, useEffect, useRef } from "react";
 import "../styles/NavBar.css";
 
@@ -73,7 +74,11 @@ function NavBar() {
   };
 
   if (loading) {
-    return <nav className="navbar">Loading...</nav>;
+    return (
+      <nav className="navbar">
+        <Spinner />
+      </nav>
+    );
   }
 
   return (

@@ -119,6 +119,57 @@
 
 .top-stuff{
   display:flex;
+  max-width: 100%;
+}
+
+/* Let the text column shrink so rows never overflow their container, while the
+   poster keeps its size. */
+.right-stuff {
+  flex: 1;
+  min-width: 0;
+}
+.poster-wrapper {
+  flex-shrink: 0;
+}
+
+/* Queue rank badge: fixed-width slot so every poster lines up regardless of the
+   rank's digit count. */
+.queue-rank {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  flex-shrink: 0;
+  margin-right: 16px;
+}
+.queue-rank-badge {
+  background: #3a3a3a;
+  color: #fff;
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  min-width: 28px;
+  text-align: center;
+}
+
+/* At very narrow widths the queue rows need to give the text column more room:
+   shrink the rank badge and tighten the poster gap so items fit the container. */
+@media (max-width: 450px) {
+  .queue-rank {
+    width: 26px;
+    margin-right: 8px;
+  }
+  .queue-rank-badge {
+    padding: 3px 5px;
+    font-size: 0.8rem;
+    min-width: 0;
+  }
+  .poster-wrapper,
+  .rating-poster {
+    margin-right: 10px;
+  }
 }
 
 

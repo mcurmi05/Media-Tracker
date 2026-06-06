@@ -139,31 +139,8 @@ export default function BookTbrComponent({
       <div className="container">
         <div className="top-stuff">
           {queueMode && rankNumber != null && (
-            <div
-              style={{
-                alignSelf: "center",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "48px",
-                flexShrink: 0,
-                marginRight: "16px",
-              }}
-            >
-              <span
-                style={{
-                  background: "#3a3a3a",
-                  color: "#fff",
-                  borderRadius: 10,
-                  padding: "4px 10px",
-                  fontSize: "1.1rem",
-                  fontWeight: "bold",
-                  minWidth: 28,
-                  textAlign: "center",
-                }}
-              >
-                {`#${rankNumber}`}
-              </span>
+            <div className="queue-rank">
+              <span className="queue-rank-badge">{`#${rankNumber}`}</span>
             </div>
           )}
           <div className="poster-wrapper">

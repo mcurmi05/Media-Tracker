@@ -10,3 +10,15 @@ export default function Loader() {
     </div>
   );
 }
+
+// Small inline circle spinner for buttons, the nav bar and inline text spots,
+// used instead of any "Loading..." text label.
+export function Spinner({ className = "" }) {
+  return (
+    <span
+      className={`app-spinner app-spinner--sm ${className}`.trim()}
+      role="status"
+      aria-label="Loading"
+    />
+  );
+}

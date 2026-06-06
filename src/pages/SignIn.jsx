@@ -2,6 +2,7 @@ import {useState} from "react";
 import {supabase} from "../services/supabase-client.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
+import { Spinner } from "../components/Loader.jsx";
 import "../styles/SignIn.css";
 
 export const SignIn = () => {
@@ -120,7 +121,7 @@ export const SignIn = () => {
                     </div>
 
                     <button className="signin-submit" type="submit" disabled={loading}>
-                        {loading ? "Loading..." : (isSignUp ? "Sign Up" : "Sign In")}
+                        {loading ? <Spinner /> : (isSignUp ? "Sign Up" : "Sign In")}
                     </button>
                 </form>
 

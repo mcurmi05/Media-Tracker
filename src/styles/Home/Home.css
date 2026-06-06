@@ -670,6 +670,25 @@
   .hp-bar {
     width: 9px;
   }
+  /* On narrow screens the decade columns would squish together, so let each
+     plot scroll horizontally with the columns kept at a readable min width. */
+  .hp-chart-bars {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    padding-bottom: 6px;
+  }
+  .hp-chart-bars::-webkit-scrollbar {
+    height: 5px;
+  }
+  .hp-chart-bars::-webkit-scrollbar-thumb {
+    background: #4a4a4a;
+    border-radius: 3px;
+  }
+  .hp-chart-col {
+    flex: 0 0 auto;
+    min-width: 28px;
+  }
   .hp-feed-date {
     min-width: 52px;
   }
