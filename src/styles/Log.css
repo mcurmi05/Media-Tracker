@@ -4,6 +4,23 @@
   align-items: center;
 }
 
+/* Match the width of a watchlist component (.log-rating-wrapper) below it */
+.watchlist-queue {
+  width: 55%;
+}
+
+@media (max-width: 1200px) {
+  .watchlist-queue {
+    width: 70%;
+  }
+}
+
+@media (max-width: 800px) {
+  .watchlist-queue {
+    width: 100%;
+  }
+}
+
 /* Mobile responsive styles for logs page */
 @media (max-width: 768px) {
   .logs-container-vertically-down {

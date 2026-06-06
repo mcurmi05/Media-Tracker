@@ -47,6 +47,8 @@ function Rating({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              width: "48px",
+              flexShrink: 0,
               marginRight: "16px",
             }}
           >

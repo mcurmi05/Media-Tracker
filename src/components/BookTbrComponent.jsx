@@ -145,6 +145,8 @@ export default function BookTbrComponent({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                width: "48px",
+                flexShrink: 0,
                 marginRight: "16px",
               }}
             >

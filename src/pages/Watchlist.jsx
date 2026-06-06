@@ -660,10 +660,10 @@ function Watchlist() {
       </div>
       {queueCount > 0 && (
         <div
+          className="watchlist-queue"
           style={{
-            width: "min(900px, 92%)",
             boxSizing: "border-box",
-            background: "#181818",
+            background: "#2a2a2a",
             border: "1px solid #2e2e2e",
             borderRadius: "14px",
             padding: queueOpen ? "16px 16px 6px" : "12px 16px",
@@ -733,7 +733,7 @@ function Watchlist() {
               }}
             >
               <img
-                src={queueOpen ? "/demote.png" : "/promote.png"}
+                src={queueOpen ? "/promote.png" : "/demote.png"}
                 alt=""
                 style={{ width: 14, height: 14 }}
               />
