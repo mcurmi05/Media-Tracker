@@ -1,55 +1,306 @@
 .trending {
   width: 100%;
   box-sizing: border-box;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  flex-wrap:wrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.movies-grid {
-  display: grid;
-  justify-items: center;
-  justify-content:center;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  padding: 1rem;
-  width: 100%;
-  box-sizing: border-box;
+.trending-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0 16px 4px;
+  margin-top: -20px;
 }
 
-.movies-grid {
-  display: grid;
-  justify-items: center;
-  justify-content:center;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  padding: 1rem;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-@media (max-width: 318px) {
-  .movies-grid {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  }
+.trending-title-h1 {
+  margin: 0;
+  text-align: center;
 }
 
 .mediatype-selector {
-  width:80px;
-  margin-left: 20px;
-  padding: 5px;
-  border:1px solid rgb(109, 107, 107);
-  border-radius: 10px;
-  font-weight:400;
-  text-align:center;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgb(109, 107, 107);
+  border-radius: 8px;
+  font-weight: 400;
+  text-align: center;
+  background-color: #3b3b3b;
+  color: #ffffff;
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
 }
 
-.mediatype-selector:focus{
-    outline: none;
+.mediatype-selector:focus {
+  outline: none;
+}
+
+/* Container for featured cards + rest of list */
+.trending-featured {
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px 32px;
+  box-sizing: border-box;
+}
+
+/* --- Cinematic top-3 cards --- */
+.tf-card {
+  position: relative;
+  width: 100%;
+  height: 158px;
+  background-size: cover;
+  background-position: center 30%;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 160ms ease-out;
+}
+
+.tf-card:hover {
+  transform: scale(1.012);
+}
+
+.tf-card:active {
+  transform: scale(0.985);
+}
+
+.tf-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(0, 0, 0, 0.92) 0%,
+    rgba(0, 0, 0, 0.65) 50%,
+    rgba(0, 0, 0, 0.12) 100%
+  );
+}
+
+.tf-big-rank {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 7rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.08);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+  letter-spacing: -0.04em;
+}
+
+.tf-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  gap: 14px;
+}
+
+.tf-poster {
+  width: 62px;
+  height: 93px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+}
+
+.tf-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: calc(100% - 160px);
+}
+
+.tf-title {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tf-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tf-year {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+}
+
+.tf-genre-tag {
+  color: rgba(255, 255, 255, 0.8);
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.tf-desc {
+  margin: 0;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.42);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.45;
+}
+
+/* --- Section divider --- */
+.trending-section-label {
+  margin: 6px 0 2px;
+  font-size: 0.68rem;
+  color: #484848;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding-left: 4px;
+}
+
+/* --- Compact list rows (#4-100) --- */
+.trending-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 140ms ease-out;
+}
+
+.trending-row:hover {
+  background-color: rgba(255, 255, 255, 0.055);
+}
+
+.trending-rank {
+  color: #4a4a4a;
+  font-size: 0.76rem;
+  min-width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.trending-thumb {
+  width: 38px;
+  height: 57px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: #2a2a2a;
+}
+
+.trending-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trending-item-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #e0e0e0;
+}
+
+.trending-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.trending-year {
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.trending-genre-tag {
+  color: #888;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: bold;
+  white-space: nowrap;
+  border: 1px solid #555;
+}
+
+.trending-desc {
+  margin: 0;
+  font-size: 0.73rem;
+  color: #555;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+@media (max-width: 480px) {
+  .tf-card {
+    height: 130px;
+  }
+
+  .tf-big-rank {
+    font-size: 5.5rem;
+  }
+
+  .tf-poster {
+    width: 52px;
+    height: 78px;
+  }
+
+  .tf-title {
+    font-size: 0.95rem;
+  }
+
+  .tf-desc {
+    display: none;
+  }
+
+  .trending-item-title {
+    font-size: 0.85rem;
+  }
+
+  .trending-thumb {
+    width: 32px;
+    height: 48px;
+  }
+
+  .trending-genre-tag {
+    display: none;
+  }
+
+  .trending-desc {
+    display: none;
+  }
 }

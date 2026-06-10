@@ -1,0 +1,95 @@
+.efp-wrap {
+  position: relative;
+  display: inline-block;
+  margin: 6px;
+}
+
+.efp-trigger {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  background-color: #3b3b3b;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+  transition: background-color 120ms ease-out;
+}
+
+.efp-trigger:hover {
+  background-color: #4a4a4a;
+}
+
+.efp-trigger:active {
+  transform: scale(0.97);
+}
+
+.efp-trigger--active {
+  background-color: #c91919;
+  border-color: #c91919;
+  font-weight: 600;
+}
+
+.efp-trigger--active:hover {
+  background-color: #a81414;
+}
+
+.efp-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 45;
+  background: #242424;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 320px;
+  animation: efpIn 150ms ease-out;
+}
+
+@keyframes efpIn {
+  from {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Controls placed inside the panel inherit the same look */
+.efp-panel select {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  background-color: #2e2e2e;
+  color: #ffffff;
+  font-size: 0.8rem;
+  outline: none;
+  text-align: center;
+  cursor: pointer;
+  margin: 4px;
+}
+
+.efp-panel select:hover {
+  border-color: #555;
+}
+
+/* Keep range-filter-wrap popovers above the panel */
+.efp-panel .range-filter-wrap {
+  margin: 4px;
+}
+
+.efp-panel .range-filter-popover {
+  z-index: 50;
+}

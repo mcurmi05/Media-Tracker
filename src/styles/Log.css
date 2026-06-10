@@ -9,6 +9,34 @@
   width: 55%;
 }
 
+/* Collapse animation using grid-template-rows trick */
+.queue-body-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 240ms ease-out, opacity 200ms ease-out;
+  opacity: 0;
+}
+
+.queue-body-wrap.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.queue-body-inner {
+  overflow: hidden;
+}
+
+/* Chevron rotation */
+.queue-chevron {
+  transition: transform 240ms ease-out;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.queue-chevron.open {
+  transform: rotate(180deg);
+}
+
 @media (max-width: 1200px) {
   .watchlist-queue {
     width: 70%;

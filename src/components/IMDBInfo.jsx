@@ -6,8 +6,9 @@ function IMDBInfo({ movie, useLiveRating = false }) {
   // and keep the rating that came back with the RapidAPI movie object.
   // Passing undefined to the hook makes it a no-op (no request, no override).
   const live = useImdbRating(useLiveRating ? movie?.id : undefined);
-  const rating = live?.rating ?? movie.averageRating;
-  const votes = live?.votes ?? movie.numVotes;
+  const isLoading = useLiveRating && live === undefined;
+  const rating = live?.rating ?? null;
+  const votes = live?.votes ?? null;
 
   const formatVotes = (v) => {
     if (!v) return "0";
@@ -25,8 +26,14 @@ function IMDBInfo({ movie, useLiveRating = false }) {
     <a href={movie.url} target="_blank" className="imdb-rating">
       <img src="/imdbicon.png" className="imdb-movie-card " />
       <img src="/staricon.png" className="star-movie-card" />
-      <p style={{ whiteSpace: "nowrap", fontWeight: 400, fontFamily: "inherit" }}>
-        {rating != null ? Number(rating).toFixed(1) : "No ratings yet"}{" "}
+      <p style={{
+        whiteSpace: "nowrap",
+        fontWeight: 400,
+        fontFamily: "inherit",
+        opacity: isLoading ? 0 : 1,
+        transition: "opacity 350ms ease-out",
+      }}>
+        {rating != null ? Number(rating).toFixed(1) : (isLoading ? "" : "No ratings yet")}{" "}
         {votes ? formatVotes(votes) : null}
       </p>
     </a>

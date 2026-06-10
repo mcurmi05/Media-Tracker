@@ -19,6 +19,16 @@ export const updateUserRating = async (
   return data;
 };
 import { supabase } from "./supabase-client.js";
+import { movieRowToMovieObject } from "./movieMetadata.js";
+
+// Rows in logs/watchlist/ratings reference shared metadata in `movies` via
+// movie_entry_id. Reconstruct each row's `movie_object` from the joined movies
+// row, falling back to the legacy inline blob for rows not yet backfilled.
+const withMovieObject = (rows) =>
+  (rows || []).map((r) => ({
+    ...r,
+    movie_object: r.movies_and_tv_entries ? movieRowToMovieObject(r.movies_and_tv_entries) : r.movie_object,
+  }));
 
 // Update a user's ranking (nullable) in Supabase
 export const updateUserRanking = async (userId, imdbMovieId, ranking) => {
@@ -35,10 +45,10 @@ export const getUserRatings = async (user) => {
   if (!user) throw new Error("User must be authenticated to view ratings");
   const { data, error } = await supabase
     .from("ratings")
-    .select("*")
+    .select("*, movies_and_tv_entries(*)")
     .eq("user_id", user.id);
   if (error) throw error;
-  return data || [];
+  return withMovieObject(data);
 };
 
 export const getRatingFromArray = (ratingsArray, imdbMovieId) => {
@@ -50,22 +60,22 @@ export const getUserLogs = async (user) => {
   if (!user) throw new Error("User must be authenticated to view logs");
   const { data, error } = await supabase
     .from("logs")
-    .select("*")
+    .select("*, movies_and_tv_entries(*)")
     .order("created_at", { ascending: false })
     .eq("user_id", user.id);
   if (error) throw error;
-  return data || [];
+  return withMovieObject(data);
 };
 
 export const getUserWatchlist = async (user) => {
   if (!user) throw new Error("User must be authenticated to view watchlist");
   const { data, error } = await supabase
     .from("watchlist")
-    .select("*")
+    .select("*, movies_and_tv_entries(*)")
     .order("created_at", { ascending: false })
     .eq("user_id", user.id);
   if (error) throw error;
-  return data || [];
+  return withMovieObject(data);
 };
 
 // Watchlist queue: the user's ordered "watch next" list, referencing watchlist

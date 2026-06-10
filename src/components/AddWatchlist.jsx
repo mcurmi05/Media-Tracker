@@ -1,23 +1,35 @@
 import "../styles/AddLog.css"
-import { supabase } from "../services/supabase-client"; 
-import { useAuth } from "../contexts/AuthContext";  
+import { supabase } from "../services/supabase-client";
+import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { getMovieById } from "../services/api";
 import { useWatchlist } from "../contexts/UserWatchlistContext";
 import { useState, useEffect } from "react";
+import { upsertMovie, resolveFullMovie } from "../services/movieMetadata";
 
-export default function AddWatchlist({movie, needMoreDetail}){
+export default function AddWatchlist({movie}){
 
     const {user, isAuthenticated} = useAuth();
     const navigate = useNavigate();
     const {addWatchlist, removeWatchlist, userWatchlist, watchlistQueue, removeFromQueue} = useWatchlist();
     const [onWatchlist, setOnWatchlist] = useState(false);
 
+    // Match by tmdb_id+media_type (works for browse cards too), falling back to
+    // the IMDb id for any rows not yet carrying tmdb metadata.
+    const matchesMovie = (item) =>
+        (movie?.tmdb_id != null &&
+            item.movie_object?.tmdb_id === movie.tmdb_id &&
+            item.movie_object?.media_type === movie.media_type) ||
+        (movie?.id &&
+            (item.movie_id === movie.id || item.movie_object?.id === movie.id));
+
     useEffect(() => {
         if (userWatchlist) {
-            const found = userWatchlist.some(item => item.movie_object.id === movie.id && item.user_id === user.id);
+            const found = userWatchlist.some(
+                (item) => item.user_id === user?.id && matchesMovie(item),
+            );
             setOnWatchlist(found);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userWatchlist, movie, isAuthenticated, user]);
 
     async function onClick(){
@@ -29,29 +41,34 @@ export default function AddWatchlist({movie, needMoreDetail}){
             } else{
 
                 setOnWatchlist(true);
-                if(needMoreDetail){
-                    movie = await getMovieById(movie.id);
-                }
+                const full =
+                    movie.tmdb_id != null && movie.id
+                        ? movie
+                        : await resolveFullMovie(movie);
+                const movieEntryId = await upsertMovie(full);
+
                 const { data, error } = await supabase
                 .from("watchlist")
                 .insert(
                     {
                         user_id: user.id,
-                        movie_object: movie,
-                        movie_id: movie.id
+                        movie_id: full.id,
+                        movie_entry_id: movieEntryId,
                     })
                     .select();
                 const newWatchlistEntry = data[0];
-                addWatchlist(newWatchlistEntry.id, movie);
-                
+                addWatchlist(newWatchlistEntry.id, full);
+
                 if (error) {
                     console.error(error);
                 }
             }
-        
+
         } else if (onWatchlist) {
             setOnWatchlist(false);
-            const entry = userWatchlist.find(item => item.movie_object.id === movie.id && item.user_id === user.id);
+            const entry = userWatchlist.find(
+                (item) => item.user_id === user?.id && matchesMovie(item),
+            );
 
             if (!entry) {
                 console.error("Watchlist entry not found for deletion.");

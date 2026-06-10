@@ -323,7 +323,9 @@ export default function Home() {
       badge,
       rank,
       fit: "cover",
-      onClick: () => mo?.id && navigate(`/mediadetails/${mo.id}`),
+      onClick: () =>
+        mo?.tmdb_id != null &&
+        navigate(`/mediadetails/${mo.media_type}/${mo.tmdb_id}`),
     }),
     [navigate],
   );
@@ -688,7 +690,10 @@ export default function Home() {
         line: `You rated this ${r.rating}/10 in ${dt.getFullYear()}`,
         fit: "cover",
         onClick: () =>
-          r.movie_object?.id && navigate(`/mediadetails/${r.movie_object.id}`),
+          r.movie_object?.tmdb_id != null &&
+          navigate(
+            `/mediadetails/${r.movie_object.media_type}/${r.movie_object.tmdb_id}`,
+          ),
       })),
     );
     bookLogs.forEach((l) =>

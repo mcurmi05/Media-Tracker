@@ -12,6 +12,7 @@ import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
+import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
@@ -47,9 +48,11 @@ function Watchlist() {
   const [yearTo, setYearTo] = useState(location.state?.yearTo || "");
   const [addedFrom, setAddedFrom] = useState(location.state?.addedFrom || "");
   const [addedTo, setAddedTo] = useState(location.state?.addedTo || "");
+  const [genreFilter, setGenreFilter] = useState(location.state?.genreFilter || "all");
   const [filtersOpen, setFiltersOpen] = useState(() => {
     const s = location.state || {};
     return (
+      (s.genreFilter && s.genreFilter !== "all") ||
       s.yearFrom ||
       s.yearTo ||
       s.addedFrom ||
@@ -61,6 +64,7 @@ function Watchlist() {
 
   const activeFilterCount =
     (newSeasonFilter ? 1 : 0) +
+    (genreFilter !== "all" ? 1 : 0) +
     (yearFrom || yearTo ? 1 : 0) +
     (addedFrom || addedTo ? 1 : 0) +
     (sortKey !== "date" || sortDir !== "desc" ? 1 : 0);
@@ -69,6 +73,7 @@ function Watchlist() {
     navigate("/ratings", {
       state: {
         searchTerm,
+        genreFilter,
         mediaTypeFilter,
         sortKey,
         sortDir,
@@ -84,6 +89,7 @@ function Watchlist() {
     navigate("/log", {
       state: {
         searchTerm,
+        genreFilter,
         mediaTypeFilter,
         sortKey,
         sortDir,
@@ -159,6 +165,14 @@ function Watchlist() {
     const max = years.length ? Math.max(now + 5, Math.max(...years)) : now + 5;
     return { min: 1500, max };
   }, [userWatchlist, userBookTbr]);
+
+  const availableGenres = useMemo(() => {
+    const set = new Set();
+    userWatchlist.forEach((w) => {
+      (w.movie_object?.interests || []).forEach((g) => set.add(g));
+    });
+    return Array.from(set).sort();
+  }, [userWatchlist]);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -319,6 +333,10 @@ function Watchlist() {
         if (!title.toLowerCase().includes(searchTerm.toLowerCase()))
           return false;
       }
+      if (genreFilter !== "all") {
+        const genres = item.movie_object?.interests || [];
+        if (!genres.includes(genreFilter)) return false;
+      }
       if (!yearMatchesFilter(movieYear(item))) return false;
       if (!addedMatchesFilter(item.created_at)) return false;
       return true;
@@ -363,6 +381,7 @@ function Watchlist() {
   const filteredBookTbr = useMemo(() => {
     if (!needsBookData) return [];
     if (newSeasonFilter) return [];
+    if (genreFilter !== "all") return [];
     const filtered = userBookTbr.filter((item) => {
       if (queuedBookIds.has(item.id)) return false;
       if (searchTerm.trim()) {
@@ -552,94 +571,75 @@ function Watchlist() {
           <option value="tv">TV</option>
           <option value="books">Books</option>
         </select>
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setFiltersOpen((v) => !v)}
-          title={filtersOpen ? "Hide extra filters" : "Show extra filters"}
-          style={{
-            height: "32px",
-            padding: "0 12px",
-            border:
-              (activeFilterCount > 0 ? "2px" : "1px") +
-              " solid " +
-              (activeFilterCount > 0 ? "#ffffff" : "#cccccc"),
-            borderRadius: "6px",
-            backgroundColor:
-              activeFilterCount > 0 ? "#e50914" : "#3b3b3b",
-            color: "#ffffff",
-            fontSize: "0.8rem",
-            fontWeight: "bold",
-            cursor: "pointer",
-            margin: "6px",
-            outline: "none",
-            whiteSpace: "nowrap",
-          }}
+        <ExtraFiltersPanel
+          open={filtersOpen}
+          onClose={() => setFiltersOpen(false)}
+          onToggle={() => setFiltersOpen((v) => !v)}
+          activeCount={activeFilterCount}
         >
-          Extra Filters
-        </button>
-        {filtersOpen && (
-          <>
-            <ReleaseYearFilter
-              from={yearFrom}
-              to={yearTo}
-              onChange={({ from, to }) => {
-                setYearFrom(from);
-                setYearTo(to);
+          <select
+            value={genreFilter}
+            onChange={(e) => setGenreFilter(e.target.value)}
+          >
+            <option value="all">All Genres</option>
+            {availableGenres.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+          <ReleaseYearFilter
+            from={yearFrom}
+            to={yearTo}
+            onChange={({ from, to }) => {
+              setYearFrom(from);
+              setYearTo(to);
+            }}
+            minYear={yearRange.min}
+            maxYear={yearRange.max}
+          />
+          <DateAddedFilter
+            from={addedFrom}
+            to={addedTo}
+            onChange={({ from, to }) => {
+              setAddedFrom(from);
+              setAddedTo(to);
+            }}
+          />
+          <SortByMenu
+            sortKey={sortKey}
+            sortDir={sortDir}
+            onChange={(k, d) => {
+              setSortKey(k);
+              setSortDir(d);
+            }}
+            options={SORT_OPTIONS}
+          />
+          {mediaTypeFilter !== "books" && (
+            <button
+              onClick={() => {
+                const next = !newSeasonFilter;
+                setNewSeasonFilter(next);
+                if (next) setMediaTypeFilter("tv");
+                else setMediaTypeFilter("all");
               }}
-              minYear={yearRange.min}
-              maxYear={yearRange.max}
-            />
-            <DateAddedFilter
-              from={addedFrom}
-              to={addedTo}
-              onChange={({ from, to }) => {
-                setAddedFrom(from);
-                setAddedTo(to);
+              style={{
+                height: "32px",
+                padding: "0 12px",
+                border: newSeasonFilter ? "2px solid #ffffff" : "1px solid #3a3a3a",
+                borderRadius: "6px",
+                backgroundColor: newSeasonFilter ? "#c91919" : "#2e2e2e",
+                color: "#ffffff",
+                fontSize: "0.8rem",
+                fontWeight: newSeasonFilter ? "600" : "400",
+                cursor: "pointer",
+                margin: "4px",
+                whiteSpace: "nowrap",
+                outline: "none",
               }}
-            />
-            <SortByMenu
-              sortKey={sortKey}
-              sortDir={sortDir}
-              onChange={(k, d) => {
-                setSortKey(k);
-                setSortDir(d);
-              }}
-              options={SORT_OPTIONS}
-            />
-            {mediaTypeFilter !== "books" && (
-              <button
-                onClick={() => {
-                  const next = !newSeasonFilter;
-                  setNewSeasonFilter(next);
-                  if (next) setMediaTypeFilter("tv");
-                  else setMediaTypeFilter("all");
-                }}
-                style={{
-                  height: "32px",
-                  boxSizing: "border-box",
-                  padding: "0 12px",
-                  border:
-                    (newSeasonFilter ? "2px" : "1px") +
-                    " solid " +
-                    (newSeasonFilter ? "#ffffff" : "#cccccc"),
-                  borderRadius: "6px",
-                  backgroundColor: newSeasonFilter ? "#e50914" : "#3b3b3b",
-                  color: "#ffffff",
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  margin: "6px",
-                  whiteSpace: "nowrap",
-                  transition: "background 0.2s, border-color 0.2s",
-                  outline: "none",
-                }}
-              >
-                {String.fromCharCode(0x2605)} New Season
-              </button>
-            )}
-          </>
-        )}
+            >
+              New Season
+            </button>
+          )}
+        </ExtraFiltersPanel>
         <button
           onClick={goToRatings}
           title="View ratings with these filters"
@@ -706,7 +706,7 @@ function Watchlist() {
             background: "#2a2a2a",
             border: "1px solid #2e2e2e",
             borderRadius: "14px",
-            padding: queueOpen ? "16px 16px 6px" : "12px 16px",
+            padding: "12px 16px 6px",
             marginBottom: "32px",
             boxShadow: "0 4px 18px rgba(0,0,0,0.35)",
           }}
@@ -717,7 +717,6 @@ function Watchlist() {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              marginBottom: queueOpen ? "16px" : "0",
               cursor: "pointer",
               userSelect: "none",
             }}
@@ -741,13 +740,16 @@ function Watchlist() {
               {visibleQueueCount}
             </span>
             <img
-              src={queueOpen ? "/promote.png" : "/demote.png"}
+              src="/demote.png"
               alt=""
-              style={{ width: 14, height: 14, marginLeft: "auto" }}
+              className={`queue-chevron${queueOpen ? " open" : ""}`}
+              style={{ width: 14, height: 14 }}
             />
           </div>
-          {queueOpen &&
-            (visibleQueueCount === 0 ? (
+          <div className={`queue-body-wrap${queueOpen ? " open" : ""}`}>
+          <div className="queue-body-inner">
+          <div style={{ height: "16px" }} />
+          {visibleQueueCount === 0 ? (
               <div
                 style={{
                   textAlign: "center",
@@ -852,7 +854,9 @@ function Watchlist() {
                   </div>
                 );
               })
-            ))}
+            )}
+          </div>
+          </div>
         </div>
       )}
       {displayCount === 0 && queueCount === 0 && (

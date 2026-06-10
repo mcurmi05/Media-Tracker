@@ -10,6 +10,7 @@ import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
+import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
@@ -42,10 +43,12 @@ function Ratings() {
   const [yearTo, setYearTo] = useState(location.state?.yearTo || "");
   const [addedFrom, setAddedFrom] = useState(location.state?.addedFrom || "");
   const [addedTo, setAddedTo] = useState(location.state?.addedTo || "");
+  const [genreFilter, setGenreFilter] = useState(location.state?.genreFilter || "all");
   const [filtersOpen, setFiltersOpen] = useState(() => {
     const s = location.state || {};
     return (
       (s.ratingFilter && s.ratingFilter !== "all") ||
+      (s.genreFilter && s.genreFilter !== "all") ||
       s.yearFrom ||
       s.yearTo ||
       s.addedFrom ||
@@ -59,6 +62,7 @@ function Ratings() {
 
   const activeFilterCount =
     (ratingFilter !== "all" ? 1 : 0) +
+    (genreFilter !== "all" ? 1 : 0) +
     (yearFrom || yearTo ? 1 : 0) +
     (addedFrom || addedTo ? 1 : 0) +
     (sortKey !== "date" || sortDir !== "desc" ? 1 : 0);
@@ -68,6 +72,7 @@ function Ratings() {
       state: {
         searchTerm,
         ratingFilter,
+        genreFilter,
         mediaTypeFilter,
         sortKey,
         sortDir,
@@ -83,6 +88,7 @@ function Ratings() {
     navigate("/watchlist", {
       state: {
         searchTerm,
+        genreFilter,
         mediaTypeFilter,
         sortKey,
         sortDir,
@@ -168,6 +174,14 @@ function Ratings() {
     return { min: 1500, max };
   }, [userRatings, bookRatings]);
 
+  const availableGenres = useMemo(() => {
+    const set = new Set();
+    userRatings.forEach((r) => {
+      (r.movie_object?.interests || []).forEach((g) => set.add(g));
+    });
+    return Array.from(set).sort();
+  }, [userRatings]);
+
   // When rank mode is enabled, force rating filter and media filter appropriately
   useEffect(() => {
     if (rankModeType === "movies") {
@@ -232,6 +246,10 @@ function Ratings() {
     if (ratingFilter !== "all") {
       if (Number(rating.rating) !== Number(ratingFilter)) return false;
     }
+    if (genreFilter !== "all") {
+      const genres = rating.movie_object?.interests || [];
+      if (!genres.includes(genreFilter)) return false;
+    }
     if (!yearMatchesFilter(movieYear(rating))) return false;
     if (!addedMatchesFilter(rating.created_at)) return false;
     return true;
@@ -294,6 +312,7 @@ function Ratings() {
   // Books: every row in book_ratings is a rated book
   const filteredBooks = useMemo(() => {
     if (!includeBooks) return [];
+    if (genreFilter !== "all") return [];
     return bookRatings.filter((bookRating) => {
       if (searchTerm.trim()) {
         const info = getBookInfo(bookRating);
@@ -573,88 +592,60 @@ function Ratings() {
           <option value="tv">TV</option>
           <option value="books">Books</option>
         </select>
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setFiltersOpen((v) => !v)}
-          title={filtersOpen ? "Hide extra filters" : "Show extra filters"}
-          style={{
-            height: "32px",
-            padding: "0 12px",
-            border:
-              (activeFilterCount > 0 ? "2px" : "1px") +
-              " solid " +
-              (activeFilterCount > 0 ? "#ffffff" : "#cccccc"),
-            borderRadius: "6px",
-            backgroundColor:
-              activeFilterCount > 0 ? "#e50914" : "#3b3b3b",
-            color: "#ffffff",
-            fontSize: "0.8rem",
-            fontWeight: "bold",
-            cursor: "pointer",
-            margin: "6px",
-            outline: "none",
-            whiteSpace: "nowrap",
-          }}
+        <ExtraFiltersPanel
+          open={filtersOpen}
+          onClose={() => setFiltersOpen(false)}
+          onToggle={() => setFiltersOpen((v) => !v)}
+          activeCount={activeFilterCount}
         >
-          Extra Filters
-        </button>
-        {filtersOpen && (
-          <>
-            <select
-              value={ratingFilter}
-              onChange={(e) => handleRatingFilterChange(e.target.value)}
-              style={{
-                height: "32px",
-                padding: "0 10px",
-                border: "1px solid #cccccc",
-                borderRadius: "6px",
-                backgroundColor: "#3b3b3b",
-                color: "#ffffff",
-                fontSize: "0.8rem",
-                outline: "none",
-                textAlign: "center",
-                margin: "6px",
-              }}
-            >
-              <option value="all" style={{ whiteSpace: "nowrap" }}>
-                All Ratings
+          <select
+            value={ratingFilter}
+            onChange={(e) => handleRatingFilterChange(e.target.value)}
+          >
+            <option value="all">All Ratings</option>
+            {[...Array(10)].map((_, i) => (
+              <option key={10 - i} value={10 - i}>
+                {10 - i}
               </option>
-              {[...Array(10)].map((_, i) => (
-                <option key={10 - i} value={10 - i}>
-                  {10 - i}
-                </option>
-              ))}
-            </select>
-            <ReleaseYearFilter
-              from={yearFrom}
-              to={yearTo}
-              onChange={({ from, to }) => {
-                setYearFrom(from);
-                setYearTo(to);
-              }}
-              minYear={yearRange.min}
-              maxYear={yearRange.max}
-            />
-            <DateAddedFilter
-              from={addedFrom}
-              to={addedTo}
-              onChange={({ from, to }) => {
-                setAddedFrom(from);
-                setAddedTo(to);
-              }}
-            />
-            <SortByMenu
-              sortKey={sortKey}
-              sortDir={sortDir}
-              onChange={(k, d) => {
-                setSortKey(k);
-                setSortDir(d);
-              }}
-              options={SORT_OPTIONS}
-            />
-          </>
-        )}
+            ))}
+          </select>
+          <select
+            value={genreFilter}
+            onChange={(e) => setGenreFilter(e.target.value)}
+          >
+            <option value="all">All Genres</option>
+            {availableGenres.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+          <ReleaseYearFilter
+            from={yearFrom}
+            to={yearTo}
+            onChange={({ from, to }) => {
+              setYearFrom(from);
+              setYearTo(to);
+            }}
+            minYear={yearRange.min}
+            maxYear={yearRange.max}
+          />
+          <DateAddedFilter
+            from={addedFrom}
+            to={addedTo}
+            onChange={({ from, to }) => {
+              setAddedFrom(from);
+              setAddedTo(to);
+            }}
+          />
+          <SortByMenu
+            sortKey={sortKey}
+            sortDir={sortDir}
+            onChange={(k, d) => {
+              setSortKey(k);
+              setSortDir(d);
+            }}
+            options={SORT_OPTIONS}
+          />
+        </ExtraFiltersPanel>
 
         {/* Rank mode toggles */}
         {[

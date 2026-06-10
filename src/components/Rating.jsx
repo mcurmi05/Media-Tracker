@@ -29,7 +29,7 @@ function Rating({
 
   function onMovieClick() {
     console.log("Navigating to movie details for:", movie_object.primaryTitle);
-    navigate(`/mediadetails/${movie_object.id}`);
+    navigate(`/mediadetails/${movie_object.media_type}/${movie_object.tmdb_id}`);
   }
 
   const ratingDateInfo = getRatingDateInfo(
@@ -290,13 +290,23 @@ function Rating({
           <div className="top">
             <div className="description-and-stars-and-director">
               <div className="directors-and-stars">
-                {movie_object.type === "movie" &&
+                {movie_object.media_type === "movie" &&
                   movie_object.directors &&
                   movie_object.directors.length > 0 && (
                     <p className="director-p">
                       <span className="bold-span">Directed by</span>{" "}
                       {movie_object.directors
                         .map((director) => director.fullName)
+                        .join(", ")}
+                    </p>
+                  )}
+                {movie_object.media_type === "tv" &&
+                  movie_object.creators &&
+                  movie_object.creators.length > 0 && (
+                    <p className="director-p">
+                      <span className="bold-span">Created by</span>{" "}
+                      {movie_object.creators
+                        .map((c) => c.fullName)
                         .join(", ")}
                     </p>
                   )}

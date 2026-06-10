@@ -162,3 +162,98 @@
         font-size:1.3rem !important;
     }
 }
+
+/* --- Seasons & Episodes --- */
+.seasons-section {
+  margin-top: 28px;
+  padding: 0 10px;
+}
+
+.seasons-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 16px;
+  letter-spacing: 0.02em;
+}
+
+.season-block {
+  margin-bottom: 24px;
+}
+
+.season-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.season-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.season-ep-count {
+  font-size: 0.78rem;
+  color: #777;
+}
+
+.episodes-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #444 transparent;
+}
+
+.episodes-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.episodes-scroll::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 2px;
+}
+
+.episode-card {
+  flex-shrink: 0;
+  width: 160px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1e1e1e;
+  border: 1px solid #2e2e2e;
+}
+
+.episode-still {
+  width: 160px;
+  height: 90px;
+  object-fit: cover;
+  display: block;
+  background: #2a2a2a;
+}
+
+.episode-meta {
+  padding: 6px 8px;
+}
+
+.episode-label {
+  font-size: 0.7rem;
+  color: #666;
+  margin: 0 0 2px;
+}
+
+.episode-name {
+  font-size: 0.78rem;
+  color: #ccc;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.episode-runtime {
+  font-size: 0.7rem;
+  color: #666;
+  margin-top: 2px;
+}

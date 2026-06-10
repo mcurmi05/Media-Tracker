@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { searchMoviesFIRSTFIVEONLY } from "../services/api.js";
+import { searchMoviesFIRSTFIVEONLY, findByImdbId } from "../services/api.js";
 import { searchBookEntries } from "../services/ratingsfromtable.js";
 import { useSearch } from "../contexts/SearchContext";
 import { useNavigate } from "react-router-dom";
@@ -85,8 +85,11 @@ export default function SearchBar() {
         .trim()
         .match(/(?:imdb\.com\/title\/)?(tt\d+)/i);
       if (imdbIdMatch) {
-        navigate(`/mediadetails/${imdbIdMatch[1]}`);
-        return;
+        const found = await findByImdbId(imdbIdMatch[1]);
+        if (found?.tmdb_id) {
+          navigate(`/mediadetails/${found.media_type}/${found.tmdb_id}`);
+          return;
+        }
       }
     }
 
@@ -107,7 +110,7 @@ export default function SearchBar() {
       }
       return;
     }
-    navigate(`/mediadetails/${item.id}`);
+    navigate(`/mediadetails/${item.media_type}/${item.tmdb_id}`);
   };
 
   const handleInputChange = (e) => {
@@ -201,7 +204,7 @@ export default function SearchBar() {
                 ))
               : dropdownResults.map((movie) => (
                   <div
-                    key={movie.id}
+                    key={`${movie.media_type}-${movie.tmdb_id}`}
                     className="dropdown-item"
                     onClick={() => handleDropdownClick(movie)}
                   >

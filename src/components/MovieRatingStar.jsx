@@ -6,7 +6,7 @@ import RatingModal from "./RatingModal";
 import { useRatings } from "../contexts/UserRatingsContext";
 import { supabase } from "../services/supabase-client";
 import { getRatingFromArray } from "../services/ratingsfromtable";
-import { getMovieById } from "../services/api";
+import { upsertMovie, resolveFullMovie } from "../services/movieMetadata";
 
 function MovieRatingStar({movie}) {
 
@@ -59,35 +59,40 @@ function MovieRatingStar({movie}) {
         return;
       }
       setRating(newRating);
-      console.log("calling api to get more information about movie for database entry")
-      const movie_object = await getMovieById(movie.id)
+      // Ensure full metadata (browse cards only carry tmdb_id), cache it in the
+      // shared movies table, and reference it by uuid.
+      const full =
+        movie.tmdb_id != null && movie.id
+          ? movie
+          : await resolveFullMovie(movie);
+      const movieEntryId = await upsertMovie(full);
 
       try {
         let error;
-        
+
         if (rated) {
           const result = await supabase
             .from('ratings')
             .update({rating: newRating})
-            .eq('imdb_movie_id', movie.id)
+            .eq('imdb_movie_id', full.id)
             .eq('user_id', user.id);
           error = result.error;
         } else {
-          
+
           const result = await supabase
             .from('ratings')
-            .insert({imdb_movie_id: movie.id, user_id: user.id, rating: newRating, movie_object:movie_object, accurate: true });
+            .insert({imdb_movie_id: full.id, user_id: user.id, rating: newRating, movie_entry_id: movieEntryId, accurate: true });
           error = result.error;
         }
-  
+
         if (error) {
           console.error(error);
         } else {
           setRated(true);
           if (rated) {
-            updateRating(movie.id, newRating, movie_object);
+            updateRating(full.id, newRating, full);
           } else {
-            addRating(movie.id, newRating, movie_object);
+            addRating(full.id, newRating, full);
           }
         }
       } catch (err) {

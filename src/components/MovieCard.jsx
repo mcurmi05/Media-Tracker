@@ -1,7 +1,6 @@
 import "../styles/MovieCard.css";
 import { useNavigate } from "react-router-dom";
 import ReleaseAndRunTime from "./ReleaseAndRunTime.jsx";
-import IMDBInfo from "./IMDBInfo.jsx";
 import MovieRatingStar from "./MovieRatingStar.jsx";
 import "../styles/MovieRatingStar.css"
 import AddLog from "./AddLog.jsx";
@@ -14,7 +13,7 @@ function MovieCard({ movie }) {
 
   function onMovieCardClick() {
     console.log("Navigating to movie details for:", movie.primaryTitle);
-    navigate(`/mediadetails/${movie.id}`);
+    navigate(`/mediadetails/${movie.media_type}/${movie.tmdb_id}`);
   }
 
   return (
@@ -45,7 +44,6 @@ function MovieCard({ movie }) {
           </div>
           <ReleaseAndRunTime movie={movie} />
           <div className="stars-and-that">
-            <IMDBInfo movie={movie}></IMDBInfo>
             <MovieRatingStar movie={movie}></MovieRatingStar>
           </div>
           

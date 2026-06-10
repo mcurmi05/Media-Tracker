@@ -169,7 +169,10 @@ function Search() {
                 <BookCard book={book} key={book.id} />
               ))
             : searchResults.map((movie) => (
-                <MovieCard movie={movie} key={movie.id} />
+                <MovieCard
+                  movie={movie}
+                  key={`${movie.media_type}-${movie.tmdb_id}`}
+                />
               ))}
         </div>
       ) : (

@@ -70,7 +70,7 @@ function App() {
                           element={<Search></Search>}
                         ></Route>
                         <Route
-                          path="/mediadetails/:id"
+                          path="/mediadetails/:mediaType/:tmdbId"
                           element={<MediaDetails></MediaDetails>}
                         />
                         <Route
