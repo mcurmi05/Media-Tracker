@@ -26,7 +26,9 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 async function main() {
   console.log("Downloading", DATASET_URL);
-  const res = await fetch(DATASET_URL);
+  const res = await fetch(DATASET_URL, {
+    headers: { "User-Agent": "movie-library-ratings-sync/1.0" },
+  });
   if (!res.ok || !res.body) {
     throw new Error(`Download failed: ${res.status} ${res.statusText}`);
   }
