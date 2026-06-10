@@ -2,10 +2,12 @@
 // `imdb_ratings` table. Run by .github/workflows/sync-imdb-ratings.yml.
 //
 // Downloads title.ratings.tsv.gz (~7 MB, ~1.5M rows: tconst / averageRating /
-// numVotes), streams + gunzips it line by line, and upserts in batches using
-// the service-role key (which bypasses RLS).
+// numVotes), streams + gunzips it line by line, and upserts in batches.
+//
+// Talks to PostgREST directly with fetch (no @supabase/supabase-js) so it has
+// no WebSocket/realtime dependency and runs on any Node 18+. The service-role
+// key is used, which bypasses RLS.
 
-import { createClient } from "@supabase/supabase-js";
 import { createGunzip } from "node:zlib";
 import { Readable } from "node:stream";
 import readline from "node:readline";
@@ -20,9 +22,24 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
-  auth: { persistSession: false },
-});
+const ENDPOINT = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/imdb_ratings`;
+
+async function upsert(rows) {
+  const res = await fetch(`${ENDPOINT}?on_conflict=tconst`, {
+    method: "POST",
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify(rows),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`Upsert failed: ${res.status} ${res.statusText} - ${detail}`);
+  }
+}
 
 async function main() {
   console.log("Downloading", DATASET_URL);
@@ -45,10 +62,7 @@ async function main() {
 
   async function flush() {
     if (batch.length === 0) return;
-    const { error } = await supabase
-      .from("imdb_ratings")
-      .upsert(batch, { onConflict: "tconst" });
-    if (error) throw error;
+    await upsert(batch);
     total += batch.length;
     batch = [];
     if (total % 100000 < BATCH_SIZE) console.log(`  upserted ~${total} rows`);

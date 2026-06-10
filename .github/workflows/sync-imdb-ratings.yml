@@ -14,7 +14,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --no-save @supabase/supabase-js
       - run: node scripts/sync-imdb-ratings.mjs
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
