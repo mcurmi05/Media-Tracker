@@ -1,0 +1,21 @@
+name: Sync IMDb ratings
+
+on:
+  schedule:
+    # IMDb refreshes the dataset once a day; run a bit after, at 08:00 UTC.
+    - cron: "0 8 * * *"
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save @supabase/supabase-js
+      - run: node scripts/sync-imdb-ratings.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
