@@ -36,7 +36,6 @@ function Watchlist() {
     location.state?.mediaTypeFilter || "all",
   );
   const [newSeasonFilter, setNewSeasonFilter] = useState(false);
-  const [queueFilter, setQueueFilter] = useState("all");
   const [queueOpen, setQueueOpen] = useState(true);
   const [sortKey, setSortKey] = useState(location.state?.sortKey || "date");
   const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
@@ -238,7 +237,15 @@ function Watchlist() {
 
   const QUEUE_CATEGORY_LABELS = { movies: "Movies", tv: "TV", books: "Books" };
   const queueCategoriesToShow =
-    queueFilter === "all" ? ["movies", "tv", "books"] : [queueFilter];
+    mediaTypeFilter === "movies"
+      ? ["movies"]
+      : mediaTypeFilter === "tv"
+        ? ["tv"]
+        : mediaTypeFilter === "books"
+          ? ["books"]
+          : mediaTypeFilter === "moviesAndTV"
+            ? ["movies", "tv"]
+            : ["movies", "tv", "books"];
   const visibleQueueCount = queueCategoriesToShow.reduce(
     (n, c) => n + queueByCategory[c].length,
     0,
@@ -672,11 +679,14 @@ function Watchlist() {
           }}
         >
           <div
+            onClick={() => setQueueOpen((v) => !v)}
             style={{
               display: "flex",
               alignItems: "center",
               gap: "8px",
               marginBottom: queueOpen ? "16px" : "0",
+              cursor: "pointer",
+              userSelect: "none",
             }}
           >
             <img
@@ -697,47 +707,11 @@ function Watchlist() {
             >
               {visibleQueueCount}
             </span>
-            <select
-              value={queueFilter}
-              onChange={(e) => setQueueFilter(e.target.value)}
-              style={{
-                height: "30px",
-                padding: "0 10px",
-                border: "1px solid #cccccc",
-                borderRadius: "6px",
-                backgroundColor: "#3b3b3b",
-                color: "#ffffff",
-                fontSize: "0.8rem",
-                outline: "none",
-                textAlign: "center",
-                marginLeft: "auto",
-              }}
-            >
-              <option value="all">All</option>
-              <option value="movies">Movies</option>
-              <option value="tv">TV</option>
-              <option value="books">Books</option>
-            </select>
-            <button
-              onClick={() => setQueueOpen((v) => !v)}
-              title={queueOpen ? "Hide queue" : "Show queue"}
-              aria-label={queueOpen ? "Hide queue" : "Show queue"}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "4px",
-                outline: "none",
-                display: "inline-flex",
-                alignItems: "center",
-              }}
-            >
-              <img
-                src={queueOpen ? "/promote.png" : "/demote.png"}
-                alt=""
-                style={{ width: 14, height: 14 }}
-              />
-            </button>
+            <img
+              src={queueOpen ? "/promote.png" : "/demote.png"}
+              alt=""
+              style={{ width: 14, height: 14, marginLeft: "auto" }}
+            />
           </div>
           {queueOpen &&
             (visibleQueueCount === 0 ? (
@@ -748,7 +722,7 @@ function Watchlist() {
                   padding: "8px 0 14px",
                 }}
               >
-                Nothing in your {QUEUE_CATEGORY_LABELS[queueFilter]} queue yet.
+                Nothing in your queue yet.
               </div>
             ) : (
               queueCategoriesToShow.map((category) => {
@@ -756,7 +730,7 @@ function Watchlist() {
                 if (items.length === 0) return null;
                 return (
                   <div key={category} style={{ marginBottom: "4px" }}>
-                    {queueFilter === "all" && (
+                    {queueCategoriesToShow.length > 1 && (
                       <div
                         style={{
                           color: "#9a9a9a",

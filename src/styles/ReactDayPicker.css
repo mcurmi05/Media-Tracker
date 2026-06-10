@@ -1,0 +1,7 @@
+dialog .rdp-root {
+  --rdp-accent-color: #c91919;
+  --rdp-accent-background-color: #3a1010;
+  --rdp-today-color: #c91919;
+  color: #d4d4d4;
+  margin: 0;
+}

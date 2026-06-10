@@ -380,10 +380,16 @@
    Locking the body height keeps the section from growing or shrinking as those
    series appear and disappear, so the column bottoms stay aligned. */
 .hp-decades-body {
-  height: 669px;
+  height: 653px;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
+}
+.hp-decades-body .hp-chart-bars {
+  height: 146px;
+}
+.hp-decades-body .hp-sub-label {
+  margin: 10px 0 6px;
 }
 .hp-decades-body::-webkit-scrollbar {
   width: 5px;

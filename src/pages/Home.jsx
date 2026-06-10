@@ -1089,71 +1089,72 @@ export default function Home() {
       </Section>
 
       {/* decade breakdown */}
-      {(decades.rated || decades.logged || decades.watchlist) && (
-        <Section
-          label="Decade Breakdown"
-          hint="by release year"
-          panel
-          className="hp-section-decades"
-        >
-          <div className="hp-decades-body">
-          {decades.rated && (
-            <>
-              <div className="hp-sub-label">
-                Rated
-                <span className="hp-avg-pill">avg {decades.rated.avg}</span>
-              </div>
-              <DecadeChart
-                decades={decades.rated.decades}
-                counts={decades.rated.counts}
-                max={decades.rated.max}
-                onBarClick={(d) =>
-                  navigate("/ratings", {
-                    state: { yearFrom: String(d), yearTo: String(d + 9) },
-                  })
-                }
-              />
-            </>
-          )}
-          {decades.logged && (
-            <>
-              <div className="hp-sub-label" style={{ marginTop: 16 }}>
-                Logged
-                <span className="hp-avg-pill">avg {decades.logged.avg}</span>
-              </div>
-              <DecadeChart
-                decades={decades.logged.decades}
-                counts={decades.logged.counts}
-                max={decades.logged.max}
-                onBarClick={(d) =>
-                  navigate("/log", {
-                    state: { yearFrom: String(d), yearTo: String(d + 9) },
-                  })
-                }
-              />
-            </>
-          )}
-          {decades.watchlist && (
-            <>
-              <div className="hp-sub-label" style={{ marginTop: 16 }}>
-                On Watchlist
-                <span className="hp-avg-pill">avg {decades.watchlist.avg}</span>
-              </div>
-              <DecadeChart
-                decades={decades.watchlist.decades}
-                counts={decades.watchlist.counts}
-                max={decades.watchlist.max}
-                onBarClick={(d) =>
-                  navigate("/watchlist", {
-                    state: { yearFrom: String(d), yearTo: String(d + 9) },
-                  })
-                }
-              />
-            </>
-          )}
-          </div>
-        </Section>
-      )}
+      <Section
+        label="Decade Breakdown"
+        hint="by release year"
+        panel
+        className="hp-section-decades"
+      >
+        <div className="hp-decades-body">
+        {!(decades.rated || decades.logged || decades.watchlist) && (
+          <div className="hp-empty">No decade data yet.</div>
+        )}
+        {decades.rated && (
+          <>
+            <div className="hp-sub-label">
+              Rated
+              <span className="hp-avg-pill">avg {decades.rated.avg}</span>
+            </div>
+            <DecadeChart
+              decades={decades.rated.decades}
+              counts={decades.rated.counts}
+              max={decades.rated.max}
+              onBarClick={(d) =>
+                navigate("/ratings", {
+                  state: { yearFrom: String(d), yearTo: String(d + 9) },
+                })
+              }
+            />
+          </>
+        )}
+        {decades.logged && (
+          <>
+            <div className="hp-sub-label">
+              Logged
+              <span className="hp-avg-pill">avg {decades.logged.avg}</span>
+            </div>
+            <DecadeChart
+              decades={decades.logged.decades}
+              counts={decades.logged.counts}
+              max={decades.logged.max}
+              onBarClick={(d) =>
+                navigate("/log", {
+                  state: { yearFrom: String(d), yearTo: String(d + 9) },
+                })
+              }
+            />
+          </>
+        )}
+        {decades.watchlist && (
+          <>
+            <div className="hp-sub-label">
+              On Watchlist
+              <span className="hp-avg-pill">avg {decades.watchlist.avg}</span>
+            </div>
+            <DecadeChart
+              decades={decades.watchlist.decades}
+              counts={decades.watchlist.counts}
+              max={decades.watchlist.max}
+              onBarClick={(d) =>
+                navigate("/watchlist", {
+                  state: { yearFrom: String(d), yearTo: String(d + 9) },
+                })
+              }
+            />
+          </>
+        )}
+        </div>
+      </Section>
         </div>
       </div>
 

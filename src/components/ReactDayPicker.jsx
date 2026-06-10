@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { format } from "date-fns";
 import { DayPicker } from "react-day-picker";
+import "react-day-picker/style.css";
+import "../styles/ReactDayPicker.css";
 
 export function Dialog({
   initialDate,
@@ -138,19 +140,21 @@ export function Dialog({
                 position: "absolute",
                 top: 8,
                 right: 8,
+                zIndex: 10,
                 background: "transparent",
                 border: "none",
                 color: "white",
                 fontSize: 18,
                 cursor: "pointer",
-                padding: 4,
+                padding: "2px 6px",
                 outline: "none",
                 boxShadow: "none",
+                lineHeight: 1,
               }}
             >
               ×
             </button>
-            <div style={{ padding: 12, boxSizing: "border-box" }}>
+            <div style={{ padding: "36px 12px 12px 12px", boxSizing: "border-box" }}>
               <DayPicker
                 month={month}
                 onMonthChange={setMonth}
