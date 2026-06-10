@@ -92,7 +92,11 @@ function MediaDetails() {
         {/*release and runtime*/}
         <div className="subtitle">
           <ReleaseAndRunTime movie={movie} />·
-          <IMDBInfo movie={movie} className="media-details-imdb"></IMDBInfo>
+          <IMDBInfo
+            movie={movie}
+            className="media-details-imdb"
+            useLiveRating
+          ></IMDBInfo>
         </div>
 
         {/*poster and trailer*/}

@@ -91,6 +91,14 @@ export function ImdbRatingsProvider({ children }) {
   );
 }
 
+// Whole cache map plus the request fn, for pages that need to sort a list by
+// live IMDb rating / vote count. Reading `ratings` here makes the consumer
+// re-render (and re-sort) as batches arrive.
+export function useImdbRatings() {
+  const ctx = useContext(ImdbRatingsContext);
+  return ctx || { ratings: {}, request: () => {} };
+}
+
 // Returns: undefined while loading, null if the title has no dataset entry,
 // or { rating, votes } when available.
 export function useImdbRating(tconst) {

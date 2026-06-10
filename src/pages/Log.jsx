@@ -12,11 +12,14 @@ import SortByMenu from "../components/SortByMenu.jsx";
 import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
+import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
   { value: "year", label: "Release Date" },
   { value: "rating", label: "Rating" },
+  { value: "imdb", label: "IMDb Rating" },
+  { value: "imdbVotes", label: "IMDb Votes" },
 ];
 
 function Log() {
@@ -24,6 +27,7 @@ function Log() {
   const { bookLogs, bookLogsLoaded } = useBookLogs();
   const { userRatings } = useRatings();
   const { findRatingForBook } = useBookRatings();
+  const { ratings: imdbRatings } = useImdbRatings();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState(
@@ -136,6 +140,17 @@ function Log() {
   const bookRating = (bookLog) => {
     const v = Number(findRatingForBook(bookLog)?.book_rating);
     return Number.isFinite(v) ? v : null;
+  };
+  // Live IMDb rating / vote count for a movie or TV log, falling back to the
+  // value stored on the movie object until the dataset value loads. Books have
+  // no IMDb entry, so they return null and sink to the bottom of these sorts.
+  const imdbRatingOf = (mo) => {
+    const v = imdbRatings[mo?.id]?.rating ?? mo?.averageRating;
+    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
+  };
+  const imdbVotesOf = (mo) => {
+    const v = imdbRatings[mo?.id]?.votes ?? mo?.numVotes;
+    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
   };
   const yearRange = useMemo(() => {
     const years = [];
@@ -295,6 +310,18 @@ function Log() {
           } else if (sortKey === "rating") {
             const rc = compareNumeric(movieRating(a), movieRating(b));
             if (rc !== 0) return rc;
+          } else if (sortKey === "imdb") {
+            const rc = compareNumeric(
+              imdbRatingOf(a.movie_object),
+              imdbRatingOf(b.movie_object),
+            );
+            if (rc !== 0) return rc;
+          } else if (sortKey === "imdbVotes") {
+            const rc = compareNumeric(
+              imdbVotesOf(a.movie_object),
+              imdbVotesOf(b.movie_object),
+            );
+            if (rc !== 0) return rc;
           } else if (sortKey === "date" && sortDir === "asc") {
             return getMostRecentDate(a) - getMostRecentDate(b);
           }
@@ -313,6 +340,8 @@ function Log() {
             date: getMostRecentDate(log),
             year: movieYear(log),
             rating: movieRating(log),
+            imdb: imdbRatingOf(log.movie_object),
+            imdbVotes: imdbVotesOf(log.movie_object),
           })),
           ...filteredBookLogs.map((bookLog) => ({
             kind: "book",
@@ -321,6 +350,8 @@ function Log() {
             date: getMostRecentBookDate(bookLog),
             year: bookYear(bookLog),
             rating: bookRating(bookLog),
+            imdb: null,
+            imdbVotes: null,
           })),
         ].sort((a, b) => {
           if (sortKey === "year") {
@@ -328,6 +359,12 @@ function Log() {
             if (yc !== 0) return yc;
           } else if (sortKey === "rating") {
             const rc = compareNumeric(a.rating, b.rating);
+            if (rc !== 0) return rc;
+          } else if (sortKey === "imdb") {
+            const rc = compareNumeric(a.imdb, b.imdb);
+            if (rc !== 0) return rc;
+          } else if (sortKey === "imdbVotes") {
+            const rc = compareNumeric(a.imdbVotes, b.imdbVotes);
             if (rc !== 0) return rc;
           } else if (sortKey === "date" && sortDir === "asc") {
             return a.date - b.date;

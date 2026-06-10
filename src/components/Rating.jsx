@@ -1,9 +1,11 @@
 import "../styles/Rating.css";
+import "../styles/MovieCard.css";
 import { useNavigate } from "react-router-dom";
 import MovieRatingStar from "./MovieRatingStar";
 import ReleaseAndRunTime from "./ReleaseAndRunTime";
 import AddLog from "./AddLog.jsx";
 import AddWatchlist from "./AddWatchlist.jsx";
+import IMDBInfo from "./IMDBInfo.jsx";
 import { getRatingDateInfo } from "../utils/ratingDate.js";
 
 function Rating({
@@ -229,6 +231,9 @@ function Rating({
               style={{ textWrap: "wrap" }}
               movie={movie_object}
             ></ReleaseAndRunTime>
+            <span style={{ position: "relative", top: "11px" }}>
+              <IMDBInfo movie={movie_object} useLiveRating></IMDBInfo>
+            </span>
             {addedToWatchlistDate ? (
               <span
                 style={{

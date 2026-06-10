@@ -11,10 +11,13 @@ import SortByMenu from "../components/SortByMenu.jsx";
 import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
+import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
   { value: "year", label: "Release Date" },
+  { value: "imdb", label: "IMDb Rating" },
+  { value: "imdbVotes", label: "IMDb Votes" },
 ];
 
 function Watchlist() {
@@ -26,6 +29,7 @@ function Watchlist() {
     removeFromQueue,
   } = useWatchlist();
   const { userBookTbr, userBookTbrLoaded } = useBookTbr();
+  const { ratings: imdbRatings } = useImdbRatings();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -123,6 +127,16 @@ function Watchlist() {
   const bookYear = (item) => {
     const y = Number(item.book_entries?.release_year ?? item.release_year);
     return Number.isFinite(y) && y > 0 ? y : null;
+  };
+  // Live IMDb rating / vote count for a movie or TV title, falling back to the
+  // value stored on the movie object until the dataset value loads.
+  const imdbRatingOf = (mo) => {
+    const v = imdbRatings[mo?.id]?.rating ?? mo?.averageRating;
+    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
+  };
+  const imdbVotesOf = (mo) => {
+    const v = imdbRatings[mo?.id]?.votes ?? mo?.numVotes;
+    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
   };
   const compareNumeric = (a, b) => {
     if (a == null && b == null) return 0;
@@ -316,6 +330,14 @@ function Watchlist() {
         return new Date(b.created_at) - new Date(a.created_at);
       });
     }
+    if (sortKey === "imdb" || sortKey === "imdbVotes") {
+      const valOf = sortKey === "imdb" ? imdbRatingOf : imdbVotesOf;
+      return filtered.sort((a, b) => {
+        const rc = compareNumeric(valOf(a.movie_object), valOf(b.movie_object));
+        if (rc !== 0) return rc;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
     return filtered.sort((a, b) =>
       sortDir === "asc"
         ? new Date(a.created_at) - new Date(b.created_at)
@@ -335,6 +357,7 @@ function Watchlist() {
     yearTo,
     addedFrom,
     addedTo,
+    imdbRatings,
   ]);
 
   const filteredBookTbr = useMemo(() => {
@@ -391,6 +414,8 @@ function Watchlist() {
       data: item,
       date: new Date(item.created_at),
       year: movieYear(item),
+      imdb: imdbRatingOf(item.movie_object),
+      imdbVotes: imdbVotesOf(item.movie_object),
     }));
     const bookItems = filteredBookTbr.map((item) => ({
       kind: "book",
@@ -398,11 +423,19 @@ function Watchlist() {
       data: item,
       date: new Date(item.created_at),
       year: bookYear(item),
+      imdb: null,
+      imdbVotes: null,
     }));
     return [...movieItems, ...bookItems].sort((a, b) => {
       if (sortKey === "year") {
         const yc = compareNumeric(a.year, b.year);
         if (yc !== 0) return yc;
+      } else if (sortKey === "imdb") {
+        const rc = compareNumeric(a.imdb, b.imdb);
+        if (rc !== 0) return rc;
+      } else if (sortKey === "imdbVotes") {
+        const rc = compareNumeric(a.imdbVotes, b.imdbVotes);
+        if (rc !== 0) return rc;
       } else if (sortKey === "date" && sortDir === "asc") {
         return a.date - b.date;
       }

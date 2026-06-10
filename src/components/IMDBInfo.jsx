@@ -1,9 +1,11 @@
 import { useImdbRating } from "../contexts/ImdbRatingsContext";
 
-function IMDBInfo({ movie }) {
-  // Live rating from the daily-synced dataset; falls back to whatever was
-  // stored on the movie object while it loads or if the title isn't listed.
-  const live = useImdbRating(movie?.id);
+function IMDBInfo({ movie, useLiveRating = false }) {
+  // Live rating from the daily-synced dataset, used on the media details page
+  // and the log/watchlist/ratings lists. Trending/search cards leave this off
+  // and keep the rating that came back with the RapidAPI movie object.
+  // Passing undefined to the hook makes it a no-op (no request, no override).
+  const live = useImdbRating(useLiveRating ? movie?.id : undefined);
   const rating = live?.rating ?? movie.averageRating;
   const votes = live?.votes ?? movie.numVotes;
 
@@ -23,7 +25,7 @@ function IMDBInfo({ movie }) {
     <a href={movie.url} target="_blank" className="imdb-rating">
       <img src="/imdbicon.png" className="imdb-movie-card " />
       <img src="/staricon.png" className="star-movie-card" />
-      <p style={{ whiteSpace: "nowrap" }}>
+      <p style={{ whiteSpace: "nowrap", fontWeight: 400, fontFamily: "inherit" }}>
         {rating != null ? Number(rating).toFixed(1) : "No ratings yet"}{" "}
         {votes ? formatVotes(votes) : null}
       </p>

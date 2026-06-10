@@ -9,17 +9,21 @@ import SortByMenu from "../components/SortByMenu.jsx";
 import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
+import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
   { value: "year", label: "Release Date" },
   { value: "rating", label: "Rating" },
+  { value: "imdb", label: "IMDb Rating" },
+  { value: "imdbVotes", label: "IMDb Votes" },
 ];
 
 function Ratings() {
   const { userRatings, userRatingsLoaded, updateRanking } = useRatings();
   const { bookRatings, bookRatingsLoaded, updateBookRanking } =
     useBookRatings();
+  const { ratings: imdbRatings } = useImdbRatings();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,6 +134,16 @@ function Ratings() {
   const bookRatingValue = (r) => {
     const v = Number(r.book_rating);
     return Number.isFinite(v) ? v : null;
+  };
+  // Live IMDb rating / vote count for a rated movie or TV title, falling back
+  // to the value stored on the movie object until the dataset value loads.
+  const imdbRatingOf = (mo) => {
+    const v = imdbRatings[mo?.id]?.rating ?? mo?.averageRating;
+    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
+  };
+  const imdbVotesOf = (mo) => {
+    const v = imdbRatings[mo?.id]?.votes ?? mo?.numVotes;
+    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
   };
   // Nulls sink to the bottom regardless of direction.
   const compareNumeric = (a, b) => {
@@ -258,6 +272,14 @@ function Ratings() {
         return new Date(b.created_at) - new Date(a.created_at);
       });
     }
+    if (sortKey === "imdb" || sortKey === "imdbVotes") {
+      const valOf = sortKey === "imdb" ? imdbRatingOf : imdbVotesOf;
+      return filteredRatings.slice().sort((a, b) => {
+        const rc = compareNumeric(valOf(a.movie_object), valOf(b.movie_object));
+        if (rc !== 0) return rc;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
     if (ratingFilter === "10") {
       return [...allTens].sort(rankSort);
     }
@@ -267,7 +289,7 @@ function Ratings() {
       return sortDir === "asc" ? dateA - dateB : dateB - dateA;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredRatings, allTens, ratingFilter, rankSort, sortKey, sortDir]);
+  }, [filteredRatings, allTens, ratingFilter, rankSort, sortKey, sortDir, imdbRatings]);
 
   // Books: every row in book_ratings is a rated book
   const filteredBooks = useMemo(() => {
