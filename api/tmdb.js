@@ -89,6 +89,7 @@ function mapSeasonDetail(s) {
       overview: ep.overview || "",
       air_date: ep.air_date || null,
       runtime: ep.runtime ?? null,
+      vote_average: ep.vote_average ?? null,
     })),
   };
 }
@@ -109,6 +110,7 @@ function mapListItem(item, mediaType, genreMap) {
     primaryTitle: item.title || item.name,
     primaryImage: posterUrl(item.poster_path),
     backdropImage: posterUrl(item.backdrop_path, "w780"),
+    backdropImageHD: null,
     startYear: yearOf(item.release_date || item.first_air_date),
     endYear: null,
     type: isTV ? "tvSeries" : "movie",
@@ -165,6 +167,8 @@ function mapDetail(d, mediaType, seasonDetails) {
     id: imdbId,
     primaryTitle: d.title || d.name,
     primaryImage: posterUrl(d.poster_path, "w500"),
+    backdropImage: posterUrl(d.backdrop_path, "w780"),
+    backdropImageHD: posterUrl(d.backdrop_path, "w1280"),
     startYear: yearOf(d.release_date || d.first_air_date),
     endYear: isTV ? yearOf(d.last_air_date) : null,
     type: isTV ? "tvSeries" : "movie",

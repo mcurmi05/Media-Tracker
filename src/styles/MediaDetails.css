@@ -1,259 +1,585 @@
-.page-container{
-    display:flex;
-    justify-content:center;
+.page-container {
+    display: flex;
+    justify-content: center;
+    position: relative;
 }
 
-.loading{
-    margin:0 auto;
+/* ---------- Backdrop banner ---------- */
+.media-backdrop-hero {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 400px;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
 }
 
-.media-details{
-    max-width:70%;
-}
-
-
-.youtube-embed{
-    width:70%;
-    aspect-ratio:16/10;
-    border-radius:8px;
-    border: none;
-    min-width:0;
-}
-
-.subtitle{
-    display:flex;
-    gap:0.3rem;
-    align-items: center;
-}
-
-.poster{
-    border-radius:8px;
-    width:30%;
+.media-backdrop-img {
+    width: 100%;
+    height: 100%;
     object-fit: cover;
-}
-.secondary-poster{
-    display:none;
-}
-
-.poster-and-trailer{
-    display:flex;
-    gap:2rem;
+    object-position: center 20%;
+    opacity: 0;
+    transform: scale(1.06);
+    transition: opacity 1000ms ease,
+        transform 1600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.description-container{
-    border-radius: 5px;
-    padding:10px;
-    margin-right:30px;
-    font-size:1.2rem;
-    width:50%;
-    min-width:0;
-    margin-top:10px;
+.media-backdrop-img.loaded {
+    opacity: 1;
+    transform: scale(1);
 }
 
-.primary-under-part{
-    display:flex;
-    align-items:center;
-    margin-top:10px;
-    justify-content: space-between;
+/* Keep the top of the image fully visible; fade only the lower portion into the
+   page background (#242424) so the poster + title sit cleanly over the bottom. */
+.media-backdrop-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        /* fade the bottom into the content */
+        linear-gradient(
+            to bottom,
+            rgba(36, 36, 36, 0) 0%,
+            rgba(36, 36, 36, 0) 42%,
+            rgba(36, 36, 36, 0.5) 68%,
+            rgba(36, 36, 36, 0.92) 88%,
+            rgba(36, 36, 36, 1) 100%
+        ),
+        /* feather the left + right edges */
+        linear-gradient(
+            to right,
+            rgba(36, 36, 36, 1) 0%,
+            rgba(36, 36, 36, 0) 13%,
+            rgba(36, 36, 36, 0) 87%,
+            rgba(36, 36, 36, 1) 100%
+        ),
+        /* soften the top edge */
+        linear-gradient(
+            to bottom,
+            rgba(36, 36, 36, 0.75) 0%,
+            rgba(36, 36, 36, 0) 16%
+        );
 }
 
-.secondary-under-part{
-    display:none;
+/* ---------- Content column ---------- */
+.media-details {
+    max-width: 70%;
+    width: 70%;
+    position: relative;
+    z-index: 1;
+    /* Push content below the visible part of the banner; the poster's lower half
+       overlaps the banner's faded bottom edge. */
+    padding-top: 210px;
+    animation: media-content-in 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.secondary-poster-and-description{
-    display:flex;
-    justify-content: space-between;
-    margin-top:20px;
+@keyframes media-content-in {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-@media (max-width:900px){
-
-    .primary-under-part{
-        display:none;
-    }
-
-    .secondary-under-part{
-        display:block;
-    }
-
-    .youtube-embed{
-       width:100%
-    }
-
-    .poster{
-        display:none;
-    }
-
-    .secondary-poster{
-        display:block;
-        object-fit:cover;
-        border-radius:8px !important;
-        width:40%;
-        
-    }
-
-    .description-container{
-        align-content:center;
-        font-size:3vw;
-    }
-
-    .secondary-poster-and-description{
-        margin-bottom:20px;
-        gap:1.5rem;
-    }
-
-    
-
-    .page-container{
-        padding: 0; 
-        margin: 0;
-    }
-    
-
-    .media-details{
-        max-width: 100%;
-        width: 100%;
-        padding: 0 10px; 
-        box-sizing: border-box; 
-    }
-    
+.loading {
+    margin: 0 auto;
 }
 
-.top-container{
-    display:flex;
-    flex-wrap:wrap;
+/* ---------- Hero row (poster + title / meta / actions) ---------- */
+.hero-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 28px;
+    margin-bottom: 34px;
+}
+
+.hero-poster {
+    width: 200px;
+    flex-shrink: 0;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 10px;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+    background: #1a1a1a;
+    display: block;
+}
+
+.hero-info {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 6px;
+}
+
+.title {
+    text-align: left;
+    margin: 0;
+    font-size: 2.5rem;
+    line-height: 1.15;
+    text-shadow: 0 2px 28px rgba(0, 0, 0, 0.6);
+}
+
+.subtitle {
+    display: flex;
+    gap: 0.4rem;
     align-items: center;
-    text-align:center;
-    gap:1rem;
+    flex-wrap: wrap;
 }
 
-.star-container{
-    margin-top:33px;
+.hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
 }
 
-.cast-list{
-    margin-top:20px;
-    padding:10px;
+.star-container {
+    display: flex;
+    align-items: center;
 }
 
-.director-and-writer{
-    padding:10px;
+/* ---------- Trailer ---------- */
+.youtube-embed {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 10px;
+    border: none;
+    display: block;
+    min-width: 0;
+}
+
+/* ---------- Description + genres ---------- */
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-top: 24px;
+}
+
+.description-container {
+    flex: 1;
+    min-width: 0;
+    font-size: 1.2rem;
+    line-height: 1.6;
+}
+
+/* ---------- Cast / crew ---------- */
+.cast-list {
+    margin-top: 24px;
+    padding: 10px 0;
+}
+
+.director-and-writer {
+    padding: 10px 0;
     line-height: 30px;
 }
 
-.bold-span{
-    font-weight:bold;
-    font-size:1rem;
+.bold-span {
+    font-weight: bold;
+    font-size: 1rem;
 }
 
-.title{
-    text-align:center;
-}
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+    .media-details {
+        max-width: 100%;
+        width: 100%;
+        padding: 150px 14px 0;
+        box-sizing: border-box;
+    }
 
-@media (max-width:700px){
-    .title{
-        font-size:2rem !important;
+    .media-backdrop-hero {
+        height: 300px;
+    }
+
+    .hero-row {
+        gap: 18px;
+        margin-bottom: 26px;
+    }
+
+    .hero-poster {
+        width: 128px;
+    }
+
+    .info-row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .description-container {
+        font-size: 1.05rem;
     }
 }
 
-@media (max-width:350px){
-    .title{
-        font-size:1.3rem !important;
+@media (max-width: 700px) {
+    .title {
+        font-size: 2rem !important;
     }
 }
 
-/* --- Seasons & Episodes --- */
+@media (max-width: 500px) {
+    .hero-poster {
+        width: 104px;
+    }
+
+    .hero-row {
+        gap: 14px;
+    }
+
+    .title {
+        font-size: 1.6rem !important;
+    }
+}
+
+@media (max-width: 350px) {
+    .title {
+        font-size: 1.3rem !important;
+    }
+}
+
+/* ---------- Seasons & Episodes ---------- */
 .seasons-section {
-  margin-top: 28px;
-  padding: 0 10px;
+    margin-top: 28px;
+    padding: 0;
 }
 
 .seasons-section-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin: 0 0 16px;
-  letter-spacing: 0.02em;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 16px;
+    letter-spacing: 0.02em;
 }
 
 .season-block {
-  margin-bottom: 24px;
+    margin-bottom: 24px;
 }
 
 .season-header {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.season-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.season-progress {
+    font-size: 0.74rem;
+    color: #3ea76a;
+    white-space: nowrap;
+}
+
+.season-watch-btn {
+    flex-shrink: 0;
+    font-size: 0.74rem;
+    padding: 4px 12px;
+    border-radius: 14px;
+    border: 1px solid #555;
+    background: transparent;
+    color: #bbb;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.season-watch-btn:hover {
+    border-color: #888;
+    color: #fff;
+}
+
+.season-watch-btn.done,
+.season-watch-btn.done:hover {
+    border-color: #3ea76a;
+    color: #3ea76a;
+    background: rgba(62, 167, 106, 0.12);
 }
 
 .season-name {
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
 }
 
 .season-ep-count {
-  font-size: 0.78rem;
-  color: #777;
+    font-size: 0.78rem;
+    color: #777;
 }
 
 .episodes-scroll {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  scrollbar-width: thin;
-  scrollbar-color: #444 transparent;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: #444 transparent;
 }
 
 .episodes-scroll::-webkit-scrollbar {
-  height: 4px;
+    height: 4px;
 }
 
 .episodes-scroll::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 2px;
+    background: #444;
+    border-radius: 2px;
 }
 
 .episode-card {
-  flex-shrink: 0;
-  width: 160px;
-  border-radius: 6px;
-  overflow: hidden;
-  background: #1e1e1e;
-  border: 1px solid #2e2e2e;
+    position: relative;
+    flex-shrink: 0;
+    width: 160px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #1e1e1e;
+    border: 1px solid #2e2e2e;
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease,
+        background 160ms ease;
+}
+
+.episode-watch-toggle {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.85);
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    font-size: 0.8rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    opacity: 0.55;
+    transition: opacity 150ms ease, background 150ms ease,
+        border-color 150ms ease, transform 150ms ease;
+}
+
+.episode-card:hover .episode-watch-toggle {
+    opacity: 1;
+}
+
+.episode-watch-toggle:hover {
+    transform: scale(1.12);
+    border-color: #fff;
+}
+
+.episode-card.watched .episode-watch-toggle {
+    opacity: 1;
+    background: #3ea76a;
+    border-color: #3ea76a;
+}
+
+.episode-card.watched .episode-still {
+    opacity: 0.5;
+}
+
+.episode-card:hover {
+    transform: translateY(-3px);
+    border-color: #555;
+    background: #262626;
 }
 
 .episode-still {
-  width: 160px;
-  height: 90px;
-  object-fit: cover;
-  display: block;
-  background: #2a2a2a;
+    width: 160px;
+    height: 90px;
+    object-fit: cover;
+    display: block;
+    background: #2a2a2a;
 }
 
 .episode-meta {
-  padding: 6px 8px;
+    padding: 6px 8px;
 }
 
 .episode-label {
-  font-size: 0.7rem;
-  color: #666;
-  margin: 0 0 2px;
+    font-size: 0.7rem;
+    color: #666;
+    margin: 0 0 2px;
 }
 
 .episode-name {
-  font-size: 0.78rem;
-  color: #ccc;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+    font-size: 0.78rem;
+    color: #ccc;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .episode-runtime {
-  font-size: 0.7rem;
-  color: #666;
-  margin-top: 2px;
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 2px;
+}
+
+/* ---------- Episode modal ---------- */
+.episode-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+    animation: episode-overlay-in 180ms ease-out;
+}
+
+@keyframes episode-overlay-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.episode-modal {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    max-height: 88vh;
+    overflow-y: auto;
+    background: #1b1b1b;
+    border: 1px solid #2e2e2e;
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+    animation: episode-modal-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes episode-modal-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.episode-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    transition: background 160ms ease;
+}
+
+.episode-modal-close:hover {
+    background: rgba(0, 0, 0, 0.85);
+    border-color: transparent;
+}
+
+.episode-modal-still {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+    background: #2a2a2a;
+    border-radius: 14px 14px 0 0;
+}
+
+.episode-modal-body {
+    padding: 18px 22px 24px;
+}
+
+.episode-modal-eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #9a9a9a;
+    margin: 0 0 6px;
+}
+
+.episode-modal-title {
+    font-size: 1.45rem;
+    line-height: 1.25;
+    margin: 0 0 12px;
+}
+
+.episode-modal-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 0.9rem;
+    color: #bdbdbd;
+    margin-bottom: 16px;
+}
+
+.episode-modal-rating {
+    color: #f5c518;
+    font-weight: 600;
+}
+
+.episode-modal-overview {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #d6d6d6;
+    margin: 0;
+}
+
+.episode-modal-watch {
+    margin-top: 20px;
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid #555;
+    background: transparent;
+    color: #ddd;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.episode-modal-watch:hover {
+    border-color: #888;
+    color: #fff;
+}
+
+.episode-modal-watch.done {
+    border-color: #3ea76a;
+    color: #fff;
+    background: #3ea76a;
+}
+
+.episode-modal-watch.done:hover {
+    background: #379a60;
+    border-color: #379a60;
 }

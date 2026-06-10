@@ -53,7 +53,8 @@ export function movieRowToMovieObject(row) {
     directors: row.directors || [],
     writers: row.writers || [],
     seasons: row.season_info || [],
-    backdropImage: null,
+    backdropImage: row.backdrop_url || null,
+    backdropImageHD: row.backdrop_url || null,
   };
 }
 
@@ -79,6 +80,7 @@ export function movieObjectToMovieRow(mo) {
     directors: mo.directors ?? [],
     writers: mo.writers ?? [],
     season_info: mo.seasons?.length ? mo.seasons : null,
+    backdrop_url: mo.backdropImage ?? null,
     updated_at: new Date().toISOString(),
   };
 }
