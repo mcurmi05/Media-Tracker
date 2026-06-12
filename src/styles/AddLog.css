@@ -13,6 +13,62 @@
   cursor: pointer;
 }
 
+/* "Already logged" choice popup: Go to log / Create rewatch log */
+.addlog-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+}
+
+.addlog-menu {
+  position: fixed;
+  z-index: 1401;
+  background: #2b2b2b;
+  border: 1px solid #444;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  /* transform (placement) is set inline; animate opacity only so the two
+     don't conflict. */
+  animation: addlog-menu-in 140ms ease-out;
+}
+
+@keyframes addlog-menu-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.addlog-menu-item {
+  background: transparent;
+  border: none;
+  color: #eee;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  transition: background 130ms ease;
+}
+
+.addlog-menu-item:hover {
+  background: #3a3a3a;
+  border-color: transparent;
+}
+
+.addlog-menu-item:focus,
+.addlog-menu-item:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 /* Book Log Modal Styles */
 .modal-overlay {
   position: fixed;

@@ -1,0 +1,184 @@
+/* ---------- Episode modal (shared: MediaDetails + Log page) ---------- */
+.episode-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+    animation: episode-overlay-in 180ms ease-out;
+}
+
+@keyframes episode-overlay-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.episode-modal {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    max-height: 88vh;
+    overflow-y: auto;
+    background: #1b1b1b;
+    border: 1px solid #2e2e2e;
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+    animation: episode-modal-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes episode-modal-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.episode-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    transition: background 160ms ease;
+}
+
+.episode-modal-close:hover {
+    background: rgba(0, 0, 0, 0.85);
+    border-color: transparent;
+}
+
+.episode-modal-still {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+    background: #2a2a2a;
+    border-radius: 14px 14px 0 0;
+}
+
+.episode-modal-body {
+    padding: 18px 22px 24px;
+}
+
+.episode-modal-eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #9a9a9a;
+    margin: 0 0 6px;
+}
+
+.episode-modal-title {
+    font-size: 1.45rem;
+    line-height: 1.25;
+    margin: 0 0 12px;
+}
+
+.episode-modal-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 0.9rem;
+    color: #bdbdbd;
+    margin-bottom: 16px;
+}
+
+.episode-modal-rating {
+    color: #f5c518;
+    font-weight: 600;
+}
+
+.episode-modal-overview {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #d6d6d6;
+    margin: 0;
+}
+
+.episode-modal-watch {
+    margin-top: 20px;
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid #555;
+    background: transparent;
+    color: #ddd;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.episode-modal-watch:focus,
+.episode-modal-watch:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.episode-modal-watch:hover {
+    border-color: #888;
+    color: #fff;
+}
+
+.episode-modal-watch.done {
+    border-color: #3ea76a;
+    color: #fff;
+    background: #3ea76a;
+}
+
+.episode-modal-watch.done:hover {
+    background: #379a60;
+    border-color: #379a60;
+}
+
+/* Optional per-episode watched date row: only as wide as its content, centered. */
+.episode-modal-date {
+    margin: 14px auto 0;
+    width: fit-content;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border: 1px solid #333;
+    border-radius: 10px;
+    background: #161616;
+}
+
+/* Keep the embedded date picker shrunk to its content so the bar can too. */
+.episode-modal-date > div {
+    width: auto !important;
+}
+
+.episode-modal-date-label {
+    font-size: 0.85rem;
+    color: #9a9a9a;
+    font-weight: 600;
+    white-space: nowrap;
+}

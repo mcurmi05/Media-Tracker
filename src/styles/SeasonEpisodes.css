@@ -1,0 +1,217 @@
+/* Expanded episode strip under a season row on the Log page. A smaller take on
+   the MediaDetails episode strip: horizontal, scrollbar-free, with side arrows. */
+.season-eps {
+    flex-basis: 100%;
+    width: 100%;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #3d3d3d;
+}
+
+.season-eps-msg {
+    flex-basis: 100%;
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px 4px;
+    font-size: 0.85rem;
+    color: #999;
+    border-top: 1px solid #3d3d3d;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.season-eps-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #4a4a4a;
+    border-top-color: #bbb;
+    border-radius: 50%;
+    animation: season-eps-spin 650ms linear infinite;
+}
+
+@keyframes season-eps-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.log-eps-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+}
+
+.log-eps-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+/* Center the strip's arrows vertically on the whole episode card (not just the
+   still), so they sit at the card's mid-height. */
+.log-eps-strip .scroll-strip-arrow {
+    top: 50%;
+    width: 26px;
+    height: 26px;
+    font-size: 1.1rem;
+}
+
+.log-ep-card {
+    flex-shrink: 0;
+    width: 128px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #262626;
+    border: 1px solid #383838;
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease,
+        background 160ms ease;
+}
+
+.log-ep-card:hover {
+    transform: translateY(-3px);
+    border-color: #555;
+    background: #2e2e2e;
+}
+
+.log-ep-still-wrap {
+    position: relative;
+    width: 128px;
+    height: 72px;
+    background: #2a2a2a;
+}
+
+.log-ep-still {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 150ms ease;
+}
+
+.log-ep-card.watched .log-ep-still {
+    opacity: 0.45;
+}
+
+.log-ep-toggle {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.85);
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    font-size: 0.72rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 150ms ease, background 150ms ease,
+        border-color 150ms ease, transform 150ms ease;
+}
+
+.log-ep-toggle:focus,
+.log-ep-toggle:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.log-ep-card:hover .log-ep-toggle {
+    opacity: 1;
+}
+
+.log-ep-toggle:hover {
+    transform: scale(1.12);
+    border-color: #fff;
+}
+
+.log-ep-card.watched .log-ep-toggle {
+    opacity: 1;
+    background: #3ea76a;
+    border-color: #3ea76a;
+}
+
+.log-ep-meta {
+    padding: 5px 7px 7px;
+}
+
+.log-ep-label {
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: #9a9a9a;
+    margin: 0;
+}
+
+.log-ep-name {
+    font-size: 0.74rem;
+    color: #ddd;
+    margin: 1px 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.log-ep-card:not(.watched) .log-ep-name {
+    color: #8f8f8f;
+}
+
+/* Compact the reused date picker so it fits inside the small card, pushed to
+   the left edge under the episode name. The picker's inner wrapper stays
+   full-width; we just flip its alignment from center to the left. */
+.log-ep-date {
+    margin-top: 5px;
+}
+
+.log-ep-date > div {
+    justify-content: flex-start !important;
+}
+
+.log-ep-date p {
+    font-size: 0.68rem !important;
+    min-width: 0 !important;
+    text-align: left !important;
+}
+
+.log-ep-date img {
+    width: 12px !important;
+}
+
+/* Chevron button that expands/collapses a season's episode strip. Pushed to the
+   far right of the season row (its left margin auto-fills the gap). */
+.season-expand-btn {
+    flex-shrink: 0;
+    margin-left: auto;
+    align-self: center;
+    background: transparent;
+    border: none;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #bbb;
+    outline: none;
+    box-shadow: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 180ms ease, color 150ms ease;
+}
+
+.season-expand-btn:hover {
+    color: #fff;
+}
+
+.season-expand-btn:focus,
+.season-expand-btn:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.season-expand-btn.open {
+    transform: rotate(180deg);
+}

@@ -7,9 +7,13 @@ import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import { useLogs } from "../contexts/UserLogsContext.jsx";
-import { useRef } from "react";
+import { useAuth } from "../contexts/AuthContext.jsx";
+import { useCallback, useRef } from "react";
 import { useEffect } from "react";
 import { Dialog } from "../components/ReactDayPicker.jsx";
+import SeasonEpisodes from "./SeasonEpisodes.jsx";
+import { getMovieById } from "../services/api";
+import { getWatchStatus, saveWatchStatus } from "../services/watchStatus";
 
 const modalStyle = {
   position: "absolute",
@@ -59,6 +63,18 @@ export default function LogComponent({
 
   const textareaRef = useRef(null);
 
+  const { user } = useAuth();
+
+  // --- Optional per-episode watch tracking (Log page) ---
+  // Stored in the separate `watch_status` table, independent of the log's own
+  // season dates. Loaded lazily the first time a user expands a season.
+  const [expandedSeasons, setExpandedSeasons] = useState({});
+  const [watchStatus, setWatchStatus] = useState({});
+  const [watchStatusReady, setWatchStatusReady] = useState(false);
+  // Map of season_number -> episodes[] fetched from TMDB on first expand.
+  const [seasonsMeta, setSeasonsMeta] = useState(null);
+  const [metaLoading, setMetaLoading] = useState(false);
+
   const isTV =
     movie &&
     (movie.type?.toLowerCase?.().includes("tv") ||
@@ -98,6 +114,102 @@ export default function LogComponent({
   // Log-level DNF flag: marks a multi-day movie or a whole TV series as
   // abandoned. Shared `dnf` column on the logs table.
   const logDnf = !!liveLog?.dnf;
+
+  // The movies_and_tv_entries row id this log points at - the key the separate
+  // per-episode watch_status is stored against.
+  const movieEntryId = liveLog?.movie_entry_id ?? null;
+
+  // Lazy-load the per-episode watch status and episode metadata the first time a
+  // season is expanded. Both are fetched at most once per mounted log.
+  const ensureEpisodeData = useCallback(async () => {
+    if (user && movieEntryId && !watchStatusReady) {
+      const status = await getWatchStatus(user.id, movieEntryId);
+      setWatchStatus(status || {});
+      setWatchStatusReady(true);
+    }
+    if (!seasonsMeta && !metaLoading && movie?.tmdb_id != null) {
+      setMetaLoading(true);
+      try {
+        const detail = await getMovieById(movie.media_type, movie.tmdb_id);
+        const map = {};
+        (detail?.seasons || []).forEach((s) => {
+          map[s.season_number] = s.episodes || [];
+        });
+        setSeasonsMeta(map);
+      } catch (err) {
+        console.error("Failed to load episode metadata:", err);
+        setSeasonsMeta({});
+      } finally {
+        setMetaLoading(false);
+      }
+    }
+  }, [
+    user,
+    movieEntryId,
+    watchStatusReady,
+    seasonsMeta,
+    metaLoading,
+    movie?.tmdb_id,
+    movie?.media_type,
+  ]);
+
+  function toggleSeasonExpand(seasonNumber) {
+    setExpandedSeasons((prev) => ({
+      ...prev,
+      [seasonNumber]: !prev[seasonNumber],
+    }));
+    ensureEpisodeData();
+  }
+
+  const isEpisodeWatched = (seasonNumber, epNum) =>
+    (watchStatus[seasonNumber] || []).includes(epNum);
+
+  const episodeWatchedDate = (seasonNumber, epNum) =>
+    watchStatus._dates?.[seasonNumber]?.[epNum] || null;
+
+  // Persist the whole status object (keyed on user + movie entry), independent
+  // of the log itself.
+  const persistWatchStatus = (next) => {
+    if (user && movieEntryId) saveWatchStatus(user.id, movieEntryId, next);
+  };
+
+  // Toggle an episode watched/unwatched. The watched date stays null - recording
+  // when it was watched is optional - so watching just flips the flag. Unwatching
+  // also clears any date the user had added.
+  function toggleEpisodeWatched(seasonNumber, epNum) {
+    setWatchStatus((prev) => {
+      const set = new Set(prev[seasonNumber] || []);
+      const dates = { ...(prev._dates || {}) };
+      const seasonDates = { ...(dates[seasonNumber] || {}) };
+      if (set.has(epNum)) {
+        set.delete(epNum);
+        delete seasonDates[epNum];
+      } else {
+        set.add(epNum);
+        // leave the watched date null; the user can add one later if they want
+      }
+      const next = { ...prev };
+      if (set.size === 0) delete next[seasonNumber];
+      else next[seasonNumber] = Array.from(set).sort((a, b) => a - b);
+      if (Object.keys(seasonDates).length === 0) delete dates[seasonNumber];
+      else dates[seasonNumber] = seasonDates;
+      if (Object.keys(dates).length === 0) delete next._dates;
+      else next._dates = dates;
+      persistWatchStatus(next);
+      return next;
+    });
+  }
+
+  // Change the watched date for an already-watched episode.
+  function setEpisodeWatchedDate(seasonNumber, epNum, isoDate) {
+    setWatchStatus((prev) => {
+      const dates = { ...(prev._dates || {}) };
+      dates[seasonNumber] = { ...(dates[seasonNumber] || {}), [epNum]: isoDate };
+      const next = { ...prev, _dates: dates };
+      persistWatchStatus(next);
+      return next;
+    });
+  }
 
   // Persist a partial update to this movie log, then sync local state.
   async function persistLog(updates, failMsg) {
@@ -359,12 +471,15 @@ export default function LogComponent({
               style={{ display: "flex", flexDirection: "column", gap: "8px" }}
             >
               {(userLogs.find((l) => l.id === log_id)?.season_info || []).map(
-                (s, idx, arr) => (
+                (s, idx, arr) => {
+                  const seasonNumber = s.season || idx + 1;
+                  const seasonOpen = !!expandedSeasons[seasonNumber];
+                  return (
                   <div key={idx} className="season-row">
                     <div className="season-left">
                       <div className="season-title">
                         <div className="season-label">
-                          Season {s.season || idx + 1}
+                          Season {seasonNumber}
                         </div>
                         {/* actions: undo/mark-finished and delete - sit to the right of label */}
                         <div className="season-actions">
@@ -559,8 +674,57 @@ export default function LogComponent({
                         )}
                       </div>
                     </div>
+                    {/* expand to per-episode watch tracking (optional, kept
+                        separate from the log's season dates) - far right */}
+                    <button
+                      type="button"
+                      className={`season-expand-btn${
+                        seasonOpen ? " open" : ""
+                      }`}
+                      onClick={() => toggleSeasonExpand(seasonNumber)}
+                      aria-expanded={seasonOpen}
+                      aria-label={seasonOpen ? "Hide episodes" : "Show episodes"}
+                      title={seasonOpen ? "Hide episodes" : "Show episodes"}
+                    >
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 16 16"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M4 6l4 4 4-4"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    {seasonOpen && (
+                      <SeasonEpisodes
+                        episodes={seasonsMeta ? seasonsMeta[seasonNumber] : null}
+                        loading={metaLoading || !seasonsMeta}
+                        seasonName={`Season ${seasonNumber}`}
+                        canEdit={!!user}
+                        isWatched={(epNum) =>
+                          isEpisodeWatched(seasonNumber, epNum)
+                        }
+                        getDate={(epNum) =>
+                          episodeWatchedDate(seasonNumber, epNum)
+                        }
+                        onToggle={(epNum) =>
+                          toggleEpisodeWatched(seasonNumber, epNum)
+                        }
+                        onSetDate={(epNum, iso) =>
+                          setEpisodeWatchedDate(seasonNumber, epNum, iso)
+                        }
+                      />
+                    )}
                   </div>
-                ),
+                  );
+                },
               )}
             </div>
           </div>

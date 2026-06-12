@@ -10,6 +10,7 @@ import MediaGenres from "../components/MediaGenres.jsx";
 import MovieRatingStar from "../components/MovieRatingStar";
 import CastList from "../components/CastList.jsx";
 import ScrollStrip from "../components/ScrollStrip.jsx";
+import EpisodeModal from "../components/EpisodeModal.jsx";
 import AddLog from "../components/AddLog.jsx";
 import AddWatchlist from "../components/AddWatchlist.jsx";
 import { useRatings } from "../contexts/UserRatingsContext.jsx";
@@ -57,20 +58,6 @@ function MediaDetails() {
     fetchMovieDetails();
   }, [mediaType, tmdbId]);
 
-  // Close the episode modal on Escape and lock background scroll while it's open.
-  useEffect(() => {
-    if (!selectedEpisode) return;
-    const onKey = (e) => {
-      if (e.key === "Escape") setSelectedEpisode(null);
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [selectedEpisode]);
-
   // Load this user's watch status for the title once we have its movies row id.
   useEffect(() => {
     if (!user || !movieEntryId || movie?.media_type !== "tv") return;
@@ -92,17 +79,6 @@ function MediaDetails() {
       /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
     const match = url.match(regex);
     return match ? match[1] : null;
-  };
-
-  const formatEpisodeDate = (d) => {
-    if (!d) return null;
-    const parsed = new Date(d);
-    if (Number.isNaN(parsed.getTime())) return d;
-    return parsed.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   const openEpisode = (ep, season) =>
@@ -129,14 +105,43 @@ function MediaDetails() {
     if (user && movieEntryId) saveWatchStatus(user.id, movieEntryId, next);
   };
 
+  // Optional watched date per episode, stored alongside the watched flags in the
+  // same status jsonb (under a `_dates` sibling). Null/absent is fine - recording
+  // when an episode was watched is entirely optional.
+  const episodeWatchedDate = (seasonNumber, epNumber) =>
+    watchStatus._dates?.[seasonNumber]?.[epNumber] || null;
+
   const toggleEpisodeWatched = (seasonNumber, epNumber) => {
     setWatchStatus((prev) => {
       const set = new Set(prev[seasonNumber] || []);
-      if (set.has(epNumber)) set.delete(epNumber);
-      else set.add(epNumber);
+      const dates = { ...(prev._dates || {}) };
+      const seasonDates = { ...(dates[seasonNumber] || {}) };
+      if (set.has(epNumber)) {
+        set.delete(epNumber);
+        delete seasonDates[epNumber];
+      } else {
+        set.add(epNumber);
+      }
       const next = { ...prev };
       if (set.size === 0) delete next[seasonNumber];
       else next[seasonNumber] = Array.from(set).sort((a, b) => a - b);
+      if (Object.keys(seasonDates).length === 0) delete dates[seasonNumber];
+      else dates[seasonNumber] = seasonDates;
+      if (Object.keys(dates).length === 0) delete next._dates;
+      else next._dates = dates;
+      persistStatus(next);
+      return next;
+    });
+  };
+
+  const setEpisodeWatchedDate = (seasonNumber, epNumber, isoDate) => {
+    setWatchStatus((prev) => {
+      const dates = { ...(prev._dates || {}) };
+      dates[seasonNumber] = {
+        ...(dates[seasonNumber] || {}),
+        [epNumber]: isoDate,
+      };
+      const next = { ...prev, _dates: dates };
       persistStatus(next);
       return next;
     });
@@ -192,7 +197,15 @@ function MediaDetails() {
                 <div className="star-container">
                   <MovieRatingStar movie={movie}></MovieRatingStar>
                 </div>
-                <div style={{ display: "flex", alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    position: "relative",
+                    top: "1px",
+                    marginLeft: "-3px",
+                  }}
+                >
                   <AddWatchlist movie={movie} needMoreDetail={false}></AddWatchlist>
                   <AddLog movie={movie} needMoreDetail={false}></AddLog>
                 </div>
@@ -327,7 +340,10 @@ function MediaDetails() {
                       </div>
                     )}
                   </div>
-                  <ScrollStrip className="episodes-scroll">
+                  <ScrollStrip
+                    className="episodes-scroll"
+                    wrapClassName="md-episodes-strip"
+                  >
                     {season.episodes.map((ep) => (
                       <div
                         key={ep.episode_number}
@@ -381,11 +397,11 @@ function MediaDetails() {
                           alt={ep.name}
                         />
                         <div className="episode-meta">
-                          <p className="episode-label">E{ep.episode_number}</p>
+                          <p className="episode-label">
+                            E{ep.episode_number}
+                            {ep.runtime ? ` · ${ep.runtime}m` : ""}
+                          </p>
                           <p className="episode-name">{ep.name}</p>
-                          {ep.runtime && (
-                            <p className="episode-runtime">{ep.runtime}m</p>
-                          )}
                         </div>
                       </div>
                     ))}
@@ -397,85 +413,32 @@ function MediaDetails() {
       </div>
 
       {selectedEpisode && (
-        <div
-          className="episode-modal-overlay"
-          onClick={() => setSelectedEpisode(null)}
-        >
-          <div
-            className="episode-modal"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="episode-modal-close"
-              onClick={() => setSelectedEpisode(null)}
-              aria-label="Close"
-            >
-              ×
-            </button>
-            {selectedEpisode.still && (
-              <img
-                className="episode-modal-still"
-                src={selectedEpisode.still}
-                alt={selectedEpisode.name}
-                onError={(e) => {
-                  e.target.style.display = "none";
-                }}
-              />
-            )}
-            <div className="episode-modal-body">
-              <p className="episode-modal-eyebrow">
-                {selectedEpisode._seasonName} · Episode{" "}
-                {selectedEpisode.episode_number}
-              </p>
-              <h2 className="episode-modal-title">{selectedEpisode.name}</h2>
-              <div className="episode-modal-meta">
-                {formatEpisodeDate(selectedEpisode.air_date) && (
-                  <span>{formatEpisodeDate(selectedEpisode.air_date)}</span>
-                )}
-                {selectedEpisode.runtime ? (
-                  <span>{selectedEpisode.runtime} min</span>
-                ) : null}
-                {selectedEpisode.vote_average ? (
-                  <span className="episode-modal-rating">
-                    {String.fromCharCode(9733)}{" "}
-                    {Number(selectedEpisode.vote_average).toFixed(1)}
-                  </span>
-                ) : null}
-              </div>
-              <p className="episode-modal-overview">
-                {selectedEpisode.overview ||
-                  "No overview available for this episode."}
-              </p>
-              {user && (
-                <button
-                  className={`episode-modal-watch${
-                    isEpisodeWatched(
-                      selectedEpisode._seasonNumber,
-                      selectedEpisode.episode_number
-                    )
-                      ? " done"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    toggleEpisodeWatched(
-                      selectedEpisode._seasonNumber,
-                      selectedEpisode.episode_number
-                    )
-                  }
-                >
-                  {isEpisodeWatched(
-                    selectedEpisode._seasonNumber,
-                    selectedEpisode.episode_number
-                  )
-                    ? `${String.fromCharCode(10003)} Watched`
-                    : "Mark as watched"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <EpisodeModal
+          episode={selectedEpisode}
+          onClose={() => setSelectedEpisode(null)}
+          canEdit={!!user}
+          isWatched={isEpisodeWatched(
+            selectedEpisode._seasonNumber,
+            selectedEpisode.episode_number
+          )}
+          onToggleWatched={() =>
+            toggleEpisodeWatched(
+              selectedEpisode._seasonNumber,
+              selectedEpisode.episode_number
+            )
+          }
+          watchedDate={episodeWatchedDate(
+            selectedEpisode._seasonNumber,
+            selectedEpisode.episode_number
+          )}
+          onSetDate={(iso) =>
+            setEpisodeWatchedDate(
+              selectedEpisode._seasonNumber,
+              selectedEpisode.episode_number,
+              iso
+            )
+          }
+        />
       )}
     </div>
   );
