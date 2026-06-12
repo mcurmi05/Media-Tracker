@@ -9,6 +9,7 @@ import IMDBInfo from "../components/IMDBInfo";
 import MediaGenres from "../components/MediaGenres.jsx";
 import MovieRatingStar from "../components/MovieRatingStar";
 import CastList from "../components/CastList.jsx";
+import ScrollStrip from "../components/ScrollStrip.jsx";
 import AddLog from "../components/AddLog.jsx";
 import AddWatchlist from "../components/AddWatchlist.jsx";
 import { useRatings } from "../contexts/UserRatingsContext.jsx";
@@ -232,6 +233,37 @@ function MediaDetails() {
                 useLiveRating
               ></IMDBInfo>
             </div>
+            {movie.media_type === "movie" ? (
+              <div className="director-and-writer">
+                {movie.directors?.length > 0 && (
+                  <p>
+                    <span className="bold-span">Directed by</span>{" "}
+                    {movie.directors.map((d) => d.fullName).join(", ")}
+                  </p>
+                )}
+                {movie.writers?.length > 0 && (
+                  <p>
+                    <span className="bold-span">Written by</span>{" "}
+                    {movie.writers.map((w) => w.fullName).join(", ")}
+                  </p>
+                )}
+                {movie.budget ? (
+                  <p>
+                    <span className="bold-span">Budget</span> $
+                    {movie.budget.toLocaleString("en-US")} USD
+                  </p>
+                ) : null}
+              </div>
+            ) : movie.media_type === "tv" ? (
+              <div className="director-and-writer">
+                {movie.creators?.length > 0 && (
+                  <p>
+                    <span className="bold-span">Created by</span>{" "}
+                    {movie.creators.map((c) => c.fullName).join(", ")}
+                  </p>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -261,38 +293,6 @@ function MediaDetails() {
           </div>
           <MediaGenres movie={movie}></MediaGenres>
         </div>
-
-        {movie.media_type === "movie" ? (
-          <div className="director-and-writer">
-            {movie.directors?.length > 0 && (
-              <p>
-                <span className="bold-span">Directed by</span>{" "}
-                {movie.directors.map((d) => d.fullName).join(", ")}
-              </p>
-            )}
-            {movie.writers?.length > 0 && (
-              <p>
-                <span className="bold-span">Written by</span>{" "}
-                {movie.writers.map((w) => w.fullName).join(", ")}
-              </p>
-            )}
-            {movie.budget ? (
-              <p>
-                <span className="bold-span">Budget</span> $
-                {movie.budget.toLocaleString("en-US")} USD
-              </p>
-            ) : null}
-          </div>
-        ) : movie.media_type === "tv" ? (
-          <div className="director-and-writer">
-            {movie.creators?.length > 0 && (
-              <p>
-                <span className="bold-span">Created by</span>{" "}
-                {movie.creators.map((c) => c.fullName).join(", ")}
-              </p>
-            )}
-          </div>
-        ) : null}
 
         {movie.media_type === "tv" &&
           movie.seasons &&
@@ -327,7 +327,7 @@ function MediaDetails() {
                       </div>
                     )}
                   </div>
-                  <div className="episodes-scroll">
+                  <ScrollStrip className="episodes-scroll">
                     {season.episodes.map((ep) => (
                       <div
                         key={ep.episode_number}
@@ -389,7 +389,7 @@ function MediaDetails() {
                         </div>
                       </div>
                     ))}
-                  </div>
+                  </ScrollStrip>
                 </div>
               ))}
             </div>

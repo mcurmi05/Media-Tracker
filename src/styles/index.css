@@ -45,6 +45,13 @@ body {
   width: 100%;
   min-height: 100vh;
   position: relative;
+  background-color: #242424;
+  /* A soft pool of light near the top gives the flat grey some depth, with a
+     hair-cooler top stop for dimension. Static and fixed on purpose: the
+     background is on screen constantly, so motion here would distract. */
+  background-image: radial-gradient(100% 60% at 50% 0%, #2b2b2f 0%, #242424 58%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 #root {

@@ -9,10 +9,6 @@
     margin-top:-20px;
 }
 
-.cast-strip-wrap{
-    position:relative;
-}
-
 .cast-list-container{
     display:flex;
     gap:1rem;
@@ -20,47 +16,6 @@
     overflow-x:auto;
     margin-bottom:-20px;
     scrollbar-width:none;
-}
-
-.cast-strip-arrow{
-    position:absolute;
-    top:45px;
-    transform:translateY(-50%);
-    z-index:3;
-    width:32px;
-    height:32px;
-    border-radius:50%;
-    border:1px solid #4a4a4a;
-    background:rgba(20, 20, 20, 0.85);
-    color:#ffffff;
-    font-size:1.3rem;
-    line-height:1;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:0 0 4px;
-    transition:background 0.15s, transform 0.15s;
-    outline:none;
-}
-
-.cast-strip-arrow:focus,
-.cast-strip-arrow:focus-visible{
-    outline:none;
-    box-shadow:none;
-}
-
-.cast-strip-arrow:hover{
-    background:rgba(50, 50, 50, 0.95);
-    transform:translateY(-50%) scale(1.05);
-}
-
-.cast-strip-arrow-left{
-    left:-6px;
-}
-
-.cast-strip-arrow-right{
-    right:-6px;
 }
 
 .cast-list-container::-webkit-scrollbar {
