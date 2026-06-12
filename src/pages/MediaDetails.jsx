@@ -235,6 +235,10 @@ function MediaDetails() {
           </div>
         </div>
 
+        <div className="cast-list">
+          <CastList movie={movie} />
+        </div>
+
         {/* Trailer */}
         {movie.trailer && (
           <iframe
@@ -289,10 +293,6 @@ function MediaDetails() {
             )}
           </div>
         ) : null}
-
-        <div className="cast-list">
-          <CastList movie={movie} />
-        </div>
 
         {movie.media_type === "tv" &&
           movie.seasons &&
