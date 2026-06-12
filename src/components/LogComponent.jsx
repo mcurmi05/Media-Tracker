@@ -69,6 +69,7 @@ export default function LogComponent({
   // Stored in the separate `watch_status` table, independent of the log's own
   // season dates. Loaded lazily the first time a user expands a season.
   const [expandedSeasons, setExpandedSeasons] = useState({});
+  const [showAddSeasonModal, setShowAddSeasonModal] = useState(false);
   const [watchStatus, setWatchStatus] = useState({});
   const [watchStatusReady, setWatchStatusReady] = useState(false);
   // Map of season_number -> episodes[] fetched from TMDB on first expand.
@@ -119,39 +120,37 @@ export default function LogComponent({
   // per-episode watch_status is stored against.
   const movieEntryId = liveLog?.movie_entry_id ?? null;
 
+  // Fetch the show's season/episode metadata from TMDB once per mounted log.
+  // Used both to render the expanded episode strips and to know which season
+  // numbers actually exist when adding a season.
+  const loadSeasonsMeta = useCallback(async () => {
+    if (seasonsMeta || metaLoading || movie?.tmdb_id == null) return;
+    setMetaLoading(true);
+    try {
+      const detail = await getMovieById(movie.media_type, movie.tmdb_id);
+      const map = {};
+      (detail?.seasons || []).forEach((s) => {
+        map[s.season_number] = s.episodes || [];
+      });
+      setSeasonsMeta(map);
+    } catch (err) {
+      console.error("Failed to load episode metadata:", err);
+      setSeasonsMeta({});
+    } finally {
+      setMetaLoading(false);
+    }
+  }, [seasonsMeta, metaLoading, movie?.tmdb_id, movie?.media_type]);
+
   // Lazy-load the per-episode watch status and episode metadata the first time a
-  // season is expanded. Both are fetched at most once per mounted log.
+  // season is expanded.
   const ensureEpisodeData = useCallback(async () => {
     if (user && movieEntryId && !watchStatusReady) {
       const status = await getWatchStatus(user.id, movieEntryId);
       setWatchStatus(status || {});
       setWatchStatusReady(true);
     }
-    if (!seasonsMeta && !metaLoading && movie?.tmdb_id != null) {
-      setMetaLoading(true);
-      try {
-        const detail = await getMovieById(movie.media_type, movie.tmdb_id);
-        const map = {};
-        (detail?.seasons || []).forEach((s) => {
-          map[s.season_number] = s.episodes || [];
-        });
-        setSeasonsMeta(map);
-      } catch (err) {
-        console.error("Failed to load episode metadata:", err);
-        setSeasonsMeta({});
-      } finally {
-        setMetaLoading(false);
-      }
-    }
-  }, [
-    user,
-    movieEntryId,
-    watchStatusReady,
-    seasonsMeta,
-    metaLoading,
-    movie?.tmdb_id,
-    movie?.media_type,
-  ]);
+    loadSeasonsMeta();
+  }, [user, movieEntryId, watchStatusReady, loadSeasonsMeta]);
 
   function toggleSeasonExpand(seasonNumber) {
     setExpandedSeasons((prev) => ({
@@ -159,6 +158,12 @@ export default function LogComponent({
       [seasonNumber]: !prev[seasonNumber],
     }));
     ensureEpisodeData();
+  }
+
+  // Open the "add a season" picker, loading the TMDB season list first.
+  function handleAddSeasonClick() {
+    loadSeasonsMeta();
+    setShowAddSeasonModal(true);
   }
 
   const isEpisodeWatched = (seasonNumber, epNum) =>
@@ -326,6 +331,20 @@ export default function LogComponent({
 
   if (!visible) return null;
 
+  // Seasons that exist per TMDB but haven't been logged in this entry yet -
+  // offered when adding a season instead of assuming the next sequential number.
+  const loggedSeasonNumbers = new Set(
+    (liveLog?.season_info || []).map((s) => s.season),
+  );
+  const tmdbSeasonNumbers = seasonsMeta
+    ? Object.keys(seasonsMeta)
+        .map(Number)
+        .sort((a, b) => a - b)
+    : [];
+  const availableSeasonNumbers = tmdbSeasonNumbers.filter(
+    (n) => !loggedSeasonNumbers.has(n),
+  );
+
   // Action buttons offered inside the movie date pickers. DNF can only be
   // set from here; it is undone by clicking the red DNF badge.
   const movieActions = [
@@ -464,7 +483,7 @@ export default function LogComponent({
             >
               <strong>Seasons</strong>
               <button
-                onClick={() => addSeason(log_id)}
+                onClick={handleAddSeasonClick}
                 aria-label="Add season"
                 title="Add season"
                 className="season-button"
@@ -492,14 +511,22 @@ export default function LogComponent({
                   const seasonNumber = s.season || idx + 1;
                   const seasonOpen = !!expandedSeasons[seasonNumber];
                   return (
-                  <div key={idx} className="season-row">
+                  <div
+                    key={idx}
+                    className="season-row"
+                    onClick={() => toggleSeasonExpand(seasonNumber)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <div className="season-left">
                       <div className="season-title">
                         <div className="season-label">
                           Season {seasonNumber}
                         </div>
                         {/* actions: undo/mark-finished and delete - sit to the right of label */}
-                        <div className="season-actions">
+                        <div
+                          className="season-actions"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {!s.finished && !s.dnf && (
                             <button
                               onClick={() =>
@@ -575,7 +602,10 @@ export default function LogComponent({
                           )}
                         </div>
                       </div>
-                      <div className="season-dates-wrap">
+                      <div
+                        className="season-dates-wrap"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="season-chunk">
                           <div
                             className="season-started-label"
@@ -698,7 +728,10 @@ export default function LogComponent({
                       className={`season-expand-btn${
                         seasonOpen ? " open" : ""
                       }`}
-                      onClick={() => toggleSeasonExpand(seasonNumber)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSeasonExpand(seasonNumber);
+                      }}
                       aria-expanded={seasonOpen}
                       aria-label={seasonOpen ? "Hide episodes" : "Show episodes"}
                       title={seasonOpen ? "Hide episodes" : "Show episodes"}
@@ -843,7 +876,10 @@ export default function LogComponent({
             Are you sure you want to remove{" "}
             <span style={{ whiteSpace: "nowrap" }}>
               Season{" "}
-              {seasonToRemoveIndex !== null ? seasonToRemoveIndex + 1 : ""}
+              {seasonToRemoveIndex !== null
+                ? liveLog?.season_info?.[seasonToRemoveIndex]?.season ??
+                  seasonToRemoveIndex + 1
+                : ""}
             </span>
             ?
           </div>
@@ -901,7 +937,11 @@ export default function LogComponent({
           >
             Are you sure you want to unwatch{" "}
             <span style={{ whiteSpace: "nowrap" }}>
-              Season {undoSeasonIndex !== null ? undoSeasonIndex + 1 : ""}
+              Season{" "}
+              {undoSeasonIndex !== null
+                ? liveLog?.season_info?.[undoSeasonIndex]?.season ??
+                  undoSeasonIndex + 1
+                : ""}
             </span>
             ?
           </div>
@@ -942,6 +982,88 @@ export default function LogComponent({
               Unwatch
             </Button>
           </Box>
+        </Box>
+      </Modal>
+      <Modal
+        open={showAddSeasonModal}
+        onClose={() => setShowAddSeasonModal(false)}
+        aria-labelledby="add-season-modal-title"
+      >
+        <Box sx={modalStyle}>
+          <div
+            style={{
+              textAlign: "center",
+              marginBottom: "18px",
+              fontWeight: "bold",
+            }}
+          >
+            Add a season
+          </div>
+          {metaLoading && !seasonsMeta ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                padding: "8px 0",
+              }}
+            >
+              <span className="season-eps-spinner" aria-hidden="true" />
+            </div>
+          ) : availableSeasonNumbers.length > 0 ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 1.5,
+                justifyContent: "center",
+              }}
+            >
+              {availableSeasonNumbers.map((n) => (
+                <Button
+                  key={n}
+                  variant="outlined"
+                  onClick={() => {
+                    addSeason(log_id, n);
+                    setShowAddSeasonModal(false);
+                  }}
+                  sx={{
+                    color: "white",
+                    borderColor: "#666",
+                    "&:hover": { borderColor: "#888" },
+                    fontWeight: "bold",
+                    textTransform: "none",
+                    minWidth: 96,
+                  }}
+                >
+                  Season {n}
+                </Button>
+              ))}
+            </Box>
+          ) : tmdbSeasonNumbers.length > 0 ? (
+            <div style={{ textAlign: "center", color: "#bbb" }}>
+              Every season has already been logged.
+            </div>
+          ) : (
+            // No TMDB season data - fall back to adding the next number.
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  addSeason(log_id);
+                  setShowAddSeasonModal(false);
+                }}
+                sx={{
+                  color: "white",
+                  borderColor: "#666",
+                  "&:hover": { borderColor: "#888" },
+                  fontWeight: "bold",
+                  textTransform: "none",
+                }}
+              >
+                Add next season
+              </Button>
+            </Box>
+          )}
         </Box>
       </Modal>
       {

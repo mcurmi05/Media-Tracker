@@ -34,14 +34,17 @@ export const UserLogsProvider = ({ children }) => {
     setUserLogs((prev) => [newLog, ...prev]);
   };
 
-  // Add a new season to a log's season_info JSONB column
-  const addSeason = async (log_id) => {
+  // Add a season to a log's season_info JSONB column. `seasonNumber` lets the
+  // caller pick a specific season (e.g. one that actually exists per TMDB and
+  // hasn't been logged yet); when omitted it falls back to the next number after
+  // the highest already logged. The list is kept ordered by season number.
+  const addSeason = async (log_id, seasonNumber = null) => {
     // Capture the exact creation timestamp once and preserve it
     const creationTimestamp = new Date().toISOString();
 
     // Create the season object with the permanent creation date
-    const createNewSeasonObject = (seasonNumber) => ({
-      season: seasonNumber,
+    const createNewSeasonObject = (num) => ({
+      season: num,
       start_date: creationTimestamp, // This date is set once and never auto-updated
       end_date: null,
       finished: false,
@@ -49,26 +52,31 @@ export const UserLogsProvider = ({ children }) => {
       created_at: creationTimestamp, // Track when this season was originally created
     });
 
-    setUserLogs((prev) => {
-      const updated = prev.map((l) => {
-        if (l.id !== log_id) return l;
-        const current = l.season_info || [];
-        const nextSeasonNumber = current.length + 1;
-        const newSeason = createNewSeasonObject(nextSeasonNumber);
-        const newSeasonInfo = [...current, newSeason];
-        // optimistic local update
-        return { ...l, season_info: newSeasonInfo };
-      });
-      return updated;
-    });
+    const pickNumber = (current) =>
+      seasonNumber != null
+        ? seasonNumber
+        : current.reduce((max, s) => Math.max(max, s.season || 0), 0) + 1;
+
+    const withNewSeason = (current) => {
+      const num = pickNumber(current);
+      if (current.some((s) => s.season === num)) return current; // already logged
+      return [...current, createNewSeasonObject(num)].sort(
+        (a, b) => (a.season || 0) - (b.season || 0),
+      );
+    };
+
+    setUserLogs((prev) =>
+      prev.map((l) =>
+        l.id === log_id
+          ? { ...l, season_info: withNewSeason(l.season_info || []) }
+          : l,
+      ),
+    );
 
     // Persist to Supabase
     try {
       const logRow = userLogs.find((x) => x.id === log_id);
-      const current = logRow?.season_info || [];
-      const nextSeasonNumber = current.length + 1;
-      const newSeason = createNewSeasonObject(nextSeasonNumber);
-      const newSeasonInfo = [...current, newSeason];
+      const newSeasonInfo = withNewSeason(logRow?.season_info || []);
       const { error } = await supabase
         .from("logs")
         .update({ season_info: newSeasonInfo })
@@ -222,7 +230,9 @@ export const UserLogsProvider = ({ children }) => {
     }
   };
 
-  // Remove a season at a specific index for a log
+  // Remove a season at a specific index for a log. Season numbers are NOT
+  // renumbered - a log may hold an arbitrary subset of the show's seasons, so
+  // the remaining seasons keep their real numbers.
   const removeSeasonAt = async (log_id, seasonIndex) => {
     setUserLogs((prev) => {
       return prev.map((l) => {
@@ -230,9 +240,7 @@ export const UserLogsProvider = ({ children }) => {
         const current = Array.isArray(l.season_info) ? [...l.season_info] : [];
         if (seasonIndex < 0 || seasonIndex >= current.length) return l;
         current.splice(seasonIndex, 1);
-        // re-number seasons to keep season property consistent
-        const renumbered = current.map((s, idx) => ({ ...s, season: idx + 1 }));
-        return { ...l, season_info: renumbered };
+        return { ...l, season_info: current };
       });
     });
 
@@ -241,10 +249,9 @@ export const UserLogsProvider = ({ children }) => {
       const current = logRow?.season_info ? [...logRow.season_info] : [];
       if (seasonIndex < 0 || seasonIndex >= current.length) return;
       current.splice(seasonIndex, 1);
-      const renumbered = current.map((s, idx) => ({ ...s, season: idx + 1 }));
       const { error } = await supabase
         .from("logs")
-        .update({ season_info: renumbered })
+        .update({ season_info: current })
         .eq("id", log_id);
       if (error) console.error("Failed to persist removeSeasonAt:", error);
     } catch (err) {

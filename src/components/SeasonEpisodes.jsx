@@ -24,22 +24,30 @@ export default function SeasonEpisodes({
 }) {
   const [selectedEpisode, setSelectedEpisode] = useState(null);
 
+  // Clicks inside the episode panel shouldn't bubble up to the season row's
+  // expand/collapse handler.
+  const stop = (e) => e.stopPropagation();
+
   if (loading) {
     return (
-      <div className="season-eps-msg">
+      <div className="season-eps-msg" onClick={stop}>
         Loading episodes...
         <span className="season-eps-spinner" aria-hidden="true" />
       </div>
     );
   }
   if (!episodes || episodes.length === 0) {
-    return <div className="season-eps-msg">No episode data available.</div>;
+    return (
+      <div className="season-eps-msg" onClick={stop}>
+        No episode data available.
+      </div>
+    );
   }
 
   const selectedNum = selectedEpisode?.episode_number;
 
   return (
-    <div className="season-eps">
+    <div className="season-eps" onClick={stop}>
       <ScrollStrip className="log-eps-scroll" wrapClassName="log-eps-strip">
         {episodes.map((ep) => {
           const watched = isWatched(ep.episode_number);

@@ -157,10 +157,6 @@
     text-overflow: ellipsis;
 }
 
-.log-ep-card:not(.watched) .log-ep-name {
-    color: #8f8f8f;
-}
-
 /* Compact the reused date picker so it fits inside the small card, pushed to
    the left edge under the episode name. The picker's inner wrapper stays
    full-width; we just flip its alignment from center to the left. */
