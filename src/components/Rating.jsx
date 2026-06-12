@@ -7,6 +7,7 @@ import AddLog from "./AddLog.jsx";
 import AddWatchlist from "./AddWatchlist.jsx";
 import IMDBInfo from "./IMDBInfo.jsx";
 import { getRatingDateInfo } from "../utils/ratingDate.js";
+import { makeNavHandlers } from "../utils/navClick.js";
 
 function Rating({
   movie_object,
@@ -27,10 +28,10 @@ function Rating({
 }) {
   const navigate = useNavigate();
 
-  function onMovieClick() {
-    console.log("Navigating to movie details for:", movie_object.primaryTitle);
-    navigate(`/mediadetails/${movie_object.media_type}/${movie_object.tmdb_id}`);
-  }
+  const detailHandlers = makeNavHandlers(
+    navigate,
+    `/mediadetails/${movie_object.media_type}/${movie_object.tmdb_id}`,
+  );
 
   const ratingDateInfo = getRatingDateInfo(
     ratingDate,
@@ -59,12 +60,12 @@ function Rating({
               e.target.src = "/placeholderimage.jpg";
             }}
             className="rating-poster"
-            onClick={onMovieClick}
+            {...detailHandlers}
           />
         </div>
         <div className="right-stuff">
           <div className="title-and-star">
-            <p className="movie-title" onClick={onMovieClick}>
+            <p className="movie-title" {...detailHandlers}>
               {movie_object.primaryTitle}{" "}
             </p>
             {/* Rank badge and optional controls */}

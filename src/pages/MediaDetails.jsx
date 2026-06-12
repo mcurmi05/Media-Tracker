@@ -147,6 +147,22 @@ function MediaDetails() {
     });
   };
 
+  const clearEpisodeWatchedDate = (seasonNumber, epNumber) => {
+    setWatchStatus((prev) => {
+      if (!prev._dates?.[seasonNumber]?.[epNumber]) return prev;
+      const dates = { ...(prev._dates || {}) };
+      const seasonDates = { ...(dates[seasonNumber] || {}) };
+      delete seasonDates[epNumber];
+      if (Object.keys(seasonDates).length === 0) delete dates[seasonNumber];
+      else dates[seasonNumber] = seasonDates;
+      const next = { ...prev };
+      if (Object.keys(dates).length === 0) delete next._dates;
+      else next._dates = dates;
+      persistStatus(next);
+      return next;
+    });
+  };
+
   const toggleSeasonWatched = (season) => {
     setWatchStatus((prev) => {
       const fully =
@@ -436,6 +452,12 @@ function MediaDetails() {
               selectedEpisode._seasonNumber,
               selectedEpisode.episode_number,
               iso
+            )
+          }
+          onClearDate={() =>
+            clearEpisodeWatchedDate(
+              selectedEpisode._seasonNumber,
+              selectedEpisode.episode_number
             )
           }
         />

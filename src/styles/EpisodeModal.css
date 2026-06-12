@@ -52,7 +52,8 @@
     right: 10px;
     width: 34px;
     height: 34px;
-    padding: 0;
+    /* Bottom padding nudges the "×" glyph up ~2px within the circle. */
+    padding: 0 0 4px;
     border: none;
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.55);
@@ -65,6 +66,12 @@
     justify-content: center;
     z-index: 2;
     transition: background 160ms ease;
+}
+
+.episode-modal-close:focus,
+.episode-modal-close:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 .episode-modal-close:hover {

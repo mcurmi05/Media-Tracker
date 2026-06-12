@@ -3,21 +3,22 @@ import { useNavigate } from "react-router-dom";
 import ReleaseAndRunTime from "./ReleaseAndRunTime.jsx";
 import AddLog from "./AddLog.jsx";
 import AddWatchlist from "./AddWatchlist.jsx";
+import { makeNavHandlers } from "../utils/navClick.js";
 
 
 function MovieCard({ movie }) {
 
   const navigate = useNavigate();
 
-  function onMovieCardClick() {
-    console.log("Navigating to movie details for:", movie.primaryTitle);
-    navigate(`/mediadetails/${movie.media_type}/${movie.tmdb_id}`);
-  }
+  const detailHandlers = makeNavHandlers(
+    navigate,
+    `/mediadetails/${movie.media_type}/${movie.tmdb_id}`,
+  );
 
   return (
     <>
       <div className="movie-card">
-        <div className="movie-poster" onClick={onMovieCardClick}>
+        <div className="movie-poster" {...detailHandlers}>
           <img
             className="movie-poster-img"
             src={
@@ -31,7 +32,7 @@ function MovieCard({ movie }) {
 
         <div className="movie-info">
           <div className="title-and-addlog">
-            <h3 onClick={onMovieCardClick}>{movie.primaryTitle}</h3>
+            <h3 {...detailHandlers}>{movie.primaryTitle}</h3>
             <div className="add-log-container-moviecard">
                 <AddWatchlist movie={movie} needMoreDetail={true}></AddWatchlist>
                 <AddLog movie={movie} needMoreDetail={true}></AddLog>

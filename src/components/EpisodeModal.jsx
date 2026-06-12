@@ -25,6 +25,7 @@ export default function EpisodeModal({
   onToggleWatched,
   watchedDate = null,
   onSetDate,
+  onClearDate,
 }) {
   // Close on Escape and lock background scroll while open.
   useEffect(() => {
@@ -101,6 +102,7 @@ export default function EpisodeModal({
             <div className="episode-modal-date">
               <span className="episode-modal-date-label">Watched on</span>
               <Dialog
+                key={watchedDate || "none"}
                 initialDate={watchedDate ? new Date(watchedDate) : null}
                 onDateChange={(d) => onSetDate(d.toISOString())}
                 showWeekday={false}
@@ -108,6 +110,11 @@ export default function EpisodeModal({
                 iconGap="8px"
                 minWidth="auto"
                 placeholder="Add a date (optional)"
+                extraActions={
+                  watchedDate && onClearDate
+                    ? [{ label: "Clear date", onClick: () => onClearDate() }]
+                    : []
+                }
               />
             </div>
           )}

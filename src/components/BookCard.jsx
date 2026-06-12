@@ -7,6 +7,7 @@ import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import BookRatingStar from "./BookRatingStar.jsx";
 import EditBookInfoModal from "./EditBookInfoModal.jsx";
 import { bookDetailsRoute } from "../utils/goodreads.js";
+import { makeNavHandlers } from "../utils/navClick.js";
 
 function parseTitle(rawTitle) {
   const match = (rawTitle || "").match(
@@ -34,10 +35,11 @@ function BookCard({ book: bookProp }) {
   const goodreadsLink = book?.goodreads_link || null;
   const { mainTitle, seriesName, seriesIndex } = parseTitle(book?.title);
 
-  const openBookDetails = () => {
-    const route = bookDetailsRoute(goodreadsLink);
-    if (route) navigate(route, { state: { book } });
-  };
+  const detailHandlers = makeNavHandlers(
+    navigate,
+    bookDetailsRoute(goodreadsLink),
+    { state: { book } },
+  );
 
   const handleUpdated = (updated) => {
     setBook((prev) => ({ ...(prev || {}), ...updated }));
@@ -57,7 +59,7 @@ function BookCard({ book: bookProp }) {
     <div className="movie-card">
       <div
         className="movie-poster"
-        onClick={openBookDetails}
+        {...detailHandlers}
         style={{ cursor: goodreadsLink ? "pointer" : "default" }}
       >
         <img
@@ -75,7 +77,7 @@ function BookCard({ book: bookProp }) {
       <div className="movie-info" style={{ justifyContent: "center" }}>
         <div className="title-and-addlog" style={{ marginTop: "4px" }}>
           <h3
-            onClick={openBookDetails}
+            {...detailHandlers}
             style={{ cursor: goodreadsLink ? "pointer" : "default" }}
           >
             {mainTitle}

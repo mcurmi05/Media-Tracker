@@ -20,6 +20,7 @@ export default function SeasonEpisodes({
   getDate,
   onToggle,
   onSetDate,
+  onClearDate,
 }) {
   const [selectedEpisode, setSelectedEpisode] = useState(null);
 
@@ -96,6 +97,7 @@ export default function SeasonEpisodes({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Dialog
+                      key={watchedDate || "none"}
                       initialDate={watchedDate ? new Date(watchedDate) : null}
                       onDateChange={(d) =>
                         onSetDate(ep.episode_number, d.toISOString())
@@ -105,6 +107,16 @@ export default function SeasonEpisodes({
                       iconGap="4px"
                       minWidth="auto"
                       placeholder="+"
+                      extraActions={
+                        watchedDate
+                          ? [
+                              {
+                                label: "Clear date",
+                                onClick: () => onClearDate(ep.episode_number),
+                              },
+                            ]
+                          : []
+                      }
                     />
                   </div>
                 )}
@@ -123,6 +135,7 @@ export default function SeasonEpisodes({
           onToggleWatched={() => onToggle(selectedNum)}
           watchedDate={getDate(selectedNum)}
           onSetDate={(iso) => onSetDate(selectedNum, iso)}
+          onClearDate={() => onClearDate(selectedNum)}
         />
       )}
     </div>

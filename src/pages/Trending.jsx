@@ -4,6 +4,7 @@ import { useCache } from "../contexts/PopularMoviesCacheContext";
 import { useNavigate } from "react-router-dom";
 import "../styles/Trending.css";
 import Loader from "../components/Loader.jsx";
+import { makeNavHandlers } from "../utils/navClick.js";
 
 function Trending() {
   const {
@@ -61,7 +62,11 @@ function Trending() {
   const featured = movies.slice(0, 3);
   const rest = movies.slice(3);
 
-  const goTo = (movie) => navigate(`/mediadetails/${movie.media_type}/${movie.tmdb_id}`);
+  const navTo = (movie) =>
+    makeNavHandlers(
+      navigate,
+      `/mediadetails/${movie.media_type}/${movie.tmdb_id}`,
+    );
 
   return (
     <div className="trending">
@@ -88,7 +93,7 @@ function Trending() {
             style={{
               backgroundImage: `url(${movie.backdropImage || movie.primaryImage})`,
             }}
-            onClick={() => goTo(movie)}
+            {...navTo(movie)}
           >
             <div className="tf-overlay" />
             <span className="tf-big-rank">#{i + 1}</span>
@@ -123,7 +128,7 @@ function Trending() {
           <div
             key={`${movie.media_type}-${movie.tmdb_id}`}
             className="trending-row"
-            onClick={() => goTo(movie)}
+            {...navTo(movie)}
           >
             <span className="trending-rank">#{i + 4}</span>
             <img

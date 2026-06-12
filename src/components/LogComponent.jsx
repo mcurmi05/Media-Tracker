@@ -211,6 +211,23 @@ export default function LogComponent({
     });
   }
 
+  // Clear an episode's watched date back to none (the episode stays watched).
+  function clearEpisodeWatchedDate(seasonNumber, epNum) {
+    setWatchStatus((prev) => {
+      if (!prev._dates?.[seasonNumber]?.[epNum]) return prev;
+      const dates = { ...(prev._dates || {}) };
+      const seasonDates = { ...(dates[seasonNumber] || {}) };
+      delete seasonDates[epNum];
+      if (Object.keys(seasonDates).length === 0) delete dates[seasonNumber];
+      else dates[seasonNumber] = seasonDates;
+      const next = { ...prev };
+      if (Object.keys(dates).length === 0) delete next._dates;
+      else next._dates = dates;
+      persistWatchStatus(next);
+      return next;
+    });
+  }
+
   // Persist a partial update to this movie log, then sync local state.
   async function persistLog(updates, failMsg) {
     setSaving(true);
@@ -719,6 +736,9 @@ export default function LogComponent({
                         }
                         onSetDate={(epNum, iso) =>
                           setEpisodeWatchedDate(seasonNumber, epNum, iso)
+                        }
+                        onClearDate={(epNum) =>
+                          clearEpisodeWatchedDate(seasonNumber, epNum)
                         }
                       />
                     )}
