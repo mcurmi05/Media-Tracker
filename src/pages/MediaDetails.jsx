@@ -12,6 +12,7 @@ import CastList from "../components/CastList.jsx";
 import AddLog from "../components/AddLog.jsx";
 import AddWatchlist from "../components/AddWatchlist.jsx";
 import { useRatings } from "../contexts/UserRatingsContext.jsx";
+import { getRatingForMovie } from "../services/ratingsfromtable.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { getWatchStatus, saveWatchStatus } from "../services/watchStatus.js";
 import Loader from "../components/Loader.jsx";
@@ -184,7 +185,45 @@ function MediaDetails() {
             alt={movie.primaryTitle}
           />
           <div className="hero-info">
-            <h1 className="title">{movie.primaryTitle}</h1>
+            <div className="title-row">
+              <h1 className="title">{movie.primaryTitle}</h1>
+              <div className="hero-actions">
+                <div className="star-container">
+                  <MovieRatingStar movie={movie}></MovieRatingStar>
+                </div>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <AddWatchlist movie={movie} needMoreDetail={false}></AddWatchlist>
+                  <AddLog movie={movie} needMoreDetail={false}></AddLog>
+                </div>
+                {/* Rank badge only if rated 10; no controls here */}
+                {(() => {
+                  const rating = getRatingForMovie(userRatings, movie);
+                  if (!rating || Number(rating.rating) !== 10) return null;
+                  const rank = rating.ranking;
+                  const badgeStyle = {
+                    background:
+                      rank === 1
+                        ? "linear-gradient(135deg,#FFD700,#E6C200)"
+                        : rank === 2
+                        ? "linear-gradient(135deg,#C0C0C0,#A9A9A9)"
+                        : rank === 3
+                        ? "linear-gradient(135deg,#CD7F32,#B87333)"
+                        : "#444",
+                    color: rank ? "#000" : "#fff",
+                    borderRadius: 10,
+                    padding: "2px 8px",
+                    fontSize: "0.85rem",
+                    minWidth: 42,
+                    textAlign: "center",
+                  };
+                  return (
+                    <span style={badgeStyle}>
+                      {rank ? `#${rank}` : "Unranked"}
+                    </span>
+                  );
+                })()}
+              </div>
+            </div>
             <div className="subtitle">
               <ReleaseAndRunTime movie={movie} />·
               <IMDBInfo
@@ -192,44 +231,6 @@ function MediaDetails() {
                 className="media-details-imdb"
                 useLiveRating
               ></IMDBInfo>
-            </div>
-            <div className="hero-actions">
-              <div className="star-container">
-                <MovieRatingStar movie={movie}></MovieRatingStar>
-              </div>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <AddWatchlist movie={movie} needMoreDetail={false}></AddWatchlist>
-                <AddLog movie={movie} needMoreDetail={false}></AddLog>
-              </div>
-              {/* Rank badge only if rated 10; no controls here */}
-              {(() => {
-                const rating = userRatings.find(
-                  (r) => r.imdb_movie_id === movie.id
-                );
-                if (!rating || Number(rating.rating) !== 10) return null;
-                const rank = rating.ranking;
-                const badgeStyle = {
-                  background:
-                    rank === 1
-                      ? "linear-gradient(135deg,#FFD700,#E6C200)"
-                      : rank === 2
-                      ? "linear-gradient(135deg,#C0C0C0,#A9A9A9)"
-                      : rank === 3
-                      ? "linear-gradient(135deg,#CD7F32,#B87333)"
-                      : "#444",
-                  color: rank ? "#000" : "#fff",
-                  borderRadius: 10,
-                  padding: "2px 8px",
-                  fontSize: "0.85rem",
-                  minWidth: 42,
-                  textAlign: "center",
-                };
-                return (
-                  <span style={badgeStyle}>
-                    {rank ? `#${rank}` : "Unranked"}
-                  </span>
-                );
-              })()}
             </div>
           </div>
         </div>

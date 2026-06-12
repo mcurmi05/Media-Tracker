@@ -25,9 +25,11 @@ export const UserRatingsProvider = ({ children }) => {
   const { user } = useAuth();
   const hasFetched = useRef(false);
 
-  const addRating = (movieId, rating, movie) => {
+  // Ratings are identified in memory by movie_entry_id (the movies_and_tv_entries
+  // uuid), matching how they're stored and referenced in the DB.
+  const addRating = (movieEntryId, rating, movie) => {
     const newRating = {
-      imdb_movie_id: movieId,
+      movie_entry_id: movieEntryId,
       user_id: user.id,
       rating: rating,
       movie_object: movie,
@@ -38,11 +40,11 @@ export const UserRatingsProvider = ({ children }) => {
     setUserRatings((prev) => [...prev, newRating]);
   };
 
-  const updateRating = async (movieId, newRating, movie) => {
+  const updateRating = async (movieEntryId, newRating, movie) => {
     // The value the rating had before this change, recorded so the UI can
     // show what it was updated from.
     const previousRating =
-      userRatings.find((r) => r.imdb_movie_id === movieId)?.rating ?? null;
+      userRatings.find((r) => r.movie_entry_id === movieEntryId)?.rating ?? null;
     setUserRatings((prev) => {
       // compute next rank if moving to 10 and currently unranked
       const isBecomingTen = Number(newRating) === 10;
@@ -52,7 +54,7 @@ export const UserRatingsProvider = ({ children }) => {
           : max;
       }, 0);
       return prev.map((rating) => {
-        if (rating.imdb_movie_id !== movieId) return rating;
+        if (rating.movie_entry_id !== movieEntryId) return rating;
         const next = {
           ...rating,
           rating: newRating,
@@ -66,12 +68,14 @@ export const UserRatingsProvider = ({ children }) => {
         return next;
       });
     });
-    if (user && movieId) {
+    if (user && movieEntryId) {
       try {
-        await updateUserRating(user.id, movieId, newRating, previousRating);
+        await updateUserRating(user.id, movieEntryId, newRating, previousRating);
         // If becoming 10 and was unranked, persist bottom rank as well
         if (Number(newRating) === 10) {
-          const current = userRatings.find((r) => r.imdb_movie_id === movieId);
+          const current = userRatings.find(
+            (r) => r.movie_entry_id === movieEntryId
+          );
           if (!current?.ranking) {
             // recompute max on latest state
             const latestMax = Math.max(
@@ -82,7 +86,7 @@ export const UserRatingsProvider = ({ children }) => {
                 )
                 .map((r) => r.ranking)
             );
-            await updateUserRanking(user.id, movieId, latestMax + 1);
+            await updateUserRanking(user.id, movieEntryId, latestMax + 1);
           }
         }
       } catch (err) {
@@ -91,22 +95,22 @@ export const UserRatingsProvider = ({ children }) => {
     }
   };
 
-  const removeRating = (movieId) => {
+  const removeRating = (movieEntryId) => {
     setUserRatings((prev) =>
-      prev.filter((rating) => rating.imdb_movie_id !== movieId)
+      prev.filter((rating) => rating.movie_entry_id !== movieEntryId)
     );
   };
 
-  const updateRanking = async (movieId, newRanking) => {
+  const updateRanking = async (movieEntryId, newRanking) => {
     // optimistic update in memory
     setUserRatings((prev) =>
       prev.map((r) =>
-        r.imdb_movie_id === movieId ? { ...r, ranking: newRanking } : r
+        r.movie_entry_id === movieEntryId ? { ...r, ranking: newRanking } : r
       )
     );
-    if (user && movieId) {
+    if (user && movieEntryId) {
       try {
-        await updateUserRanking(user.id, movieId, newRanking);
+        await updateUserRanking(user.id, movieEntryId, newRanking);
       } catch (err) {
         console.error("Failed to update ranking in Supabase:", err);
       }

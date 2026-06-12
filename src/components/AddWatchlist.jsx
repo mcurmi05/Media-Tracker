@@ -52,7 +52,6 @@ export default function AddWatchlist({movie}){
                 .insert(
                     {
                         user_id: user.id,
-                        movie_id: full.id,
                         movie_entry_id: movieEntryId,
                     })
                     .select();

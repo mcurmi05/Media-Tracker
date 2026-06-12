@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import RatingModal from "./RatingModal";
 import { useRatings } from "../contexts/UserRatingsContext";
 import { supabase } from "../services/supabase-client";
-import { getRatingFromArray } from "../services/ratingsfromtable";
+import { getRatingForMovie } from "../services/ratingsfromtable";
 import { upsertMovie, resolveFullMovie } from "../services/movieMetadata";
 
 function MovieRatingStar({movie}) {
@@ -13,28 +13,34 @@ function MovieRatingStar({movie}) {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(0);
   const [rated, setRated] = useState(false);
+  // movie_entry_id of the existing rating, needed to update/remove it.
+  const [ratingEntryId, setRatingEntryId] = useState(null);
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const {userRatings, userRatingsLoaded, addRating, updateRating, removeRating} = useRatings();
-  
+
   useEffect( () => {
       if (isAuthenticated && userRatingsLoaded){
-        const movieRating = getRatingFromArray(userRatings, movie.id);
-  
-        if (movieRating){
-          setRating(movieRating);
+        const ratingRow = getRatingForMovie(userRatings, movie);
+
+        if (ratingRow){
+          setRating(ratingRow.rating);
           setRated(true);
+          setRatingEntryId(ratingRow.movie_entry_id ?? null);
         } else{
           setRating(0);
           setRated(false);
+          setRatingEntryId(null);
         }
-  
+
       } else {
         setRating(0);
         setRated(false);
+        setRatingEntryId(null);
       }
-  
-    },[isAuthenticated, userRatings, userRatingsLoaded, movie.id]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[isAuthenticated, userRatings, userRatingsLoaded, movie.tmdb_id, movie.media_type, movie.id]);
 
   async function handleNewRatingClick() {
     if (!isAuthenticated) {
@@ -74,14 +80,14 @@ function MovieRatingStar({movie}) {
           const result = await supabase
             .from('ratings')
             .update({rating: newRating})
-            .eq('imdb_movie_id', full.id)
+            .eq('movie_entry_id', movieEntryId)
             .eq('user_id', user.id);
           error = result.error;
         } else {
 
           const result = await supabase
             .from('ratings')
-            .insert({imdb_movie_id: full.id, user_id: user.id, rating: newRating, movie_entry_id: movieEntryId, accurate: true });
+            .insert({user_id: user.id, rating: newRating, movie_entry_id: movieEntryId, accurate: true });
           error = result.error;
         }
 
@@ -89,31 +95,41 @@ function MovieRatingStar({movie}) {
           console.error(error);
         } else {
           setRated(true);
+          setRatingEntryId(movieEntryId);
           if (rated) {
-            updateRating(full.id, newRating, full);
+            updateRating(movieEntryId, newRating, full);
           } else {
-            addRating(full.id, newRating, full);
+            addRating(movieEntryId, newRating, full);
           }
         }
       } catch (err) {
         console.error(err);
       }
     }
-  
+
     async function handleRemoveRating() {
+      // Resolve the rating's movie_entry_id (cached from the lookup, or
+      // recomputed from the title's metadata as a fallback).
+      let entryId = ratingEntryId;
+      if (!entryId) {
+        const ratingRow = getRatingForMovie(userRatings, movie);
+        entryId = ratingRow?.movie_entry_id ?? null;
+      }
+      if (!entryId) return;
       try {
         const { error } = await supabase
           .from('ratings')
           .delete()
-          .eq('imdb_movie_id', movie.id)
+          .eq('movie_entry_id', entryId)
           .eq('user_id', user.id);
-  
+
         if (error) {
           console.error(error);
         } else {
           setRating(0);
           setRated(false);
-          removeRating(movie.id);
+          setRatingEntryId(null);
+          removeRating(entryId);
         }
       } catch (err) {
         console.error(err);

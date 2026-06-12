@@ -2,6 +2,9 @@
     display: flex;
     justify-content: center;
     position: relative;
+    /* Cancel the .main-content top padding (2rem) so the backdrop banner sits
+       flush against the navbar with no gap above it. */
+    margin-top: -2rem;
 }
 
 /* ---------- Backdrop banner ---------- */
@@ -10,7 +13,9 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 400px;
+    /* Tall enough that the gradient fade completes just below the poster's
+       bottom edge (poster sits at ~210px and is 300px tall). */
+    height: 520px;
     z-index: 0;
     pointer-events: none;
     overflow: hidden;
@@ -94,7 +99,7 @@
 /* ---------- Hero row (poster + title / meta / actions) ---------- */
 .hero-row {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 28px;
     margin-bottom: 34px;
 }
@@ -117,6 +122,15 @@
     flex-direction: column;
     gap: 12px;
     padding-bottom: 6px;
+}
+
+/* Title sits on one line with the rating star + watchlist/log actions,
+   mirroring the watchlist/rating item layout. */
+.title-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .title {
@@ -144,6 +158,9 @@
 .star-container {
     display: flex;
     align-items: center;
+    /* Cancel the -40px margin-top inside MovieRatingStar's card so the star
+       sits centered on the title line (same trick as .rating-star-div). */
+    margin-top: 40px;
 }
 
 /* ---------- Trailer ---------- */
@@ -198,7 +215,7 @@
     }
 
     .media-backdrop-hero {
-        height: 300px;
+        height: 360px;
     }
 
     .hero-row {

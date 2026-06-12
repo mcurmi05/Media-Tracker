@@ -373,39 +373,39 @@ function Ratings() {
   // Note: normalization handled implicitly by applyRankOrder indices
 
   const applyRankOrder = async (orderedIds) => {
-    // Persist sequential rankings based on provided order of imdb ids
+    // Persist sequential rankings based on provided order of movie_entry_ids
     for (let i = 0; i < orderedIds.length; i++) {
-      const imdb = orderedIds[i];
-      await updateRanking(imdb, i + 1);
+      const entryId = orderedIds[i];
+      await updateRanking(entryId, i + 1);
     }
   };
 
-  const handleMove = async (imdbId, direction) => {
+  const handleMove = async (entryId, direction) => {
     const tensSorted = [...allTens].sort(rankSort);
-    const index = tensSorted.findIndex((r) => r.imdb_movie_id === imdbId);
+    const index = tensSorted.findIndex((r) => r.movie_entry_id === entryId);
     if (index === -1) return;
     const swapWith = direction === "up" ? index - 1 : index + 1;
     if (swapWith < 0 || swapWith >= tensSorted.length) return;
-    const ids = tensSorted.map((r) => r.imdb_movie_id);
+    const ids = tensSorted.map((r) => r.movie_entry_id);
     [ids[index], ids[swapWith]] = [ids[swapWith], ids[index]];
     await applyRankOrder(ids);
   };
 
-  const handleSendTop = async (imdbId) => {
+  const handleSendTop = async (entryId) => {
     const tensSorted = [...allTens].sort(rankSort);
-    const index = tensSorted.findIndex((r) => r.imdb_movie_id === imdbId);
+    const index = tensSorted.findIndex((r) => r.movie_entry_id === entryId);
     if (index <= 0) return;
-    const ids = tensSorted.map((r) => r.imdb_movie_id);
+    const ids = tensSorted.map((r) => r.movie_entry_id);
     const [moved] = ids.splice(index, 1);
     ids.unshift(moved);
     await applyRankOrder(ids);
   };
 
-  const handleSendBottom = async (imdbId) => {
+  const handleSendBottom = async (entryId) => {
     const tensSorted = [...allTens].sort(rankSort);
-    const index = tensSorted.findIndex((r) => r.imdb_movie_id === imdbId);
+    const index = tensSorted.findIndex((r) => r.movie_entry_id === entryId);
     if (index === -1 || index === tensSorted.length - 1) return;
-    const ids = tensSorted.map((r) => r.imdb_movie_id);
+    const ids = tensSorted.map((r) => r.movie_entry_id);
     const [moved] = ids.splice(index, 1);
     ids.push(moved);
     await applyRankOrder(ids);
@@ -460,7 +460,7 @@ function Ratings() {
     if (!isAllView) return null;
     const ratingItems = sortedRatings.map((r) => ({
       kind: "rating",
-      id: `rating-${r.id || r.imdb_movie_id}`,
+      id: `rating-${r.id || r.movie_entry_id}`,
       data: r,
       date: new Date(r.created_at),
       year: movieYear(r),
@@ -832,7 +832,7 @@ function Ratings() {
             ))
           : sortedRatings.map((rating) => (
               <div
-                key={rating.id || rating.imdb_movie_id}
+                key={rating.id || rating.movie_entry_id}
                 style={{
                   marginBottom: "1rem",
                   width: "100%",
@@ -854,10 +854,10 @@ function Ratings() {
                     showRankControls={
                       rankModeType !== "none" && Number(rating.rating) === 10
                     }
-                    onMoveUp={() => handleMove(rating.imdb_movie_id, "up")}
-                    onMoveDown={() => handleMove(rating.imdb_movie_id, "down")}
-                    onSendTop={() => handleSendTop(rating.imdb_movie_id)}
-                    onSendBottom={() => handleSendBottom(rating.imdb_movie_id)}
+                    onMoveUp={() => handleMove(rating.movie_entry_id, "up")}
+                    onMoveDown={() => handleMove(rating.movie_entry_id, "down")}
+                    onSendTop={() => handleSendTop(rating.movie_entry_id)}
+                    onSendBottom={() => handleSendBottom(rating.movie_entry_id)}
                   />
                 </div>
               </div>

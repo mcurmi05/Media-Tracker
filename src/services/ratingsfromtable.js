@@ -1,8 +1,10 @@
 // Update a user's rating in Supabase. `previousRating` records the value the
 // rating had before this change, so the UI can show what it was changed from.
+// Ratings reference shared metadata by movie_entry_id (the movies_and_tv_entries
+// uuid), which is the per-(user, title) identity for a rating.
 export const updateUserRating = async (
   userId,
-  imdbMovieId,
+  movieEntryId,
   newRating,
   previousRating = null,
 ) => {
@@ -14,7 +16,7 @@ export const updateUserRating = async (
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId)
-    .eq("imdb_movie_id", imdbMovieId);
+    .eq("movie_entry_id", movieEntryId);
   if (error) throw error;
   return data;
 };
@@ -31,12 +33,12 @@ const withMovieObject = (rows) =>
   }));
 
 // Update a user's ranking (nullable) in Supabase
-export const updateUserRanking = async (userId, imdbMovieId, ranking) => {
+export const updateUserRanking = async (userId, movieEntryId, ranking) => {
   const { data, error } = await supabase
     .from("ratings")
     .update({ ranking })
     .eq("user_id", userId)
-    .eq("imdb_movie_id", imdbMovieId);
+    .eq("movie_entry_id", movieEntryId);
   if (error) throw error;
   return data;
 };
@@ -51,10 +53,18 @@ export const getUserRatings = async (user) => {
   return withMovieObject(data);
 };
 
-export const getRatingFromArray = (ratingsArray, imdbMovieId) => {
-  const rating = ratingsArray.find((r) => r.imdb_movie_id === imdbMovieId);
-  return rating ? rating.rating : null;
-};
+// Match a rating row to a movie object the same way the watchlist/log matchers
+// do: by tmdb_id + media_type (so it also works for browse cards that only carry
+// tmdb fields), falling back to the IMDb id for rows without tmdb metadata.
+export const ratingMatchesMovie = (row, movie) =>
+  (movie?.tmdb_id != null &&
+    row?.movie_object?.tmdb_id === movie.tmdb_id &&
+    row?.movie_object?.media_type === movie.media_type) ||
+  (!!movie?.id && row?.movie_object?.id === movie.id);
+
+// Find the rating row for a given movie object, or null if it isn't rated.
+export const getRatingForMovie = (ratingsArray, movie) =>
+  (ratingsArray || []).find((r) => ratingMatchesMovie(r, movie)) || null;
 
 export const getUserLogs = async (user) => {
   if (!user) throw new Error("User must be authenticated to view logs");

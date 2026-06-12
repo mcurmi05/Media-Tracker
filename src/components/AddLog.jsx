@@ -39,7 +39,6 @@ export default function AddLog({movie}){
             .from("logs")
             .insert(
                 {
-                    imdb_movie_id: full.id,
                     user_id: user.id,
                     movie_entry_id: movieEntryId,
                 })

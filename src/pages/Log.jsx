@@ -1,5 +1,6 @@
 import LogComponent from "../components/LogComponent.jsx";
 import { useRatings } from "../contexts/UserRatingsContext.jsx";
+import { ratingMatchesMovie } from "../services/ratingsfromtable.js";
 import "../styles/Log.css";
 import { useLogs } from "../contexts/UserLogsContext.jsx";
 import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
@@ -137,9 +138,10 @@ function Log() {
     return Number.isFinite(y) && y > 0 ? y : null;
   };
   const movieRating = (log) => {
-    const id = log.movie_object?.id;
-    if (!id) return null;
-    const found = userRatings.find((r) => r.imdb_movie_id === id);
+    if (!log.movie_object) return null;
+    const found = userRatings.find((r) =>
+      ratingMatchesMovie(r, log.movie_object),
+    );
     const v = found ? Number(found.rating) : null;
     return Number.isFinite(v) ? v : null;
   };
@@ -304,9 +306,9 @@ function Log() {
           }
           if (ratingFilter !== "all") {
             let ratingValue = null;
-            if (log.movie_object && log.movie_object.id) {
-              const found = userRatings.find(
-                (r) => r.imdb_movie_id === log.movie_object.id,
+            if (log.movie_object) {
+              const found = userRatings.find((r) =>
+                ratingMatchesMovie(r, log.movie_object),
               );
               if (found) ratingValue = found.rating;
             }
