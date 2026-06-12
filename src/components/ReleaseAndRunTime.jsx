@@ -9,9 +9,7 @@ function ReleaseAndRunTime({movie}) {
                     : `${movie.startYear}`
             ) : ""}
 
-            {movie.type==="movie"?isNaN(runtime) || runtime <= 0 ? (
-                " · Unknown runtime"
-            ) : (
+            {movie.type==="movie" && !(isNaN(runtime) || runtime <= 0) ? (
                 <>
                     {" · "}
                     {Math.floor(runtime / 60) > 0 && `${Math.floor(runtime / 60)}h`}

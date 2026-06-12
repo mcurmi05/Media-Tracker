@@ -1,8 +1,6 @@
 import "../styles/MovieCard.css";
 import { useNavigate } from "react-router-dom";
 import ReleaseAndRunTime from "./ReleaseAndRunTime.jsx";
-import MovieRatingStar from "./MovieRatingStar.jsx";
-import "../styles/MovieRatingStar.css"
 import AddLog from "./AddLog.jsx";
 import AddWatchlist from "./AddWatchlist.jsx";
 
@@ -43,10 +41,6 @@ function MovieCard({ movie }) {
             
           </div>
           <ReleaseAndRunTime movie={movie} />
-          <div className="stars-and-that">
-            <MovieRatingStar movie={movie}></MovieRatingStar>
-          </div>
-          
         </div>
       </div>
 
