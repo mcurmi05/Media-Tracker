@@ -11,7 +11,7 @@
 .search-mode-toggle {
   padding: 0.75rem 0.75rem;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background-color: #333;
   color: white;
   font-size: 0.9rem;
@@ -19,7 +19,7 @@
   cursor: pointer;
   outline: none;
   white-space: nowrap;
-  transition: background-color 0.15s;
+  transition: background-color 150ms ease, transform 160ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
@@ -30,6 +30,10 @@
 
 .search-mode-toggle:hover {
   background-color: #444;
+}
+
+.search-mode-toggle:active {
+  transform: scale(0.95);
 }
 
 .search-mode-icon {
@@ -63,25 +67,31 @@
 .search-input {
   padding: 0.75rem 1rem;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background-color: #333;
   color: white;
   font-size: 1rem;
-  width:40vw;
+  width: 40vw;
+  transition: box-shadow 150ms ease, background-color 150ms ease;
 }
 
 .search-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #666;
+  background-color: #3a3a3a;
+  box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.55);
 }
 
 .search-button {
-  background-color: #e50914;
+  background-color: var(--accent);
   color: white;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  border-radius: var(--radius-sm);
+  transition: background-color 150ms ease, transform 160ms var(--ease-out);
   white-space: nowrap;
-  align-self:center;
+  align-self: center;
+}
+
+.search-button:active {
+  transform: scale(0.95);
 }
 
 .search-button:focus,
@@ -135,12 +145,27 @@
   right: 15px;
   background: #333;
   border: 1px solid #555;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   max-height: 300px;
   overflow-y: auto;
   z-index: 1000;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  margin-top:10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  margin-top: 10px;
+  transform-origin: top center;
+  animation: search-dropdown-in 150ms var(--ease-out);
+}
+
+@keyframes search-dropdown-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-dropdown {
+    animation-duration: 1ms;
+  }
 }
 
 .dropdown-item {

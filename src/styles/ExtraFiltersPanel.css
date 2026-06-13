@@ -1,40 +1,50 @@
 .efp-wrap {
   position: relative;
   display: inline-block;
-  margin: 6px;
 }
 
 .efp-trigger {
   height: 32px;
   padding: 0 14px;
-  border: 1px solid #cccccc;
-  border-radius: 6px;
-  background-color: #3b3b3b;
-  color: #ffffff;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  color: var(--text);
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   outline: none;
   white-space: nowrap;
-  transition: background-color 120ms ease-out;
+  transition: background-color 140ms ease,
+    border-color 140ms ease,
+    transform 160ms var(--ease-out);
 }
 
-.efp-trigger:hover {
-  background-color: #4a4a4a;
+@media (hover: hover) and (pointer: fine) {
+  .efp-trigger:hover {
+    background-color: var(--surface-hover);
+  }
 }
 
 .efp-trigger:active {
   transform: scale(0.97);
 }
 
+.efp-trigger:focus-visible {
+  outline: 2px solid rgba(229, 9, 20, 0.65);
+  outline-offset: 2px;
+}
+
 .efp-trigger--active {
-  background-color: #c91919;
-  border-color: #c91919;
+  background-color: var(--accent-soft);
+  border-color: rgba(255, 255, 255, 0.85);
   font-weight: 600;
 }
 
-.efp-trigger--active:hover {
-  background-color: #a81414;
+@media (hover: hover) and (pointer: fine) {
+  .efp-trigger--active:hover {
+    background-color: #a81414;
+  }
 }
 
 .efp-panel {
@@ -52,12 +62,13 @@
   gap: 4px;
   flex-wrap: wrap;
   min-width: 320px;
-  animation: efpIn 150ms ease-out;
+  animation: efpIn 160ms var(--ease-out);
+  transform-origin: top left;
 }
 
 @keyframes efpIn {
   from {
-    transform: translateY(-6px);
+    transform: scale(0.97) translateY(-6px);
     opacity: 0;
   }
   to {

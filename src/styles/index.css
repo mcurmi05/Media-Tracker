@@ -1,4 +1,23 @@
 :root {
+  /*design tokens, use these instead of hardcoding colours*/
+  --bg: #242424;
+  --surface: #2e2e2e;
+  --surface-hover: #383838;
+  --panel: #2c2c2c;
+  --border: #3a3a3a;
+  --border-strong: #4f4f4f;
+  --text: #e8e8e8;
+  --text-dim: #8c8c8c;
+  --text-faint: #6a6a6a;
+  --accent: #e50914;
+  --accent-soft: #c91919;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  /*punchier curves than the css builtins*/
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -46,9 +65,8 @@ body {
   min-height: 100vh;
   position: relative;
   background-color: #242424;
-  /* A soft pool of light near the top gives the flat grey some depth, with a
-     hair-cooler top stop for dimension. Static and fixed on purpose: the
-     background is on screen constantly, so motion here would distract. */
+  /*soft pool of light near the top gives the flat grey some depth.
+    static + fixed on purpose, the bg is on screen constantly so motion here would distract*/
   background-image: radial-gradient(100% 60% at 50% 0%, #2b2b2f 0%, #242424 58%);
   background-repeat: no-repeat;
   background-attachment: fixed;
@@ -116,25 +134,4 @@ dialog[open] {
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
   z-index: 1001;
-}
-
-/* Filter inputs placeholder color to grey, used on Ratings/Watchlist/Log */
-.filter-input:focus {
-  outline: none;
-  box-shadow: none;
-}
-
-.filter-input::placeholder {
-  color: #898888; /* grey */
-  opacity: 1; /* Firefox */
-}
-
-/* For older Edge/IE fallbacks (harmless in modern browsers) */
-.filter-input:-ms-input-placeholder {
-  /* Internet Explorer 10-11 */
-  color: #898888;
-}
-.filter-input::-ms-input-placeholder {
-  /* Microsoft Edge */
-  color: #898888;
 }

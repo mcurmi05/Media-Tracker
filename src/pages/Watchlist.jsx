@@ -2,6 +2,7 @@ import WatchlistComponent from "../components/WatchlistComponent.jsx";
 import BookTbrComponent from "../components/BookTbrComponent.jsx";
 import Rating from "../components/Rating.jsx";
 import "../styles/Log.css";
+import "../styles/Toolbar.css";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWatchlist } from "../contexts/UserWatchlistContext.jsx";
@@ -13,6 +14,16 @@ import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
 import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
+import {
+  isTV,
+  movieYear,
+  bookYear,
+  compareNums,
+  yearInRange,
+  addedInRange,
+  imdbRatingFor,
+  imdbVotesFor,
+} from "../utils/mediaFilters.js";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
@@ -101,55 +112,12 @@ function Watchlist() {
     });
   };
 
-  const yearMatchesFilter = (y) => {
-    if (!yearFrom && !yearTo) return true;
-    if (y == null) return false;
-    if (yearFrom) {
-      const n = Number(yearFrom);
-      if (Number.isFinite(n) && y < n) return false;
-    }
-    if (yearTo) {
-      const n = Number(yearTo);
-      if (Number.isFinite(n) && y > n) return false;
-    }
-    return true;
-  };
-
-  const addedMatchesFilter = (dateStr) => {
-    if (!addedFrom && !addedTo) return true;
-    if (!dateStr) return false;
-    const ymd = String(dateStr).slice(0, 10);
-    if (!ymd) return false;
-    if (addedFrom && ymd < addedFrom) return false;
-    if (addedTo && ymd > addedTo) return false;
-    return true;
-  };
-
-  // Release year helpers for the release-date sort.
-  const movieYear = (item) => {
-    const y = Number(item.movie_object?.startYear);
-    return Number.isFinite(y) && y > 0 ? y : null;
-  };
-  const bookYear = (item) => {
-    const y = Number(item.book_entries?.release_year ?? item.release_year);
-    return Number.isFinite(y) && y > 0 ? y : null;
-  };
-  // Live IMDb rating / vote count for a movie or TV title, falling back to the
-  // value stored on the movie object until the dataset value loads.
-  const imdbRatingOf = (mo) => {
-    const v = imdbRatings[mo?.id]?.rating ?? mo?.averageRating;
-    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
-  };
-  const imdbVotesOf = (mo) => {
-    const v = imdbRatings[mo?.id]?.votes ?? mo?.numVotes;
-    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
-  };
-  const compareNumeric = (a, b) => {
-    if (a == null && b == null) return 0;
-    if (a == null) return 1;
-    if (b == null) return -1;
-    return sortDir === "asc" ? a - b : b - a;
-  };
+  //thin wrappers around the shared helpers so call sites stay short
+  const yearMatchesFilter = (y) => yearInRange(y, yearFrom, yearTo);
+  const addedMatchesFilter = (d) => addedInRange(d, addedFrom, addedTo);
+  const compareNumeric = (a, b) => compareNums(a, b, sortDir);
+  const imdbRatingOf = (mo) => imdbRatingFor(imdbRatings, mo);
+  const imdbVotesOf = (mo) => imdbVotesFor(imdbRatings, mo);
 
   const yearRange = useMemo(() => {
     const years = [];
@@ -213,14 +181,8 @@ function Watchlist() {
     [watchlistQueue],
   );
 
-  // Which movie/TV queue category a watchlist item belongs to.
-  const queueCategoryOf = (m) => {
-    const type = (m?.type || "").toLowerCase();
-    const titleType = (m?.titleType || "").toLowerCase();
-    const isTV =
-      type.includes("tv") || titleType.includes("tv") || !!m?.episodes;
-    return isTV ? "tv" : "movies";
-  };
+  //which movie/tv queue category a watchlist item belongs to
+  const queueCategoryOf = (m) => (isTV(m) ? "tv" : "movies");
 
   // Queue rows joined with their watchlist/book data, grouped by category and
   // each group ordered by queue_rank. Ranks are tracked per category, so movies,
@@ -320,14 +282,9 @@ function Watchlist() {
     const filtered = userWatchlist.filter((item) => {
       if (queuedIds.has(item.id)) return false;
       if (newSeasonFilter && !item.new_season_to_watch) return false;
-      const type = (item.movie_object?.type || "").toLowerCase();
-      const titleType = (item.movie_object?.titleType || "").toLowerCase();
-      const isTV =
-        type.includes("tv") ||
-        titleType.includes("tv") ||
-        item.movie_object?.episodes;
-      if (mediaTypeFilter === "movies" && isTV) return false;
-      if (mediaTypeFilter === "tv" && !isTV) return false;
+      const itemIsTV = isTV(item.movie_object);
+      if (mediaTypeFilter === "movies" && itemIsTV) return false;
+      if (mediaTypeFilter === "tv" && !itemIsTV) return false;
       if (searchTerm.trim()) {
         const title = item.movie_object?.primaryTitle || "";
         if (!title.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -474,76 +431,31 @@ function Watchlist() {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "100%",
-      }}
-    >
-      <h1 style={{ textAlign: "center", marginTop: "-20px" }}>
+    <div className="page-stack">
+      <h1 className="page-title">
         {isBooksView ? "Your TBR list" : "Your Watchlist"}
       </h1>
-      <div style={{ height: "18px" }} />
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: "20px",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div
-          style={{
-            position: "relative",
-            display: "inline-flex",
-            alignItems: "center",
-            margin: "6px",
-          }}
-        >
+      <div className="toolbar">
+        <div className="toolbar-search">
           <input
-            className="filter-input"
+            className="toolbar-input"
             type="text"
             placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              padding: "8px",
-              paddingRight: searchTerm ? "26px" : "8px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              width: "180px",
-              textAlign: "center",
-              backgroundColor: "#3b3b3b",
-              color: "#ffffff",
-            }}
           />
           {searchTerm && (
             <button
+              className="toolbar-clear"
               onClick={() => setSearchTerm("")}
               aria-label="Clear search"
-              style={{
-                position: "absolute",
-                right: "6px",
-                background: "none",
-                border: "none",
-                color: "#aaa",
-                cursor: "pointer",
-                fontSize: "13px",
-                lineHeight: 1,
-                padding: 0,
-                outline: "none",
-              }}
             >
               {String.fromCharCode(0x2715)}
             </button>
           )}
         </div>
         <select
+          className="toolbar-select"
           value={mediaTypeFilter}
           onChange={(e) => {
             const next = e.target.value;
@@ -551,18 +463,6 @@ function Watchlist() {
             if (next === "books" || next === "all") {
               setNewSeasonFilter(false);
             }
-          }}
-          style={{
-            height: "32px",
-            padding: "0 10px",
-            border: "1px solid #cccccc",
-            borderRadius: "6px",
-            backgroundColor: "#3b3b3b",
-            color: "#ffffff",
-            fontSize: "0.8rem",
-            outline: "none",
-            textAlign: "center",
-            margin: "6px",
           }}
         >
           <option value="all">All</option>
@@ -615,25 +515,12 @@ function Watchlist() {
           />
           {mediaTypeFilter !== "books" && (
             <button
+              className={`toolbar-btn${newSeasonFilter ? " toolbar-btn--active" : ""}`}
               onClick={() => {
                 const next = !newSeasonFilter;
                 setNewSeasonFilter(next);
                 if (next) setMediaTypeFilter("tv");
                 else setMediaTypeFilter("all");
-              }}
-              style={{
-                height: "32px",
-                padding: "0 12px",
-                border: newSeasonFilter ? "2px solid #ffffff" : "1px solid #3a3a3a",
-                borderRadius: "6px",
-                backgroundColor: newSeasonFilter ? "#c91919" : "#2e2e2e",
-                color: "#ffffff",
-                fontSize: "0.8rem",
-                fontWeight: newSeasonFilter ? "600" : "400",
-                cursor: "pointer",
-                margin: "4px",
-                whiteSpace: "nowrap",
-                outline: "none",
               }}
             >
               New Season
@@ -641,62 +528,20 @@ function Watchlist() {
           )}
         </ExtraFiltersPanel>
         <button
+          className="toolbar-icon-btn"
           onClick={goToRatings}
           title="View ratings with these filters"
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-            margin: "6px",
-            display: "inline-flex",
-            alignItems: "center",
-            outline: "none",
-          }}
         >
-          <img
-            src="/ratings.png"
-            alt="Go to Ratings"
-            style={{ width: 22, height: 22 }}
-          />
+          <img src="/ratings.png" alt="Go to Ratings" />
         </button>
         <button
+          className="toolbar-icon-btn"
           onClick={goToLog}
           title="View log with these filters"
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-            margin: "6px",
-            display: "inline-flex",
-            alignItems: "center",
-            outline: "none",
-          }}
         >
-          <img
-            src="/log.png"
-            alt="Go to Log"
-            style={{ width: 22, height: 22 }}
-          />
+          <img src="/log.png" alt="Go to Log" />
         </button>
-        <span
-          style={{
-            fontWeight: "bold",
-            background: "#ff0000",
-            color: "white",
-            borderRadius: "12px",
-            padding: "2px 7px",
-            fontSize: "0.95em",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
-            letterSpacing: "0.5px",
-            verticalAlign: "middle",
-            display: "inline-block",
-            margin: "6px",
-          }}
-        >
-          {displayCount}
-        </span>
+        <span className="toolbar-count">{displayCount}</span>
       </div>
       {queueCount > 0 && (
         <div
@@ -860,32 +705,19 @@ function Watchlist() {
         </div>
       )}
       {displayCount === 0 && queueCount === 0 && (
-        <div style={{ textAlign: "center" }}>
+        <div className="empty-msg">
           {searchTerm
             ? `No watchlist items found for "${searchTerm}"!`
             : "No watchlist items found!"}
         </div>
       )}
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
+      <div className="list-col">
         {isAllView
           ? combinedAll.map((item) =>
               item.kind === "movie" ? (
                 <div
                   key={item.id}
-                  style={{
-                    marginBottom: "1rem",
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
+                  className="list-row"
                 >
                   <WatchlistComponent
                     watchlist_id={item.data.id}
@@ -897,13 +729,7 @@ function Watchlist() {
               ) : (
                 <div
                   key={item.id}
-                  style={{
-                    marginBottom: "1rem",
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
+                  className="list-row"
                 >
                   <BookTbrComponent tbrEntry={item.data} />
                 </div>
@@ -913,13 +739,7 @@ function Watchlist() {
             ? filteredBookTbr.map((entry) => (
                 <div
                   key={entry.id}
-                  style={{
-                    marginBottom: "1rem",
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
+                  className="list-row"
                 >
                   <BookTbrComponent tbrEntry={entry} />
                 </div>
@@ -928,13 +748,7 @@ function Watchlist() {
                 watchlist_entry.id ? (
                   <div
                     key={watchlist_entry.id}
-                    style={{
-                      marginBottom: "1rem",
-                      width: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                    }}
+                    className="list-row"
                   >
                     <WatchlistComponent
                       watchlist_id={watchlist_entry.id}

@@ -2,6 +2,17 @@ import LogComponent from "../components/LogComponent.jsx";
 import { useRatings } from "../contexts/UserRatingsContext.jsx";
 import { ratingMatchesMovie } from "../services/ratingsfromtable.js";
 import "../styles/Log.css";
+import "../styles/Toolbar.css";
+import {
+  isTV,
+  movieYear,
+  bookYear,
+  compareNums,
+  yearInRange,
+  addedInRange,
+  imdbRatingFor,
+  imdbVotesFor,
+} from "../utils/mediaFilters.js";
 import { useLogs } from "../contexts/UserLogsContext.jsx";
 import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
 import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
@@ -102,41 +113,8 @@ function Log() {
     });
   };
 
-  const yearMatchesFilter = (y) => {
-    if (!yearFrom && !yearTo) return true;
-    if (y == null) return false;
-    if (yearFrom) {
-      const n = Number(yearFrom);
-      if (Number.isFinite(n) && y < n) return false;
-    }
-    if (yearTo) {
-      const n = Number(yearTo);
-      if (Number.isFinite(n) && y > n) return false;
-    }
-    return true;
-  };
-
-  const addedMatchesFilter = (dateStr) => {
-    if (!addedFrom && !addedTo) return true;
-    if (!dateStr) return false;
-    const ymd = String(dateStr).slice(0, 10);
-    if (!ymd) return false;
-    if (addedFrom && ymd < addedFrom) return false;
-    if (addedTo && ymd > addedTo) return false;
-    return true;
-  };
-
-  // Release year helpers used by the release-date sort.
-  const movieYear = (log) => {
-    const y = Number(log.movie_object?.startYear);
-    return Number.isFinite(y) && y > 0 ? y : null;
-  };
-  const bookYear = (bookLog) => {
-    const y = Number(
-      bookLog.book_entries?.release_year ?? bookLog.release_year,
-    );
-    return Number.isFinite(y) && y > 0 ? y : null;
-  };
+  const yearMatchesFilter = (y) => yearInRange(y, yearFrom, yearTo);
+  const addedMatchesFilter = (d) => addedInRange(d, addedFrom, addedTo);
   const movieRating = (log) => {
     if (!log.movie_object) return null;
     const found = userRatings.find((r) =>
@@ -149,17 +127,9 @@ function Log() {
     const v = Number(findRatingForBook(bookLog)?.book_rating);
     return Number.isFinite(v) ? v : null;
   };
-  // Live IMDb rating / vote count for a movie or TV log, falling back to the
-  // value stored on the movie object until the dataset value loads. Books have
-  // no IMDb entry, so they return null and sink to the bottom of these sorts.
-  const imdbRatingOf = (mo) => {
-    const v = imdbRatings[mo?.id]?.rating ?? mo?.averageRating;
-    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
-  };
-  const imdbVotesOf = (mo) => {
-    const v = imdbRatings[mo?.id]?.votes ?? mo?.numVotes;
-    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
-  };
+  //live imdb rating/votes, books have no imdb entry so they null out and sink in these sorts
+  const imdbRatingOf = (mo) => imdbRatingFor(imdbRatings, mo);
+  const imdbVotesOf = (mo) => imdbVotesFor(imdbRatings, mo);
   const yearRange = useMemo(() => {
     const years = [];
     userLogs.forEach((l) => {
@@ -183,13 +153,7 @@ function Log() {
     return Array.from(set).sort();
   }, [userLogs]);
 
-  // Nulls sink to the bottom regardless of direction.
-  const compareNumeric = (a, b) => {
-    if (a == null && b == null) return 0;
-    if (a == null) return 1;
-    if (b == null) return -1;
-    return sortDir === "asc" ? a - b : b - a;
-  };
+  const compareNumeric = (a, b) => compareNums(a, b, sortDir);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -290,15 +254,10 @@ function Log() {
   const filteredLogs = needsMovieData
     ? userLogs
         .filter((log) => {
-          const type = (log.movie_object?.type || "").toLowerCase();
-          const titleType = (log.movie_object?.titleType || "").toLowerCase();
-          const isTV =
-            type.includes("tv") ||
-            titleType.includes("tv") ||
-            log.movie_object?.episodes;
-          if (mediaTypeFilter === "movies" && isTV) return false;
-          if (mediaTypeFilter === "tv" && !isTV) return false;
-          // "all" and "moviesAndTV" include both movies and TV
+          const itemIsTV = isTV(log.movie_object);
+          if (mediaTypeFilter === "movies" && itemIsTV) return false;
+          if (mediaTypeFilter === "tv" && !itemIsTV) return false;
+          //"all" and "moviesAndTV" include both
           if (searchTerm.trim()) {
             const title = log.movie_object?.primaryTitle || "";
             if (!title.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -401,89 +360,31 @@ function Log() {
         : filteredLogs.length;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "100%",
-      }}
-    >
-      <h1 style={{ textAlign: "center", marginTop: "-20px" }}>Your Log</h1>
-      <div style={{ height: "18px" }} />
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: "20px",
-          gap: "8px",
-          flexWrap: "wrap",
-          padding: "0 10px",
-        }}
-      >
-        <div
-          style={{
-            position: "relative",
-            display: "inline-flex",
-            alignItems: "center",
-            margin: "6px",
-          }}
-        >
+    <div className="page-stack">
+      <h1 className="page-title">Your Log</h1>
+      <div className="toolbar">
+        <div className="toolbar-search">
           <input
-            className="filter-input"
+            className="toolbar-input"
             type="text"
             placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              padding: "8px",
-              paddingRight: searchTerm ? "26px" : "8px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              width: "min(180px, 40vw)",
-              textAlign: "center",
-              backgroundColor: "#3b3b3b",
-              color: "#ffffff",
-            }}
           />
           {searchTerm && (
             <button
+              className="toolbar-clear"
               onClick={() => setSearchTerm("")}
               aria-label="Clear search"
-              style={{
-                position: "absolute",
-                right: "6px",
-                background: "none",
-                border: "none",
-                color: "#aaa",
-                cursor: "pointer",
-                fontSize: "13px",
-                lineHeight: 1,
-                padding: 0,
-                outline: "none",
-              }}
             >
               ×
             </button>
           )}
         </div>
         <select
+          className="toolbar-select"
           value={mediaTypeFilter}
           onChange={(e) => setMediaTypeFilter(e.target.value)}
-          style={{
-            height: "32px",
-            padding: "0 10px",
-            border: "1px solid #cccccc",
-            borderRadius: "6px",
-            backgroundColor: "#3b3b3b",
-            color: "#ffffff",
-            fontSize: "0.8rem",
-            outline: "none",
-            textAlign: "center",
-            margin: "6px",
-          }}
         >
           <option value="all">All</option>
           <option value="moviesAndTV">Movies & TV</option>
@@ -546,90 +447,35 @@ function Log() {
           />
         </ExtraFiltersPanel>
         <button
+          className="toolbar-icon-btn"
           onClick={goToRatings}
           title="View ratings with these filters"
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-            margin: "6px",
-            display: "inline-flex",
-            alignItems: "center",
-            outline: "none",
-          }}
         >
-          <img
-            src="/ratings.png"
-            alt="Go to Ratings"
-            style={{ width: 22, height: 22 }}
-          />
+          <img src="/ratings.png" alt="Go to Ratings" />
         </button>
         <button
+          className="toolbar-icon-btn"
           onClick={goToWatchlist}
           title="View watchlist with these filters"
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-            margin: "6px",
-            display: "inline-flex",
-            alignItems: "center",
-            outline: "none",
-          }}
         >
-          <img
-            src="/watchlist-navbar.png"
-            alt="Go to Watchlist"
-            style={{ width: 22, height: 22 }}
-          />
+          <img src="/watchlist-navbar.png" alt="Go to Watchlist" />
         </button>
-        <span
-          style={{
-            fontWeight: "bold",
-            background: "#ff0000",
-            color: "white",
-            borderRadius: "12px",
-            padding: "2px 7px",
-            fontSize: "0.95em",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
-            letterSpacing: "0.5px",
-            verticalAlign: "middle",
-            display: "inline-block",
-            margin: "6px",
-          }}
-        >
-          {displayCount}
-        </span>
+        <span className="toolbar-count">{displayCount}</span>
       </div>
       {mediaTypeFilter === "all" ? (
         // Combined view: movies, TV, and books interleaved by date
         <>
           {combinedAllItems.length === 0 && (
-            <div style={{ textAlign: "center" }}>
+            <div className="empty-msg">
               No logs match your applied filters
             </div>
           )}
-          <div
-            style={{
-              width: "100%",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
+          <div className="list-col">
             {combinedAllItems.map((item) =>
               item.kind === "log" ? (
                 <div
                   key={item.id}
-                  style={{
-                    marginBottom: "1rem",
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
+                  className="list-row"
                 >
                   <LogComponent
                     log_id={item.data.id}
@@ -642,13 +488,7 @@ function Log() {
               ) : (
                 <div
                   key={item.id}
-                  style={{
-                    marginBottom: "1rem",
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
+                  className="list-row"
                 >
                   <BookLogCard bookLog={item.data} />
                 </div>
@@ -660,21 +500,13 @@ function Log() {
         // Book logs section
         <>
           {filteredBookLogs.length === 0 && (
-            <div style={{ textAlign: "center" }}>
+            <div className="empty-msg">
               {bookLogs.length === 0
                 ? "No book logs yet. Add your first book!"
                 : "No book logs match your applied filters"}
             </div>
           )}
-          <div
-            style={{
-              width: "100%",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "1rem",
-            }}
-          >
+          <div className="list-col" style={{ gap: "1rem" }}>
             {filteredBookLogs.map((bookLog) => (
               <BookLogCard key={bookLog.id} bookLog={bookLog} />
             ))}
@@ -684,29 +516,16 @@ function Log() {
         // Movie/TV logs section
         <>
           {filteredLogs.length === 0 && (
-            <div style={{ textAlign: "center" }}>
+            <div className="empty-msg">
               No logs match your applied filters
             </div>
           )}
-          <div
-            style={{
-              width: "100%",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
+          <div className="list-col">
             {filteredLogs.map((log) =>
               log.id ? (
                 <div
                   key={log.id}
-                  style={{
-                    marginBottom: "1rem",
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
+                  className="list-row"
                 >
                   <LogComponent
                     log_id={log.id}

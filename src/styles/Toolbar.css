@@ -1,0 +1,286 @@
+/*shared toolbar + page scaffolding for ratings, watchlist and log.
+  these all used to be inline style objects copy-pasted per page*/
+
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.page-title {
+  text-align: center;
+  margin: -20px 0 18px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 6px 10px;
+  flex-wrap: wrap;
+  padding: 0 10px;
+}
+
+/*generic vertical list of cards*/
+.list-col {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.list-row {
+  margin-bottom: 1rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.empty-msg {
+  text-align: center;
+  color: var(--text-dim);
+}
+
+/*---- search input ----*/
+.toolbar-search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.toolbar-input {
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  width: min(180px, 40vw);
+  text-align: center;
+  background-color: var(--surface);
+  color: var(--text);
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.toolbar-search .toolbar-input {
+  padding-right: 26px;
+}
+
+.toolbar-input::placeholder {
+  color: #898888;
+  opacity: 1;
+}
+
+.toolbar-input:focus {
+  outline: none;
+  border-color: #7a7a7a;
+  background-color: var(--surface-hover);
+}
+
+.toolbar-clear {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  outline: none;
+  transition: color 120ms ease;
+}
+
+.toolbar-clear:hover {
+  color: var(--text);
+}
+
+/*---- selects ----*/
+.toolbar-select {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  outline: none;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toolbar-select:hover {
+    background-color: var(--surface-hover);
+  }
+}
+
+/*---- buttons ----*/
+.toolbar-btn {
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  outline: none;
+  text-align: center;
+  /*transform is here so press feedback works everywhere*/
+  transition: background-color 120ms ease, border-color 120ms ease,
+    transform 160ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toolbar-btn:hover {
+    background-color: var(--surface-hover);
+  }
+}
+
+.toolbar-btn:active {
+  transform: scale(0.97);
+}
+
+/*active state keeps 1px border so nothing shifts, brightness does the talking*/
+.toolbar-btn--active {
+  background-color: var(--accent-soft);
+  border-color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toolbar-btn--active:hover {
+    background-color: #a81414;
+  }
+}
+
+/*square variant for icon-ish buttons like the sort direction arrow*/
+.toolbar-btn--square {
+  width: 32px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/*borderless icon button, used for the cross page shortcuts*/
+.toolbar-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  outline: none;
+  transition: background-color 120ms ease, transform 160ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toolbar-icon-btn:hover {
+    background-color: var(--surface-hover);
+  }
+}
+
+.toolbar-icon-btn:active {
+  transform: scale(0.94);
+}
+
+.toolbar-icon-btn img {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+/*---- count pill ----*/
+.toolbar-count {
+  font-weight: 600;
+  background: var(--accent);
+  color: white;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.85em;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/*---- dropdown menu (sort by etc) ----*/
+.menu-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  background: var(--panel);
+  border: 1px solid #444;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  z-index: 50;
+  overflow: hidden;
+  transform-origin: top left;
+  animation: menu-pop-in 140ms var(--ease-out);
+}
+
+@keyframes menu-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-4px);
+  }
+}
+
+.menu-pop-item {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  outline: none;
+  text-align: left;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .menu-pop-item:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.menu-pop-item--active {
+  background: #444;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .menu-pop-item--active:hover {
+    background: #555;
+  }
+}
+
+/*keyboard focus only, mouse users never see it*/
+.toolbar-btn:focus-visible,
+.toolbar-select:focus-visible,
+.toolbar-icon-btn:focus-visible,
+.toolbar-clear:focus-visible,
+.menu-pop-item:focus-visible {
+  outline: 2px solid rgba(229, 9, 20, 0.65);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-pop {
+    animation-duration: 1ms;
+  }
+  .toolbar-btn,
+  .toolbar-icon-btn {
+    transition-property: background-color, border-color;
+  }
+}

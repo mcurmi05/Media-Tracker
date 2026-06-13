@@ -11,6 +11,8 @@ import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
 import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
+import "../styles/Toolbar.css";
+import { isTV, movieYear, bookYear, compareNums, yearInRange, addedInRange, imdbRatingFor, imdbVotesFor } from "../utils/mediaFilters.js";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
@@ -57,7 +59,7 @@ function Ratings() {
       (s.sortDir && s.sortDir !== "desc")
     );
   });
-  // Rank mode: none | movies | tv | books
+  //rank mode: none | movies | tv | books
   const [rankModeType, setRankModeType] = useState("none");
 
   const activeFilterCount =
@@ -100,39 +102,14 @@ function Ratings() {
     });
   };
 
-  const yearMatchesFilter = (y) => {
-    if (!yearFrom && !yearTo) return true;
-    if (y == null) return false;
-    if (yearFrom) {
-      const n = Number(yearFrom);
-      if (Number.isFinite(n) && y < n) return false;
-    }
-    if (yearTo) {
-      const n = Number(yearTo);
-      if (Number.isFinite(n) && y > n) return false;
-    }
-    return true;
-  };
+  //thin wrappers around the shared helpers so call sites stay short
+  const yearMatchesFilter = (y) => yearInRange(y, yearFrom, yearTo);
+  const addedMatchesFilter = (d) => addedInRange(d, addedFrom, addedTo);
+  const compareNumeric = (a, b) => compareNums(a, b, sortDir);
+  //live imdb rating/votes, falls back to whats on the movie object until the dataset loads
+  const imdbRatingOf = (mo) => imdbRatingFor(imdbRatings, mo);
+  const imdbVotesOf = (mo) => imdbVotesFor(imdbRatings, mo);
 
-  const addedMatchesFilter = (dateStr) => {
-    if (!addedFrom && !addedTo) return true;
-    if (!dateStr) return false;
-    const ymd = String(dateStr).slice(0, 10);
-    if (!ymd) return false;
-    if (addedFrom && ymd < addedFrom) return false;
-    if (addedTo && ymd > addedTo) return false;
-    return true;
-  };
-
-  // Sort helpers
-  const movieYear = (r) => {
-    const y = Number(r.movie_object?.startYear);
-    return Number.isFinite(y) && y > 0 ? y : null;
-  };
-  const bookYear = (r) => {
-    const y = Number(r.book_entries?.release_year ?? r.release_year);
-    return Number.isFinite(y) && y > 0 ? y : null;
-  };
   const movieRatingValue = (r) => {
     const v = Number(r.rating);
     return Number.isFinite(v) ? v : null;
@@ -140,23 +117,6 @@ function Ratings() {
   const bookRatingValue = (r) => {
     const v = Number(r.book_rating);
     return Number.isFinite(v) ? v : null;
-  };
-  // Live IMDb rating / vote count for a rated movie or TV title, falling back
-  // to the value stored on the movie object until the dataset value loads.
-  const imdbRatingOf = (mo) => {
-    const v = imdbRatings[mo?.id]?.rating ?? mo?.averageRating;
-    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
-  };
-  const imdbVotesOf = (mo) => {
-    const v = imdbRatings[mo?.id]?.votes ?? mo?.numVotes;
-    return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
-  };
-  // Nulls sink to the bottom regardless of direction.
-  const compareNumeric = (a, b) => {
-    if (a == null && b == null) return 0;
-    if (a == null) return 1;
-    if (b == null) return -1;
-    return sortDir === "asc" ? a - b : b - a;
   };
 
   const yearRange = useMemo(() => {
@@ -182,7 +142,7 @@ function Ratings() {
     return Array.from(set).sort();
   }, [userRatings]);
 
-  // When rank mode is enabled, force rating filter and media filter appropriately
+  //rank mode forces the rating + media filters to match
   useEffect(() => {
     if (rankModeType === "movies") {
       setRatingFilter("10");
@@ -206,18 +166,8 @@ function Ratings() {
     }
   };
 
-  // Avoid early return before hooks; we'll render a loading state in JSX
-
-  // Helper to determine if an item is a TV show
-  const isTVItem = (item) => {
-    const type = (item.movie_object?.type || "").toLowerCase();
-    const titleType = (item.movie_object?.titleType || "").toLowerCase();
-    return (
-      type.includes("tv") ||
-      titleType.includes("tv") ||
-      item.movie_object?.episodes
-    );
-  };
+  //no early return before hooks, loading state renders in jsx
+  const isTVItem = (item) => isTV(item.movie_object);
 
   const includeMoviesTV =
     mediaTypeFilter === "all" ||
@@ -229,20 +179,13 @@ function Ratings() {
 
   const filteredRatings = userRatings.filter((rating) => {
     if (!includeMoviesTV) return false;
-    const type = (rating.movie_object?.type || "").toLowerCase();
-    const titleType = (rating.movie_object?.titleType || "").toLowerCase();
-    const isTV =
-      type.includes("tv") ||
-      titleType.includes("tv") ||
-      rating.movie_object?.episodes;
-    if (mediaTypeFilter === "movies" && isTV) return false;
-    if (mediaTypeFilter === "tv" && !isTV) return false;
-    // Filter by search term
+    const itemIsTV = isTVItem(rating);
+    if (mediaTypeFilter === "movies" && itemIsTV) return false;
+    if (mediaTypeFilter === "tv" && !itemIsTV) return false;
     if (searchTerm.trim()) {
       const title = rating.movie_object?.primaryTitle || "";
       if (!title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     }
-    // Filter by rating value
     if (ratingFilter !== "all") {
       if (Number(rating.rating) !== Number(ratingFilter)) return false;
     }
@@ -503,88 +446,31 @@ function Ratings() {
   if (isLoading) return <Loader />;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "100%",
-      }}
-    >
-      <h1 style={{ textAlign: "center", marginTop: "-20px" }}>Your Ratings</h1>
-      <div style={{ height: "18px" }} />
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: "20px",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div
-          style={{
-            position: "relative",
-            display: "inline-flex",
-            alignItems: "center",
-            margin: "6px",
-          }}
-        >
+    <div className="page-stack">
+      <h1 className="page-title">Your Ratings</h1>
+      <div className="toolbar">
+        <div className="toolbar-search">
           <input
-            className="filter-input"
+            className="toolbar-input"
             type="text"
             placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              padding: "8px",
-              paddingRight: searchTerm ? "26px" : "8px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              width: "180px",
-              textAlign: "center",
-              backgroundColor: "#3b3b3b",
-              color: "#ffffff",
-            }}
           />
           {searchTerm && (
             <button
+              className="toolbar-clear"
               onClick={() => setSearchTerm("")}
               aria-label="Clear search"
-              style={{
-                position: "absolute",
-                right: "6px",
-                background: "none",
-                border: "none",
-                color: "#aaa",
-                cursor: "pointer",
-                fontSize: "13px",
-                lineHeight: 1,
-                padding: 0,
-                outline: "none",
-              }}
             >
               ×
             </button>
           )}
         </div>
         <select
+          className="toolbar-select"
           value={mediaTypeFilter}
           onChange={(e) => setMediaTypeFilter(e.target.value)}
-          style={{
-            height: "32px",
-            padding: "0 10px",
-            border: "1px solid #cccccc",
-            borderRadius: "6px",
-            backgroundColor: "#3b3b3b",
-            color: "#ffffff",
-            fontSize: "0.8rem",
-            outline: "none",
-            textAlign: "center",
-            margin: "6px",
-          }}
         >
           <option value="all">All</option>
           <option value="moviesAndTV">Movies & TV</option>
@@ -647,7 +533,7 @@ function Ratings() {
           />
         </ExtraFiltersPanel>
 
-        {/* Rank mode toggles */}
+        {/*rank mode toggles*/}
         {[
           { value: "movies", label: "Rank 10s Movies" },
           { value: "tv", label: "Rank 10s TV" },
@@ -657,91 +543,31 @@ function Ratings() {
           return (
             <button
               key={value}
+              className={`toolbar-btn${active ? " toolbar-btn--active" : ""}`}
               onClick={() => setRankModeType(active ? "none" : value)}
-              style={{
-                height: "32px",
-                boxSizing: "border-box",
-                padding: "0 12px",
-                border:
-                  (active ? "2px" : "1px") +
-                  " solid " +
-                  (active ? "#ffffff" : "#cccccc"),
-                borderRadius: "6px",
-                backgroundColor: active ? "#e50914" : "#3b3b3b",
-                color: "#ffffff",
-                fontSize: "0.8rem",
-                fontWeight: "bold",
-                cursor: "pointer",
-                margin: "6px",
-                whiteSpace: "nowrap",
-                transition: "background 0.2s, border-color 0.2s",
-                outline: "none",
-              }}
             >
               {label}
             </button>
           );
         })}
         <button
+          className="toolbar-icon-btn"
           onClick={goToWatchlist}
           title="View watchlist with these filters"
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-            margin: "6px",
-            display: "inline-flex",
-            alignItems: "center",
-            outline: "none",
-          }}
         >
-          <img
-            src="/watchlist-navbar.png"
-            alt="Go to Watchlist"
-            style={{ width: 22, height: 22 }}
-          />
+          <img src="/watchlist-navbar.png" alt="Go to Watchlist" />
         </button>
         <button
+          className="toolbar-icon-btn"
           onClick={goToLog}
           title="View log with these filters"
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-            margin: "6px",
-            display: "inline-flex",
-            alignItems: "center",
-            outline: "none",
-          }}
         >
-          <img
-            src="/log.png"
-            alt="Go to Log"
-            style={{ width: 22, height: 22 }}
-          />
+          <img src="/log.png" alt="Go to Log" />
         </button>
-        <span
-          style={{
-            fontWeight: "bold",
-            background: "#ff0000",
-            color: "white",
-            borderRadius: "12px",
-            padding: "2px 7px",
-            fontSize: "0.95em",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
-            letterSpacing: "0.5px",
-            verticalAlign: "middle",
-            display: "inline-block",
-            margin: "6px",
-          }}
-        >
-          {displayCount}
-        </span>
+        <span className="toolbar-count">{displayCount}</span>
       </div>
       {displayCount === 0 ? (
-        <div style={{ textAlign: "center" }}>
+        <div className="empty-msg">
           {isAllView
             ? `No ratings found${searchTerm ? ` for "${searchTerm}"` : ""}!`
             : isBooksView
@@ -749,26 +575,13 @@ function Ratings() {
               : `No ratings found for "${searchTerm}"!`}
         </div>
       ) : null}
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
+      <div className="list-col">
         {isAllView
           ? combinedAll.map((item) =>
               item.kind === "rating" ? (
                 <div
                   key={item.id}
-                  style={{
-                    marginBottom: "1rem",
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
+                  className="list-row"
                 >
                   <div className="div-wrapper-rating-testing">
                     <Rating
@@ -788,13 +601,7 @@ function Ratings() {
               ) : (
                 <div
                   key={item.id}
-                  style={{
-                    marginBottom: "1rem",
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
+                  className="list-row"
                 >
                   <div className="div-wrapper-rating-testing">
                     <BookRating
@@ -809,13 +616,7 @@ function Ratings() {
           ? sortedBooks.map((bookLog) => (
               <div
                 key={bookLog.id}
-                style={{
-                  marginBottom: "1rem",
-                  width: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                }}
+                className="list-row"
               >
                 <div className="div-wrapper-rating-testing">
                   <BookRating
@@ -833,13 +634,7 @@ function Ratings() {
           : sortedRatings.map((rating) => (
               <div
                 key={rating.id || rating.movie_entry_id}
-                style={{
-                  marginBottom: "1rem",
-                  width: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                }}
+                className="list-row"
               >
                 <div className="div-wrapper-rating-testing">
                   <Rating

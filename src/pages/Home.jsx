@@ -11,7 +11,7 @@ import { useCache } from "../contexts/PopularMoviesCacheContext";
 import { getPopularMovies, getPopularTV } from "../services/api.js";
 import { SignIn } from "./SignIn.jsx";
 import { bookDetailsRoute } from "../utils/goodreads.js";
-import "../styles/Home/Home.css";
+import "../styles/Home.css";
 
 /* ---------- helpers ---------- */
 
