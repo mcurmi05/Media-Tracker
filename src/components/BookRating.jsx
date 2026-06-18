@@ -223,7 +223,7 @@ function BookRating({
                 )}
               </div>
             )}
-            <div style={{ display: "flex" }}>
+            <div className="rating-actions" style={{ display: "flex" }}>
               <div className="rating-star-div">
                 <span className="user-rating-movie-card">
                   {!bookLog.book_rating || bookLog.book_rating === 0 ? (
@@ -259,7 +259,7 @@ function BookRating({
                   )}
                 </span>
               </div>
-              <div style={{ margin: "5px" }}></div>
+              <div className="rating-action-spacer" style={{ margin: "5px" }}></div>
               <div style={{ display: "flex", alignItems: "center" }}>
                 <AddBookWatchlist book={bookLog} />
                 <AddBookLogButton book={bookLog} />
@@ -267,10 +267,7 @@ function BookRating({
             </div>
           </div>
 
-          <div
-            className="rating-page-subtitle"
-            style={{ display: "flex", alignItems: "baseline", gap: "24px" }}
-          >
+          <div className="rating-page-subtitle">
             <span style={{ fontSize: "0.95em" }}>
               by{" "}
               <span
@@ -300,7 +297,7 @@ function BookRating({
                   <>
                     Rated: {ratingDateInfo.ratedFormatted}
                     {ratingDateInfo.changed ? (
-                      <span style={{ fontWeight: 600 }}>
+                      <span className="rating-last-updated" style={{ fontWeight: 600 }}>
                         {" "}
                         (Last updated: {ratingDateInfo.updatedFormatted}
                         {ratingDateInfo.previousRating != null

@@ -321,12 +321,26 @@ export default async function handler(req, res) {
   try {
     if (action === "trending-movies" || action === "trending-tv") {
       const mt = action === "trending-tv" ? "tv" : "movie";
+      // Fetch a couple of extra pages (6 -> ~120) so that after de-duping we
+      // still have a full 100 unique titles.
       const [results, { movieGenres, tvGenres }] = await Promise.all([
-        tmdbPages(`/trending/${mt}/week`, 5, key),
+        tmdbPages(`/trending/${mt}/week`, 6, key),
         getGenreMaps(key),
       ]);
       const genreMap = mt === "tv" ? tvGenres : movieGenres;
-      const items = results.map((it) => mapListItem(it, mt, genreMap)).filter(Boolean);
+      const mapped = results.map((it) => mapListItem(it, mt, genreMap)).filter(Boolean);
+      // TMDB's paginated trending can repeat a title across pages as popularity
+      // shifts mid-fetch; dedupe so every row has a unique id (duplicate keys
+      // otherwise break list reordering when the client re-sorts), then cap at
+      // the top 100.
+      const seenIds = new Set();
+      const items = mapped
+        .filter((it) => {
+          if (seenIds.has(it.tmdb_id)) return false;
+          seenIds.add(it.tmdb_id);
+          return true;
+        })
+        .slice(0, 100);
       // Resolve IMDb ids so the trending list can show live IMDb ratings.
       await attachImdbIds(items, key);
       res.setHeader(

@@ -57,7 +57,8 @@
 
 .rating-page-subtitle {
   display: flex;
-  gap: 1rem;
+  align-items: baseline;
+  gap: 24px;
   flex-wrap:wrap;
 }
 
@@ -95,8 +96,28 @@
   }
 }
 
+/* No blue mobile tap flash on the page, and a smooth scale press on the row's
+   poster + action buttons (matches the trending page feel). */
+.page-stack {
+  -webkit-tap-highlight-color: transparent;
+}
+.container .rating-poster,
+.container .user-rating-movie-card,
+.container .white-highlight,
+.container .title-and-star button {
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.container .rating-poster:active {
+  transform: scale(0.96);
+}
+.container .user-rating-movie-card:active,
+.container .white-highlight:active,
+.container .title-and-star button:active {
+  transform: scale(0.88);
+}
+
 /* ---- mobile: compact Letterboxd-style rows ---- */
-@media (max-width: 500px) {
+@media (max-width: 850px) {
   .container {
     margin-top: 0;
     padding: 10px 6px 10px 8px;
@@ -106,6 +127,14 @@
   .top-stuff {
     align-items: flex-start;
     gap: 0;
+  }
+
+  /* Tight vertical stack, top-aligned next to the poster. */
+  .right-stuff {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 2px;
   }
 
   /* small poster, fixed so every row lines up */
@@ -128,7 +157,7 @@
     min-width: 0;
     margin: 0;
     font-size: 0.98rem;
-    line-height: 1.25;
+    line-height: 1.2;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -142,6 +171,10 @@
     flex-shrink: 0;
     align-items: center;
     gap: 0;
+  }
+  /* rating star sits right next to the watchlist button */
+  .rating-action-spacer {
+    display: none;
   }
 
   /* Scale the rating star down and undo the desktop alignment hacks
@@ -166,16 +199,30 @@
 
   /* Tight meta line under the title (year · runtime, IMDb, date). */
   .rating-page-subtitle {
-    gap: 2px 10px;
-    margin-top: 3px;
+    gap: 0 10px;
+    margin-top: 0;
     font-size: 0.8rem;
     align-items: center;
+    line-height: 1.15;
   }
   .rating-page-subtitle p {
     margin: 0;
   }
   .rating-imdb-wrap {
     top: 0 !important;
+    /* push the IMDb badge to the far right so it lines up under the
+       star / watchlist / add-log buttons above it */
+    margin-left: auto;
+  }
+  /* date ("Rated: ..." / "Added: ...") drops onto its own full-width line */
+  .rating-date-line {
+    flex-basis: 100%;
+  }
+
+  /* Drop the "(Last updated: ...)" onto its own line under "Rated: ..." */
+  .rating-last-updated {
+    display: block;
+    white-space: normal;
   }
   .rating-page-subtitle .imdb-movie-card {
     width: 26px;
@@ -196,22 +243,15 @@
     display: none;
   }
 
-  /* Soften the boxy bordered wrappers (ratings + watchlist) into clean rows
-     with just a thin divider, Letterboxd-style. */
+  /* Keep the compact mobile row content, but wrap it in the grey outline box
+     like the PC layout. The inner .container padding provides the inset. */
   .div-wrapper-rating-testing,
   .log-rating-wrapper {
     width: 100%;
     margin-top: 0;
-    border: none;
-    border-bottom: 1px solid var(--border, #3a3a3a);
-    border-radius: 0;
+    border: 2px solid grey;
+    border-radius: 8px;
     padding: 0;
-  }
-
-  /* No gap under the divider — rows sit flush, divider-to-divider. */
-  .list-row:has(.div-wrapper-rating-testing),
-  .list-row:has(.log-rating-wrapper) {
-    margin-bottom: 0;
   }
 
   /* Watchlist delete icon: park it on the right edge, vertically centred, and

@@ -215,7 +215,7 @@ function Rating({
               <div className="rating-star-div">
                 <MovieRatingStar movie={movie_object}></MovieRatingStar>
               </div>
-              <div style={{ margin: "5px" }}></div>
+              <div className="rating-action-spacer" style={{ margin: "5px" }}></div>
               <div style={{ display: "flex", alignItems: "center" }}>
                 <AddWatchlist movie={movie_object}></AddWatchlist>
                 <AddLog movie={movie_object}></AddLog>
@@ -224,10 +224,7 @@ function Rating({
             </div>
           </div>
 
-          <div
-            className="rating-page-subtitle"
-            style={{ display: "flex", alignItems: "baseline", gap: "24px" }}
-          >
+          <div className="rating-page-subtitle">
             <ReleaseAndRunTime
               style={{ textWrap: "wrap" }}
               movie={movie_object}
@@ -237,6 +234,7 @@ function Rating({
             </span>
             {addedToWatchlistDate ? (
               <span
+                className="rating-date-line"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -256,6 +254,7 @@ function Rating({
               </span>
             ) : ratingDateInfo ? (
               <span
+                className="rating-date-line"
                 style={{
                   color: "#888",
                   fontSize: "0.93em",
@@ -273,7 +272,7 @@ function Rating({
                   <>
                     Rated: {ratingDateInfo.ratedFormatted}
                     {ratingDateInfo.changed ? (
-                      <span style={{ fontWeight: 600 }}>
+                      <span className="rating-last-updated" style={{ fontWeight: 600 }}>
                         {" "}
                         (Last updated: {ratingDateInfo.updatedFormatted}
                         {ratingDateInfo.previousRating != null

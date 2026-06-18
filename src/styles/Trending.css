@@ -176,6 +176,19 @@
   transition: transform 120ms var(--ease-out);
 }
 
+.tf-rank {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 2;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
 .tf-overlay {
   position: absolute;
   inset: 0;

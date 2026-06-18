@@ -16,7 +16,6 @@ const SORT_OPTIONS = [
   { value: "trending", label: "Trending" },
   { value: "imdb", label: "IMDb Rating" },
   { value: "imdbVotes", label: "IMDb Votes" },
-  { value: "year", label: "Release Date" },
 ];
 
 const yearOf = (mo) => {
@@ -146,8 +145,22 @@ function Trending() {
   }, [mediaType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const movies = useMemo(() => {
-    if (mediaType === "movies") return popularMoviesLoaded ? (popularMovies || []) : [];
-    return popularTVLoaded ? (popularTV || []) : [];
+    const raw =
+      mediaType === "movies"
+        ? popularMoviesLoaded
+          ? popularMovies || []
+          : []
+        : popularTVLoaded
+          ? popularTV || []
+          : [];
+    // Guard against duplicate titles (TMDB's paginated trending can repeat one
+    // across pages): duplicate keys break list reordering when re-sorting.
+    const seen = new Set();
+    return raw.filter((mo) => {
+      if (seen.has(mo.tmdb_id)) return false;
+      seen.add(mo.tmdb_id);
+      return true;
+    });
   }, [mediaType, popularMovies, popularMoviesLoaded, popularTV, popularTVLoaded]);
 
   const isLoaded = mediaType === "movies" ? popularMoviesLoaded : popularTVLoaded;
@@ -186,21 +199,26 @@ function Trending() {
       if (!yearInRange(yearOf(mo), yearFrom, yearTo)) return false;
       return true;
     });
+
+    // One unified list honouring the chosen sort/direction. The top-3 trending
+    // titles (rank <= 3) render as banner cards, but they stay in this list and
+    // move to wherever their movie lands under the current sort.
     const sorted = [...filtered].sort((a, b) => {
       if (sortKey === "imdb") {
         const r = compareNums(ratingOf(a.mo), ratingOf(b.mo), sortDir);
         if (r) return r;
+        // equal rating -> the title with more votes wins
+        const v = compareNums(votesOf(a.mo), votesOf(b.mo), sortDir);
+        if (v) return v;
       } else if (sortKey === "imdbVotes") {
         const r = compareNums(votesOf(a.mo), votesOf(b.mo), sortDir);
-        if (r) return r;
-      } else if (sortKey === "year") {
-        const r = compareNums(yearOf(a.mo), yearOf(b.mo), sortDir);
         if (r) return r;
       } else if (sortKey === "trending") {
         return sortDir === "desc" ? a.rank - b.rank : b.rank - a.rank;
       }
       return a.rank - b.rank; // stable tiebreak by trending position
     });
+
     return sorted;
   }, [movies, genreFilter, yearFrom, yearTo, sortKey, sortDir, imdbRatings]);
 
@@ -210,9 +228,6 @@ function Trending() {
     (sortKey !== "trending" || sortDir !== "desc" ? 1 : 0);
 
   if (!isLoaded) return <Loader />;
-
-  const featured = processed.slice(0, 3);
-  const rest = processed.slice(3);
 
   const navTo = (movie) =>
     makeNavHandlers(
@@ -291,78 +306,80 @@ function Trending() {
         <div className="empty-msg">No trending titles match your filters.</div>
       ) : (
         <div className="trending-featured" key={mediaType}>
-          {featured.map(({ mo }) => (
-            <div
-              key={`featured-${mo.media_type}-${mo.tmdb_id}`}
-              className="tf-card"
-              style={{
-                backgroundImage: `url(${mo.backdropImage || mo.primaryImage})`,
-              }}
-              {...PRESS_HANDLERS}
-              {...navTo(mo)}
-            >
-              <div className="tf-overlay" />
-              <div className="tf-content">
+          {processed.map(({ mo, rank }) =>
+            rank <= 3 ? (
+              // top-3 trending render as banner cards, in their sorted position
+              <div
+                key={`${mo.media_type}-${mo.tmdb_id}`}
+                className="tf-card"
+                style={{
+                  backgroundImage: `url(${mo.backdropImage || mo.primaryImage})`,
+                }}
+                {...PRESS_HANDLERS}
+                {...navTo(mo)}
+              >
+                <div className="tf-overlay" />
+                <span className="tf-rank">#{rank}</span>
+                <div className="tf-content">
+                  <img
+                    className="tf-poster"
+                    src={mo.primaryImage || "/placeholderimage.jpg"}
+                    onError={(e) => { e.target.onerror = null; e.target.src = "/placeholderimage.jpg"; }}
+                    alt={mo.primaryTitle}
+                  />
+                  <div className="tf-text">
+                    <p className="tf-title">{mo.primaryTitle}</p>
+                    <div className="tf-meta">
+                      {mo.startYear && (
+                        <span className="tf-year">{mo.startYear}</span>
+                      )}
+                      <TrendingRating movie={mo} />
+                      {mo.interests?.length > 0 && (
+                        <span className="tf-genres">
+                          {mo.interests.slice(0, 3).map((g) => (
+                            <span key={g} className="tf-genre-tag">{g}</span>
+                          ))}
+                        </span>
+                      )}
+                    </div>
+                    {mo.description && (
+                      <p className="tf-desc">{mo.description}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                key={`${mo.media_type}-${mo.tmdb_id}`}
+                className="trending-row"
+                {...PRESS_HANDLERS}
+                {...navTo(mo)}
+              >
+                <span className="trending-rank">#{rank}</span>
                 <img
-                  className="tf-poster"
+                  className="trending-thumb"
                   src={mo.primaryImage || "/placeholderimage.jpg"}
                   onError={(e) => { e.target.onerror = null; e.target.src = "/placeholderimage.jpg"; }}
                   alt={mo.primaryTitle}
                 />
-                <div className="tf-text">
-                  <p className="tf-title">{mo.primaryTitle}</p>
-                  <div className="tf-meta">
+                <div className="trending-info">
+                  <p className="trending-item-title">{mo.primaryTitle}</p>
+                  <div className="trending-meta">
                     {mo.startYear && (
-                      <span className="tf-year">{mo.startYear}</span>
+                      <span className="trending-year">{mo.startYear}</span>
                     )}
                     <TrendingRating movie={mo} />
-                    {mo.interests?.length > 0 && (
-                      <span className="tf-genres">
-                        {mo.interests.slice(0, 3).map((g) => (
-                          <span key={g} className="tf-genre-tag">{g}</span>
-                        ))}
-                      </span>
-                    )}
+                    {mo.interests?.slice(0, 2).map((g) => (
+                      <span key={g} className="trending-genre-tag">{g}</span>
+                    ))}
                   </div>
                   {mo.description && (
-                    <p className="tf-desc">{mo.description}</p>
+                    <p className="trending-desc">{mo.description}</p>
                   )}
                 </div>
               </div>
-            </div>
-          ))}
-
-          {rest.map(({ mo, rank }) => (
-            <div
-              key={`${mo.media_type}-${mo.tmdb_id}`}
-              className="trending-row"
-              {...PRESS_HANDLERS}
-              {...navTo(mo)}
-            >
-              <span className="trending-rank">#{rank}</span>
-              <img
-                className="trending-thumb"
-                src={mo.primaryImage || "/placeholderimage.jpg"}
-                onError={(e) => { e.target.onerror = null; e.target.src = "/placeholderimage.jpg"; }}
-                alt={mo.primaryTitle}
-              />
-              <div className="trending-info">
-                <p className="trending-item-title">{mo.primaryTitle}</p>
-                <div className="trending-meta">
-                  {mo.startYear && (
-                    <span className="trending-year">{mo.startYear}</span>
-                  )}
-                  <TrendingRating movie={mo} />
-                  {mo.interests?.slice(0, 2).map((g) => (
-                    <span key={g} className="trending-genre-tag">{g}</span>
-                  ))}
-                </div>
-                {mo.description && (
-                  <p className="trending-desc">{mo.description}</p>
-                )}
-              </div>
-            </div>
-          ))}
+            ),
+          )}
         </div>
       )}
     </div>
