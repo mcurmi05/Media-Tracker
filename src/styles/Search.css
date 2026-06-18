@@ -19,3 +19,16 @@
         padding: 0 0.5rem 2rem;
     }
 }
+
+/* Poster-only movie search results: denser grid, no card chrome */
+.movies-grid--posters {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 500px) {
+    .movies-grid--posters {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.6rem;
+    }
+}

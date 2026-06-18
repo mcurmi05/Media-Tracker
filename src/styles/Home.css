@@ -5,6 +5,25 @@
   max-width: 1123px;
   margin: 0 auto;
   color: #e8e8e8;
+  /* kill the mobile blue tap flash for everything on the page (this property
+     inherits); interactive bits use the scale presses below instead */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth press feedback for the page's clickable controls — stat tiles,
+   recent-activity rows and the on-this-day card. (Posters and the toggle
+   button have their own press rules.) */
+.hp-stat,
+.hp-feed-item,
+.hp-otd {
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.hp-stat:active,
+.hp-otd:active {
+  transform: scale(0.97);
+}
+.hp-feed-item:active {
+  transform: scale(0.985);
 }
 
 /* ---- header ---- */
@@ -158,10 +177,14 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #8c8c8c;
-  transition: color 140ms ease;
+  transition: color 140ms ease,
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .hp-toggle:hover {
   color: #d4d4d4;
+}
+.hp-toggle:active {
+  transform: scale(0.92);
 }
 .hp-toggle:focus,
 .hp-toggle:focus-visible {
@@ -298,6 +321,9 @@
 .cv-tile {
   width: 108px;
   flex-shrink: 0;
+  /* kill the default blue tap flash on mobile; the press uses the scale
+     animation below instead */
+  -webkit-tap-highlight-color: transparent;
 }
 .cv-poster {
   position: relative;
@@ -316,7 +342,8 @@
   }
 }
 .cv-tile:active .cv-poster {
-  transform: translateY(-1px) scale(0.99);
+  transform: scale(0.94);
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .cv-poster img {
   width: 100%;
@@ -379,6 +406,41 @@
   font-size: 0.7rem;
   color: #8c8c8c;
   margin-top: 1px;
+}
+
+/* fill layout: 4 tiles stretched to span the full column width, no scroll.
+   Each poster scales fluidly with its grid cell while keeping the 2:3 ratio. */
+.hp-grid {
+  display: grid;
+  /* minmax(0, 1fr) — not plain 1fr — so a long unbreakable title/author word
+     can't set a wide min-content floor and make its column wider than the rest.
+     Every column stays an exactly equal quarter of the row. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding-bottom: 8px;
+}
+.hp-grid .cv-tile {
+  width: 100%;
+}
+.hp-grid .cv-poster {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  /* container for the rank badge below, so it can size relative to the poster */
+  container-type: inline-size;
+}
+/* Single-word titles (e.g. "Neuromancer") would otherwise overflow the narrow
+   column and get clipped — allow them to break so they wrap within the clamp. */
+.hp-grid .cv-title,
+.hp-grid .cv-sub {
+  overflow-wrap: anywhere;
+}
+/* Scale the 1/2/3/4 rank chip to the poster width instead of a fixed rem, so it
+   stays proportional on these smaller fill-grid posters at any screen size. */
+.hp-grid .cv-rank {
+  font-size: 9cqw;
+  padding: 1.5cqw 5cqw;
+  border-bottom-right-radius: 5cqw;
 }
 
 /* ---- ratings distribution chart ---- */

@@ -6,7 +6,7 @@ import AddWatchlist from "./AddWatchlist.jsx";
 import { makeNavHandlers } from "../utils/navClick.js";
 
 
-function MovieCard({ movie }) {
+function MovieCard({ movie, posterOnly = false }) {
 
   const navigate = useNavigate();
 
@@ -17,7 +17,7 @@ function MovieCard({ movie }) {
 
   return (
     <>
-      <div className="movie-card">
+      <div className={`movie-card${posterOnly ? " movie-card--poster" : ""}`}>
         <div className="movie-poster" {...detailHandlers}>
           <img
             className="movie-poster-img"
@@ -30,6 +30,7 @@ function MovieCard({ movie }) {
           />
         </div>
 
+        {!posterOnly && (
         <div className="movie-info">
           <div className="title-and-addlog">
             <h3 {...detailHandlers}>{movie.primaryTitle}</h3>
@@ -43,6 +44,7 @@ function MovieCard({ movie }) {
           </div>
           <ReleaseAndRunTime movie={movie} />
         </div>
+        )}
       </div>
 
     </>

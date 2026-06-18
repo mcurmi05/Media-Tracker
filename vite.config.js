@@ -44,6 +44,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), devApi()],
+    // Bind to all interfaces so the dev server is reachable from other
+    // devices on the LAN (e.g. testing on a phone at http://<your-ip>:5173).
+    server: {
+      host: true,
+    },
     optimizeDeps: {
       exclude: ['chunk-3HWLUFA5', 'chunk-JSO3YDVX'],
     },

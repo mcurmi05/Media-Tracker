@@ -12,6 +12,9 @@
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const IMG_BASE = "https://image.tmdb.org/t/p";
 
+// How many pages of search results to pull (TMDB returns ~20 per page).
+const MAX_SEARCH_PAGES = 5;
+
 // In-memory genre map: { movieGenres: Map<id,name>, tvGenres: Map<id,name> }
 // Populated once per cold start; Vercel functions stay warm for ~minutes.
 let genreCache = null;
@@ -199,6 +202,81 @@ function mapDetail(d, mediaType, seasonDetails) {
   };
 }
 
+// --- Fuzzy search ranking ------------------------------------------------
+// TMDB's search has limited typo tolerance and its default ordering buries
+// good matches behind popular near-misses. We pull several pages, merge the
+// per-type endpoints (which are more lenient than /search/multi), then
+// re-rank everything client-of-TMDB-side by similarity to the typed query.
+
+function normalize(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Levenshtein edit distance (iterative, single-row) for short strings.
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  const dp = new Array(n + 1);
+  for (let j = 0; j <= n; j++) dp[j] = j;
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const tmp = dp[j];
+      dp[j] = Math.min(
+        dp[j] + 1, // deletion
+        dp[j - 1] + 1, // insertion
+        prev + (a[i - 1] === b[j - 1] ? 0 : 1), // substitution
+      );
+      prev = tmp;
+    }
+  }
+  return dp[n];
+}
+
+// 0..1 similarity (1 = identical) based on edit distance.
+function simRatio(a, b) {
+  if (!a && !b) return 1;
+  const maxLen = Math.max(a.length, b.length) || 1;
+  return 1 - levenshtein(a, b) / maxLen;
+}
+
+// Higher score = better match for the typed query. Combines whole-string
+// similarity, substring/prefix bonuses, fuzzy token overlap, and a small
+// popularity tiebreak so the well-known title wins among equally-good matches.
+function relevanceScore(item, qNorm) {
+  const title = normalize(item.title || item.name);
+  if (!title || !qNorm) return 0;
+
+  const full = simRatio(qNorm, title);
+  const prefix = simRatio(qNorm, title.slice(0, qNorm.length));
+  const substr = title.includes(qNorm) ? 0.3 : 0;
+
+  const qTokens = qNorm.split(" ").filter(Boolean);
+  const tTokens = title.split(" ").filter(Boolean);
+  let tokenHits = 0;
+  for (const qt of qTokens) {
+    if (tTokens.includes(qt)) {
+      tokenHits += 1;
+    } else if (tTokens.some((tt) => simRatio(qt, tt) >= 0.8)) {
+      tokenHits += 0.7;
+    }
+  }
+  const tokenScore = qTokens.length ? (tokenHits / qTokens.length) * 0.4 : 0;
+
+  // log-scaled popularity, kept small so it only breaks near-ties.
+  const pop = Math.log10((item.popularity || 0) + 1) / 12;
+
+  return Math.max(full, prefix) + substr + tokenScore + pop;
+}
+
 export default async function handler(req, res) {
   if (req.method && req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -231,13 +309,61 @@ export default async function handler(req, res) {
     if (action === "search") {
       const query = String(q.query || "").trim();
       if (!query) return res.status(400).json({ error: "Missing query" });
-      const data = await tmdbFetch(
-        "/search/multi",
-        { query, include_adult: "false" },
-        key,
+
+      const common = { query, include_adult: "false" };
+
+      // Kick off the first multi page (tells us total_pages) alongside the
+      // per-type searches — /search/movie and /search/tv are more typo-
+      // tolerant than /search/multi, so merging them improves recall for
+      // badly misspelled queries.
+      const [multi1, movie1, tv1] = await Promise.all([
+        tmdbFetch("/search/multi", { ...common, page: "1" }, key),
+        tmdbFetch("/search/movie", { ...common, page: "1" }, key).catch(() => ({
+          results: [],
+        })),
+        tmdbFetch("/search/tv", { ...common, page: "1" }, key).catch(() => ({
+          results: [],
+        })),
+      ]);
+
+      // Pull the remaining multi pages (capped) for a deeper result set.
+      const totalPages = Math.min(multi1.total_pages || 1, MAX_SEARCH_PAGES);
+      const morePageReqs = [];
+      for (let p = 2; p <= totalPages; p++) {
+        morePageReqs.push(
+          tmdbFetch("/search/multi", { ...common, page: String(p) }, key)
+            .then((d) => d.results || [])
+            .catch(() => []),
+        );
+      }
+      const moreMulti = (await Promise.all(morePageReqs)).flat();
+
+      // Tag every raw item with its media_type, keep only movie/tv, dedupe.
+      const tagged = [
+        ...(multi1.results || []).map((it) => ({ it, mt: it.media_type })),
+        ...moreMulti.map((it) => ({ it, mt: it.media_type })),
+        ...(movie1.results || []).map((it) => ({ it, mt: "movie" })),
+        ...(tv1.results || []).map((it) => ({ it, mt: "tv" })),
+      ].filter(({ mt }) => mt === "movie" || mt === "tv");
+
+      const seen = new Set();
+      const deduped = [];
+      for (const entry of tagged) {
+        const k = `${entry.mt}:${entry.it.id}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        deduped.push(entry);
+      }
+
+      // Re-rank by fuzzy similarity to the typed query so the intended title
+      // surfaces even when misspelled or buried.
+      const qNorm = normalize(query);
+      deduped.sort(
+        (a, b) => relevanceScore(b.it, qNorm) - relevanceScore(a.it, qNorm),
       );
-      const items = (data.results || [])
-        .map((it) => mapListItem(it, null))
+
+      const items = deduped
+        .map(({ it, mt }) => mapListItem(it, mt))
         .filter(Boolean);
       return res.status(200).json({ results: items });
     }

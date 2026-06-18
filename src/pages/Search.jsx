@@ -163,7 +163,7 @@ function Search() {
       {searchLoading ? (
         <Loader />
       ) : searchResults && searchResults.length > 0 ? (
-        <div className="movies-grid">
+        <div className={`movies-grid${isBooks ? "" : " movies-grid--posters"}`}>
           {isBooks
             ? sortedBooks.map((book) => (
                 <BookCard book={book} key={book.id} />
@@ -171,6 +171,7 @@ function Search() {
             : searchResults.map((movie) => (
                 <MovieCard
                   movie={movie}
+                  posterOnly={true}
                   key={`${movie.media_type}-${movie.tmdb_id}`}
                 />
               ))}

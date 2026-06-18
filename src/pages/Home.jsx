@@ -150,7 +150,7 @@ function DecadeChart({ decades, counts, max, onBarClick }) {
   );
 }
 
-function CoverStrip({ tiles, empty, loading }) {
+function CoverStrip({ tiles, empty, loading, fill }) {
   const stripRef = useRef(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
@@ -199,6 +199,48 @@ function CoverStrip({ tiles, empty, loading }) {
       );
     return <p className="hp-empty">{empty}</p>;
   }
+
+  const tileEls = tiles.map((t, i) => (
+    <div
+      key={`${t.key || "x"}-${i}`}
+      className="cv-tile"
+      onClick={t.onClick}
+      style={{ cursor: t.onClick ? "pointer" : "default" }}
+    >
+      <div className="cv-poster">
+        <img
+          src={t.cover || "/placeholderimage.jpg"}
+          alt=""
+          loading="eager"
+          decoding="sync"
+          fetchPriority="high"
+          width="108"
+          height="162"
+          // In the fill grid every frame is an identical 2:3 box, so let book
+          // covers fill it like the movie posters do — otherwise a "contain"
+          // cover that isn't exactly 2:3 letterboxes and looks mis-sized.
+          style={{ objectFit: fill ? "cover" : t.fit || "cover" }}
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = "/placeholderimage.jpg";
+          }}
+        />
+        {t.rank != null && (
+          <span className={`cv-rank cv-rank-${t.rank}`}>{t.rank}</span>
+        )}
+        {t.badge != null && <span className="cv-badge">{t.badge}</span>}
+      </div>
+      <div className="cv-title">{t.title}</div>
+      {t.sub && <div className="cv-sub">{t.sub}</div>}
+    </div>
+  ));
+
+  // fill mode: lay the tiles out as a grid that always spans the full column
+  // width (each tile = an equal fraction of the column, no horizontal scroll).
+  if (fill) {
+    return <div className="hp-grid">{tileEls}</div>;
+  }
+
   return (
     <div className="hp-strip-wrap">
       {canLeft && (
@@ -212,37 +254,7 @@ function CoverStrip({ tiles, empty, loading }) {
         </button>
       )}
       <div className="hp-strip" ref={stripRef}>
-        {tiles.map((t, i) => (
-          <div
-            key={`${t.key || "x"}-${i}`}
-            className="cv-tile"
-            onClick={t.onClick}
-            style={{ cursor: t.onClick ? "pointer" : "default" }}
-          >
-            <div className="cv-poster">
-              <img
-                src={t.cover || "/placeholderimage.jpg"}
-                alt=""
-                loading="eager"
-                decoding="sync"
-                fetchPriority="high"
-                width="108"
-                height="162"
-                style={{ objectFit: t.fit || "cover" }}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "/placeholderimage.jpg";
-                }}
-              />
-              {t.rank != null && (
-                <span className={`cv-rank cv-rank-${t.rank}`}>{t.rank}</span>
-              )}
-              {t.badge != null && <span className="cv-badge">{t.badge}</span>}
-            </div>
-            <div className="cv-title">{t.title}</div>
-            {t.sub && <div className="cv-sub">{t.sub}</div>}
-          </div>
-        ))}
+        {tileEls}
       </div>
       {canRight && (
         <button
@@ -931,16 +943,19 @@ export default function Home() {
         <div className="hp-sub-label">Movies</div>
         <CoverStrip
           tiles={topMovies}
+          fill
           empty="Rank your movies on the Ratings page to fill this in."
         />
         <div className="hp-sub-label">TV Shows</div>
         <CoverStrip
           tiles={topTV}
+          fill
           empty="Rank your shows on the Ratings page to fill this in."
         />
         <div className="hp-sub-label">Books</div>
         <CoverStrip
           tiles={topBooks}
+          fill
           empty="Rank your books on the Ratings page to fill this in."
         />
       </Section>

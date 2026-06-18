@@ -119,3 +119,13 @@
   align-items:center;
   margin-top:-12px;
 }
+
+/* Poster-only variant (search results) */
+.movie-card--poster {
+  background-color: transparent;
+}
+
+.movie-card--poster .movie-poster {
+  border-radius: 8px;
+  overflow: hidden;
+}
