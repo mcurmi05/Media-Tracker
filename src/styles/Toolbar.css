@@ -147,10 +147,17 @@
 }
 
 /*active state keeps 1px border so nothing shifts, brightness does the talking*/
-.toolbar-btn--active {
+.toolbar-btn--active,
+.toolbar-select--active {
   background-color: var(--accent-soft);
   border-color: rgba(255, 255, 255, 0.85);
   font-weight: 600;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toolbar-select--active:hover {
+    background-color: #a81414;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {

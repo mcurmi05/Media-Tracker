@@ -211,7 +211,7 @@ function Rating({
                 )}
               </div>
             )}
-            <div style={{ display: "flex" }}>
+            <div className="rating-actions" style={{ display: "flex" }}>
               <div className="rating-star-div">
                 <MovieRatingStar movie={movie_object}></MovieRatingStar>
               </div>
@@ -232,7 +232,7 @@ function Rating({
               style={{ textWrap: "wrap" }}
               movie={movie_object}
             ></ReleaseAndRunTime>
-            <span style={{ position: "relative", top: "11px" }}>
+            <span className="rating-imdb-wrap" style={{ position: "relative", top: "11px" }}>
               <IMDBInfo movie={movie_object} useLiveRating></IMDBInfo>
             </span>
             {addedToWatchlistDate ? (

@@ -533,23 +533,29 @@ function Ratings() {
           />
         </ExtraFiltersPanel>
 
-        {/*rank mode toggles*/}
-        {[
-          { value: "movies", label: "Rank 10s Movies" },
-          { value: "tv", label: "Rank 10s TV" },
-          { value: "books", label: "Rank Books" },
-        ].map(({ value, label }) => {
-          const active = rankModeType === value;
-          return (
-            <button
-              key={value}
-              className={`toolbar-btn${active ? " toolbar-btn--active" : ""}`}
-              onClick={() => setRankModeType(active ? "none" : value)}
-            >
-              {label}
-            </button>
-          );
-        })}
+        {/*rank mode: pick what to reorder (single-select, so a dropdown)*/}
+        <select
+          className={`toolbar-select${
+            rankModeType !== "none" ? " toolbar-select--active" : ""
+          }`}
+          value={rankModeType}
+          onChange={(e) => {
+            const value = e.target.value;
+            setRankModeType(value);
+            // Turning ranking off clears the rating + media filters that the
+            // rank modes force on, back to their defaults.
+            if (value === "none") {
+              setRatingFilter("all");
+              setMediaTypeFilter("all");
+            }
+          }}
+          title="Reorder your top-ranked items"
+        >
+          <option value="none">Rank: Off</option>
+          <option value="movies">Rank 10s Movies</option>
+          <option value="tv">Rank 10s TV</option>
+          <option value="books">Rank Books</option>
+        </select>
         <button
           className="toolbar-icon-btn"
           onClick={goToWatchlist}
