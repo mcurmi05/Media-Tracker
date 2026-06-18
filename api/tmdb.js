@@ -97,6 +97,34 @@ function mapSeasonDetail(s) {
   };
 }
 
+// Attach IMDb ids (tconst) to mapped list items by querying each title's
+// external_ids. The imdb_ratings dataset is keyed by tconst, so this lets the
+// trending list show live IMDb ratings and sort/filter by them. Runs behind the
+// endpoint's 1h cache, and any per-title failure just leaves id/url null.
+async function attachImdbIds(items, key) {
+  const resolve = async (it) => {
+    try {
+      const ext = await tmdbFetch(
+        `/${it.media_type}/${it.tmdb_id}/external_ids`,
+        {},
+        key,
+      );
+      if (ext?.imdb_id) {
+        it.id = ext.imdb_id;
+        it.url = `https://www.imdb.com/title/${ext.imdb_id}/`;
+      }
+    } catch {
+      // leave id/url as null
+    }
+  };
+  // Resolve in capped-size batches to stay under TMDB's rate limit.
+  const BATCH = 25;
+  for (let i = 0; i < items.length; i += BATCH) {
+    await Promise.all(items.slice(i, i + BATCH).map(resolve));
+  }
+  return items;
+}
+
 // A trending/search list item -> minimal movie_object (no tconst at browse).
 // genreMap is optional: a Map<id,name> for the relevant media type.
 function mapListItem(item, mediaType, genreMap) {
@@ -299,6 +327,8 @@ export default async function handler(req, res) {
       ]);
       const genreMap = mt === "tv" ? tvGenres : movieGenres;
       const items = results.map((it) => mapListItem(it, mt, genreMap)).filter(Boolean);
+      // Resolve IMDb ids so the trending list can show live IMDb ratings.
+      await attachImdbIds(items, key);
       res.setHeader(
         "Cache-Control",
         "public, s-maxage=3600, stale-while-revalidate=86400",
