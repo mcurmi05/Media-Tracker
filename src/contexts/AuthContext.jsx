@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase } from "../services/supabase-client.js";
 /* eslint-disable react-refresh/only-export-components */
 
@@ -19,14 +19,23 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getSession = async () => {
+    // Pull the live user from the auth server and update state if it differs
+    // from the cached session — corrects stale profile metadata (display name
+    // / avatar changed on another device) without waiting for a token refresh.
+    const syncServerUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data?.user) setUser(data.user);
+    };
+
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session) syncServerUser();
     };
 
-    getSession();
+    init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -36,18 +45,39 @@ export const AuthProvider = ({ children }) => {
       }
     );
 
-    return () => subscription.unsubscribe();
+    // A device left logged in caches its session; re-check the server user
+    // whenever the tab/app returns to the foreground so profile changes made
+    // elsewhere show up promptly.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") syncServerUser();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
+  // Fetch the live user from the auth server (not the cached session), so a
+  // confirmed email change is reflected even though the local JWT still holds
+  // the old address until its next refresh.
+  const refreshUser = useCallback(async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error) setUser(data.user);
+    return data?.user ?? null;
+  }, []);
+
   const value = {
     session,
     user,
     loading,
     signOut,
+    refreshUser,
     isAuthenticated: !!session
   };
 

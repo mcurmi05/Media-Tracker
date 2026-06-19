@@ -11,6 +11,8 @@ import { useCache } from "../contexts/PopularMoviesCacheContext";
 import { getPopularMovies, getPopularTV } from "../services/api.js";
 import { SignIn } from "./SignIn.jsx";
 import { bookDetailsRoute } from "../utils/goodreads.js";
+import { PRESS_HANDLERS } from "../utils/pressHandlers.js";
+import { getDisplayName } from "../utils/profile.js";
 import "../styles/Home.css";
 
 /* ---------- helpers ---------- */
@@ -210,7 +212,7 @@ function CoverStrip({ tiles, empty, loading, fill }) {
       <div className="cv-poster">
         <img
           src={t.cover || "/placeholderimage.jpg"}
-          alt=""
+          alt={t.title || ""}
           loading="eager"
           decoding="sync"
           fetchPriority="high"
@@ -230,8 +232,6 @@ function CoverStrip({ tiles, empty, loading, fill }) {
         )}
         {t.badge != null && <span className="cv-badge">{t.badge}</span>}
       </div>
-      <div className="cv-title">{t.title}</div>
-      {t.sub && <div className="cv-sub">{t.sub}</div>}
     </div>
   ));
 
@@ -857,8 +857,8 @@ export default function Home() {
 
   /* ---------- render ---------- */
 
-  const displayName =
-    (user?.email || "").split("@")[0] || (isAuthenticated ? "there" : "");
+  const displayName = isAuthenticated ? getDisplayName(user) : "";
+  const avatarUrl = user?.user_metadata?.avatar_url;
 
   // Signed-out visitors get the sign-in screen instead of an empty library.
   if (!loading && !isAuthenticated) {
@@ -887,16 +887,22 @@ export default function Home() {
   return (
     <div className="home-page">
       <header className="hp-header">
-        <div className="hp-avatar">{(displayName[0] || "?").toUpperCase()}</div>
+        <button
+          type="button"
+          className="hp-avatar"
+          onClick={() => navigate("/account")}
+          aria-label="Account settings"
+          title="Account settings"
+          {...PRESS_HANDLERS}
+        >
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="hp-avatar-img" />
+          ) : (
+            (displayName[0] || "?").toUpperCase()
+          )}
+        </button>
         <div>
-          <div className="hp-hello">
-            {isAuthenticated ? `Welcome back, ${displayName}` : "Your Library"}
-          </div>
-          <div className="hp-subhello">
-            {isAuthenticated
-              ? "Here's everything you've been watching and reading."
-              : "Sign in to track your movies, shows and books."}
-          </div>
+          <div className="hp-hello">{displayName}</div>
         </div>
       </header>
 
@@ -919,7 +925,11 @@ export default function Home() {
         <div className="hp-col-left">
           {/* currently watching / reading */}
           {inProgress.length > 0 && (
-            <Section label="Currently Watching & Reading" panel>
+            <Section
+              label="Currently Watching & Reading"
+              panel
+              className="hp-section-cw"
+            >
               <CoverStrip tiles={inProgress} empty="" />
             </Section>
           )}
@@ -1009,6 +1019,7 @@ export default function Home() {
                 className="hp-feed-item"
                 onClick={e.onClick}
                 style={{ cursor: e.onClick ? "pointer" : "default" }}
+                {...PRESS_HANDLERS}
               >
                 <img
                   className="hp-feed-media-icon"

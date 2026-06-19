@@ -22,6 +22,7 @@ import { UserBookLogsProvider } from "./contexts/UserBookLogsContext.jsx";
 import { UserBookTbrProvider } from "./contexts/UserBookTbrContext.jsx";
 import { UserBookRatingsProvider } from "./contexts/UserBookRatingsContext.jsx";
 import Watchlist from "./pages/Watchlist.jsx";
+import AccountSettings from "./pages/AccountSettings.jsx";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -83,6 +84,10 @@ function App() {
                         <Route
                           path="/watchlist"
                           element={<Watchlist></Watchlist>}
+                        />
+                        <Route
+                          path="/account"
+                          element={<AccountSettings></AccountSettings>}
                         />
                       </Routes>
                     </main>

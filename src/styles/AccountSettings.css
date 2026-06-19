@@ -1,0 +1,179 @@
+.acct-page {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.acct-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+}
+
+.acct-header {
+  margin-bottom: 28px;
+}
+.acct-header h1 {
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  margin: 0 0 6px;
+}
+.acct-header p {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.acct-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.acct-card-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  margin: 0 0 16px;
+}
+
+/* ---- avatar ---- */
+.acct-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.acct-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  flex-shrink: 0;
+}
+.acct-avatar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ---- form ---- */
+.acct-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.acct-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.acct-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+.acct-input {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.acct-input::placeholder {
+  color: var(--text-faint);
+}
+.acct-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
+}
+
+/* ---- buttons ---- */
+.acct-btn {
+  align-self: flex-start;
+  min-width: 140px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 160ms ease,
+    transform 160ms var(--ease-out), opacity 160ms ease;
+}
+.acct-btn:hover {
+  background: var(--accent-soft);
+  border-color: transparent;
+}
+.acct-btn:active {
+  transform: scale(0.97);
+}
+/* no blue focus ring on any button on this page */
+.acct-page button:focus,
+.acct-page button:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.acct-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.acct-btn-secondary {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  min-width: 0;
+}
+.acct-btn-secondary:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.acct-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  min-width: 0;
+}
+.acct-btn-ghost:hover {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+/* ---- status line ---- */
+.acct-status {
+  font-size: 0.83rem;
+  margin: 2px 0 0;
+}
+.acct-status-success {
+  color: #6fcf80;
+}
+.acct-status-error {
+  color: #ef6b6b;
+}
+
+@media (max-width: 600px) {
+  .acct-btn {
+    align-self: stretch;
+  }
+}

@@ -22,8 +22,12 @@
 .hp-otd:active {
   transform: scale(0.97);
 }
-.hp-feed-item:active {
-  transform: scale(0.985);
+/* Match the Trending list's press-in: pointer-driven is-pressed (reliable on
+   mobile, where :active rarely paints before navigation) with a fast sink. */
+.hp-feed-item:active,
+.hp-feed-item.is-pressed {
+  transform: scale(0.97);
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* ---- header ---- */
@@ -45,15 +49,33 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  /* it's a button now — strip the default chrome and click to open settings */
+  padding: 0;
+  border: none;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out);
+}
+.hp-avatar:hover {
+  border: none;
+}
+.hp-avatar:focus,
+.hp-avatar:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.hp-avatar:active,
+.hp-avatar.is-pressed {
+  transform: scale(0.92);
+}
+.hp-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .hp-hello {
   font-size: 1.4rem;
   font-weight: 600;
-}
-.hp-subhello {
-  font-size: 0.85rem;
-  color: #8c8c8c;
-  margin-top: 2px;
 }
 
 /* ---- stats strip ---- */
@@ -269,18 +291,30 @@
 }
 .hp-strip {
   display: flex;
-  gap: 14px;
+  gap: 7px;
   overflow-x: auto;
+  /* overflow-x:auto makes this a scroll container, which also clips vertical
+     overflow — so the tiles' hover lift (translateY(-4px) + shadow) would be
+     cut off at the top. The top padding gives that lift room, matching how the
+     non-scrolling .hp-grid favourites can already rise freely. */
+  padding-top: 10px;
   padding-bottom: 8px;
   scrollbar-width: none;
 }
 .hp-strip::-webkit-scrollbar {
   display: none;
 }
+/* "Currently Watching & Reading" usually holds just 1-2 items but its column is
+   wide enough for ~4, which left a big empty gap on the right. Centre the items
+   so a small set looks balanced; `safe` keeps them start-aligned (nothing cut
+   off) on the rare occasion the set is long enough to scroll. */
+.hp-section-cw .hp-strip {
+  justify-content: safe center;
+}
 .hp-strip-arrow {
   position: absolute;
   top: 50%;
-  transform: translateY(calc(-50% - 25px));
+  transform: translateY(-50%);
   z-index: 3;
   width: 32px;
   height: 32px;
@@ -306,11 +340,11 @@
 @media (hover: hover) and (pointer: fine) {
   .hp-strip-arrow:hover {
     background: rgba(50, 50, 50, 0.95);
-    transform: translateY(calc(-50% - 25px)) scale(1.05);
+    transform: translateY(-50%) scale(1.05);
   }
 }
 .hp-strip-arrow:active {
-  transform: translateY(calc(-50% - 25px)) scale(0.94);
+  transform: translateY(-50%) scale(0.94);
 }
 .hp-strip-arrow-left {
   left: -6px;
@@ -319,7 +353,11 @@
   right: -6px;
 }
 .cv-tile {
-  width: 108px;
+  /* Fluid width so strip posters shrink with the viewport at the same rate as
+     the .hp-grid favourites (a 4-fraction grid), instead of a fixed size that
+     hard-jumps at a breakpoint. Capped at 108px so wide layouts are unchanged;
+     below ~600px it scales down smoothly like the favourites do. */
+  width: clamp(56px, 24vw - 36px, 108px);
   flex-shrink: 0;
   /* kill the default blue tap flash on mobile; the press uses the scale
      animation below instead */
@@ -327,8 +365,9 @@
 }
 .cv-poster {
   position: relative;
-  width: 108px;
-  height: 162px;
+  /* fill the (fluid) tile and keep the 2:3 poster ratio, mirroring .hp-grid */
+  width: 100%;
+  aspect-ratio: 2 / 3;
   border-radius: 6px;
   overflow: hidden;
   background: #1d1d1d;
@@ -393,21 +432,6 @@
   border-radius: 4px;
   letter-spacing: 0.06em;
 }
-.cv-title {
-  font-size: 0.78rem;
-  margin-top: 6px;
-  line-height: 1.25;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.cv-sub {
-  font-size: 0.7rem;
-  color: #8c8c8c;
-  margin-top: 1px;
-}
-
 /* fill layout: 4 tiles stretched to span the full column width, no scroll.
    Each poster scales fluidly with its grid cell while keeping the 2:3 ratio. */
 .hp-grid {
@@ -428,12 +452,6 @@
   aspect-ratio: 2 / 3;
   /* container for the rank badge below, so it can size relative to the poster */
   container-type: inline-size;
-}
-/* Single-word titles (e.g. "Neuromancer") would otherwise overflow the narrow
-   column and get clipped — allow them to break so they wrap within the clamp. */
-.hp-grid .cv-title,
-.hp-grid .cv-sub {
-  overflow-wrap: anywhere;
 }
 /* Scale the 1/2/3/4 rank chip to the poster width instead of a fixed rem, so it
    stays proportional on these smaller fill-grid posters at any screen size. */
@@ -733,19 +751,31 @@
 
 /* ---- responsive ---- */
 @media (max-width: 600px) {
+  /* On phones the borderless flex row wraps to an uneven 3 + 2 layout. Switch
+     to a tidy grid of cards instead: two per row, with the lone last stat
+     (avg rating) spanning the full width as a summary card. */
+  .hp-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 0;
+    border: none;
+    margin-bottom: 28px;
+  }
   .hp-stat {
-    flex-basis: 33%;
-    border-right: none;
+    padding: 14px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .hp-stat:last-child {
+    grid-column: 1 / -1;
+    /* override the desktop rule that drops the divider on the last item */
+    border-right: 1px solid var(--border);
   }
   .hp-stat-num {
-    font-size: 1.4rem;
-  }
-  .cv-tile,
-  .cv-poster {
-    width: 92px;
-  }
-  .cv-poster {
-    height: 138px;
+    font-size: 1.5rem;
   }
   .hp-bar {
     width: 9px;

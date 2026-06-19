@@ -28,8 +28,17 @@
   padding-left: 0.4rem;
   padding-right:0.4rem;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s,
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
   cursor:pointer;
+}
+
+/* Smooth press/sink on tap or click, driven by the is-pressed class from the
+   shared pointer handlers (reliable on mobile, where :active rarely paints
+   before navigation). Matches the push-down used on the Trending page. */
+.nav-link.is-pressed {
+  transform: scale(0.92);
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .home-button{
@@ -53,7 +62,8 @@
   transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.nav-icon:active{
+.nav-icon:active,
+.nav-icon.is-pressed{
   transform: scale(0.88);
 }
 
@@ -114,8 +124,10 @@
   background-color: #555;
 }
 
-.dropdown-nav-item:active {
+.dropdown-nav-item:active,
+.dropdown-nav-item.is-pressed {
   transform: scale(0.97);
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .dropdown-nav-item:last-child {
@@ -232,6 +244,14 @@
   width:40px;
   height:40px;
   border-radius:5px;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  object-fit: cover;
+}
+
+.user-avatar:active,
+.user-avatar.is-pressed{
+  transform: scale(0.92);
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @media (max-width:400px){

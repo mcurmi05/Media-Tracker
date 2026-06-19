@@ -4,6 +4,8 @@ import { useAuth } from "../contexts/AuthContext";
 import SearchBar from "./SearchBar";
 import { Spinner } from "./Loader.jsx";
 import { useState, useEffect, useRef } from "react";
+import { PRESS_HANDLERS } from "../utils/pressHandlers.js";
+import { getAvatarUrl } from "../utils/profile.js";
 import "../styles/NavBar.css";
 
 function NavBar() {
@@ -66,11 +68,11 @@ function NavBar() {
     };
   }, []);
 
-  const getAvatarUrl = (email) => {
-    if (!email) return "/placeholderimage.jpg";
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      email
-    )}&background=random`;
+  const handleAccountClick = () => {
+    clearSearch();
+    setIsMenuOpen(false);
+    setIsProfileMenuOpen(false);
+    navigate("/account");
   };
 
   if (loading) {
@@ -84,7 +86,12 @@ function NavBar() {
   return (
     <nav className="navbar">
       <div className="home-and-gh">
-        <Link to="/" className="nav-link home-button" onClick={clearSearch}>
+        <Link
+          to="/"
+          className="nav-link home-button"
+          onClick={clearSearch}
+          {...PRESS_HANDLERS}
+        >
           <img className="nav-icon" src="/home.png" alt="Home"></img>
         </Link>
         <a
@@ -92,10 +99,11 @@ function NavBar() {
           target="_blank"
           rel="noopener noreferrer"
           className="nav-link home-button github"
+          {...PRESS_HANDLERS}
         >
           <img src="/github.png" className="nav-icon" />
         </a>
-        
+
       </div>
       <SearchBar></SearchBar>
 
@@ -108,11 +116,17 @@ function NavBar() {
           src="/burgermenu.png"
           onClick={toggleMenu}
           alt="Menu"
+          {...PRESS_HANDLERS}
         ></img>
 
         {isMenuOpen && (
           <div className="burger-dropdown">
-            <Link to="/" className="dropdown-nav-item" onClick={handleLinkClick}>
+            <Link
+              to="/"
+              className="dropdown-nav-item"
+              onClick={handleLinkClick}
+              {...PRESS_HANDLERS}
+            >
               <div className="navbar-icon-div">
                 <img className="nav-icon" src="/home.png"></img>
                 <p className="names-to-links">Home</p>
@@ -123,6 +137,7 @@ function NavBar() {
               to="/trending"
               className="dropdown-nav-item"
               onClick={handleLinkClick}
+              {...PRESS_HANDLERS}
             >
               <div className="navbar-icon-div">
                 <img className="nav-icon" src="/trending.png"></img>
@@ -134,6 +149,7 @@ function NavBar() {
               to="/ratings"
               className="dropdown-nav-item"
               onClick={() => handleAuthOnlyRouteClick("/ratings")}
+              {...PRESS_HANDLERS}
             >
               <div className="navbar-icon-div">
                 <img className="nav-icon" src="/ratings.png"></img>
@@ -145,6 +161,7 @@ function NavBar() {
               to="/watchlist"
               className="dropdown-nav-item"
               onClick={() => handleAuthOnlyRouteClick("/watchlist")}
+              {...PRESS_HANDLERS}
             >
               <div className="navbar-icon-div">
                 <img className="nav-icon" src="/watchlist-navbar.png"></img>
@@ -156,6 +173,7 @@ function NavBar() {
               to="/log"
               className="dropdown-nav-item"
               onClick={() => handleAuthOnlyRouteClick("/log")}
+              {...PRESS_HANDLERS}
             >
               <div className="navbar-icon-div">
                 <img className="nav-icon" src="/log.png"></img>
@@ -168,6 +186,7 @@ function NavBar() {
               target="_blank"
               rel="noopener noreferrer"
               className="dropdown-nav-item "
+              {...PRESS_HANDLERS}
             >
               <div className="navbar-icon-div">
                 <img src="/github.png" className="nav-icon github-icon" />
@@ -177,18 +196,34 @@ function NavBar() {
             </a>
 
             {isAuthenticated ? (
-              <div className="user-avatar-container">
-                <img
-                  className="user-avatar"
-                  src={getAvatarUrl(user?.email)}
+              <>
+                <div
+                  className="dropdown-nav-item"
+                  onClick={handleAccountClick}
+                  {...PRESS_HANDLERS}
+                >
+                  <div className="navbar-icon-div">
+                    <img className="nav-icon" src="/settings.png" alt="" />
+                    <p className="names-to-links">Account Settings</p>
+                  </div>
+                </div>
+                <div
+                  className="dropdown-nav-item"
                   onClick={handleSignOut}
-                />
-              </div>
+                  {...PRESS_HANDLERS}
+                >
+                  <div className="navbar-icon-div">
+                    <img className="nav-icon" src="/signin.png" alt="" />
+                    <p className="names-to-links">Sign Out</p>
+                  </div>
+                </div>
+              </>
             ) : (
               <Link
                 to="/signin"
                 className="dropdown-nav-item"
                 onClick={handleLinkClick}
+                {...PRESS_HANDLERS}
               >
                 <div className="navbar-icon-div">
                   <img className="nav-icon" src="/signin.png"></img>
@@ -203,7 +238,12 @@ function NavBar() {
       </div>
 
       <div className="navbar-links">
-        <Link to="/trending" className="nav-link" onClick={clearSearch}>
+        <Link
+          to="/trending"
+          className="nav-link"
+          onClick={clearSearch}
+          {...PRESS_HANDLERS}
+        >
           <div className="navbar-icon-div">
             <img className="nav-icon" src="/trending.png"></img>
             <p className="names-to-links">Trending</p>
@@ -214,6 +254,7 @@ function NavBar() {
           to="/ratings"
           className="nav-link"
           onClick={() => handleAuthOnlyRouteClick("/ratings")}
+          {...PRESS_HANDLERS}
         >
           <div className="navbar-icon-div">
             <img className="nav-icon" src="/ratings.png"></img>
@@ -225,6 +266,7 @@ function NavBar() {
           to="/watchlist"
           className="nav-link"
           onClick={() => handleAuthOnlyRouteClick("/watchlist")}
+          {...PRESS_HANDLERS}
         >
           <div className="navbar-icon-div">
             <img className="nav-icon" src="/watchlist-navbar.png"></img>
@@ -236,6 +278,7 @@ function NavBar() {
           to="/log"
           className="nav-link"
           onClick={() => handleAuthOnlyRouteClick("/log")}
+          {...PRESS_HANDLERS}
         >
           <div className="navbar-icon-div">
             <img className="nav-icon" src="/log.png"></img>
@@ -247,14 +290,26 @@ function NavBar() {
           <div className="user-avatar-container" ref={profileMenuRef}>
             <img
               className="user-avatar"
-              src={getAvatarUrl(user?.email)}
+              src={getAvatarUrl(user)}
               onClick={() => setIsProfileMenuOpen((open) => !open)}
+              {...PRESS_HANDLERS}
             />
             {isProfileMenuOpen && (
               <div className="profile-dropdown">
                 <div
                   className="dropdown-nav-item"
+                  onClick={handleAccountClick}
+                  {...PRESS_HANDLERS}
+                >
+                  <div className="navbar-icon-div">
+                    <img className="nav-icon" src="/settings.png" alt="" />
+                    <p className="names-to-links">Account Settings</p>
+                  </div>
+                </div>
+                <div
+                  className="dropdown-nav-item"
                   onClick={handleSignOut}
+                  {...PRESS_HANDLERS}
                 >
                   <div className="navbar-icon-div">
                     <img className="nav-icon" src="/signin.png" alt="" />
@@ -265,7 +320,12 @@ function NavBar() {
             )}
           </div>
         ) : (
-          <Link to="/signin" className="nav-link" onClick={clearSearch}>
+          <Link
+            to="/signin"
+            className="nav-link"
+            onClick={clearSearch}
+            {...PRESS_HANDLERS}
+          >
             <div className="navbar-icon-div">
               <img className="nav-icon" src="/signin.png"></img>
               <p className="names-to-links">Sign In</p>

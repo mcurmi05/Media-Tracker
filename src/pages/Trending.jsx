@@ -11,6 +11,7 @@ import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import SortByMenu from "../components/SortByMenu.jsx";
 import { yearInRange, compareNums } from "../utils/mediaFilters.js";
 import { makeNavHandlers } from "../utils/navClick.js";
+import { PRESS_HANDLERS } from "../utils/pressHandlers.js";
 
 const SORT_OPTIONS = [
   { value: "trending", label: "Trending" },
@@ -29,35 +30,6 @@ const formatVotes = (v) => {
   if (v >= 1000000) return (v / 1000000).toFixed(1) + "M";
   if (v >= 1000) return Math.round(v / 1000) + "K";
   return String(v);
-};
-
-// Drive the press/sink via pointer events instead of CSS :active. On mobile a
-// quick tap often navigates before an :active frame paints; pointerdown fires
-// immediately on touch, so the sink is reliably shown.
-//
-// To avoid pressing during a scroll/swipe, we record where the touch started
-// and drop the press as soon as the finger moves past a small threshold — a
-// tap stays still and keeps the press, a swipe moves and loses it.
-const PRESS_MOVE_TOLERANCE = 8; // px
-const PRESS_HANDLERS = {
-  onPointerDown: (e) => {
-    const el = e.currentTarget;
-    el._pressX = e.clientX;
-    el._pressY = e.clientY;
-    el.classList.add("is-pressed");
-  },
-  onPointerMove: (e) => {
-    const el = e.currentTarget;
-    if (!el.classList.contains("is-pressed")) return;
-    const dx = e.clientX - (el._pressX ?? e.clientX);
-    const dy = e.clientY - (el._pressY ?? e.clientY);
-    if (dx * dx + dy * dy > PRESS_MOVE_TOLERANCE * PRESS_MOVE_TOLERANCE) {
-      el.classList.remove("is-pressed");
-    }
-  },
-  onPointerUp: (e) => e.currentTarget.classList.remove("is-pressed"),
-  onPointerCancel: (e) => e.currentTarget.classList.remove("is-pressed"),
-  onPointerLeave: (e) => e.currentTarget.classList.remove("is-pressed"),
 };
 
 // Compact live IMDb rating badge. Renders nothing until/unless the title has a
