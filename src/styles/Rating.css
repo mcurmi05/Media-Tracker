@@ -292,6 +292,15 @@
   max-width: 100%;
 }
 
+/* Logs on mobile: drop the IMDb info onto its own line under the year/runtime,
+   left-justified (instead of the default right-shoving auto margin). */
+@media (max-width: 850px) {
+  .log-rating-wrapper .rating-imdb-wrap {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
 /* Book rows have no description block under the meta line (movies do), so the
    "by Author (year)" / date line sat near the top while the cover ran on below.
    On desktop, make the column fill the row's (poster) height and push the meta
