@@ -25,6 +25,7 @@ function ListComponent({
   onSendBottom,
   dateSlot = null,
   actionSlot = null,
+  belowRank = null,
 }) {
   const navigate = useNavigate();
 
@@ -44,14 +45,10 @@ function ListComponent({
   // the vertical right-side stack used in the watchlist queue. Stack order:
   // send to top, move up, move down, send to bottom.
   const rankBtnStyle = {
-    border: "1px solid #cccccc",
-    background: "#2a2a2a",
-    color: "#fff",
-    borderRadius: 4,
+    border: "none",
+    background: "none",
     padding: 0,
     cursor: "pointer",
-    width: 22,
-    height: 22,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -61,17 +58,17 @@ function ListComponent({
   };
   const rankButtons = (
     <>
-      <button onClick={onSendTop} title="Send to top" style={rankBtnStyle}>
-        <img src="/doublepromote.png" alt="Top" style={{ width: 12, height: 12 }} />
+      <button className="rank-btn" onClick={onSendTop} title="Send to top" style={rankBtnStyle}>
+        <img src="/doublepromote.png" alt="Top" />
       </button>
-      <button onClick={onMoveUp} title="Move up" style={rankBtnStyle}>
-        <img src="/promote.png" alt="Up" style={{ width: 10, height: 10 }} />
+      <button className="rank-btn" onClick={onMoveUp} title="Move up" style={rankBtnStyle}>
+        <img src="/promote.png" alt="Up" />
       </button>
-      <button onClick={onMoveDown} title="Move down" style={rankBtnStyle}>
-        <img src="/demote.png" alt="Down" style={{ width: 10, height: 10 }} />
+      <button className="rank-btn" onClick={onMoveDown} title="Move down" style={rankBtnStyle}>
+        <img src="/demote.png" alt="Down" />
       </button>
-      <button onClick={onSendBottom} title="Send to bottom" style={rankBtnStyle}>
-        <img src="/doubledemote.png" alt="Bottom" style={{ width: 12, height: 12 }} />
+      <button className="rank-btn" onClick={onSendBottom} title="Send to bottom" style={rankBtnStyle}>
+        <img src="/doubledemote.png" alt="Bottom" />
       </button>
     </>
   );
@@ -82,6 +79,7 @@ function ListComponent({
         {rankLeft && rankNumber != null && (
           <div className="queue-rank">
             <span className="queue-rank-badge">{`#${rankNumber}`}</span>
+            {belowRank}
           </div>
         )}
         <div className="poster-wrapper">

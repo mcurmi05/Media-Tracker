@@ -12,14 +12,10 @@ import { useNavigate } from "react-router-dom";
 import { bookDetailsRoute } from "../utils/goodreads.js";
 
 const queueBtnStyle = {
-  border: "1px solid #cccccc",
-  background: "#2a2a2a",
-  color: "#fff",
-  borderRadius: 4,
+  border: "none",
+  background: "none",
   padding: 0,
   cursor: "pointer",
-  width: 22,
-  height: 22,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -103,6 +99,22 @@ export default function BookTbrComponent({
           {queueMode && rankNumber != null && (
             <div className="queue-rank">
               <span className="queue-rank-badge">{`#${rankNumber}`}</span>
+              <button
+                onClick={() => removeFromQueue(queueEntry.id)}
+                title="Remove from queue (keep in TBR)"
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#aaa",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  lineHeight: 1,
+                  padding: 0,
+                  outline: "none",
+                }}
+              >
+                {String.fromCharCode(0x2715)}
+              </button>
             </div>
           )}
           <div className="poster-wrapper">
@@ -171,27 +183,9 @@ export default function BookTbrComponent({
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <AddBookWatchlist book={tbrEntry} />
                   <AddBookLogButton book={tbrEntry} />
-                  {queueMode ? (
-                    <button
-                      onClick={() => removeFromQueue(queueEntry.id)}
-                      title="Remove from queue (keep in TBR)"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#aaa",
-                        cursor: "pointer",
-                        fontSize: "18px",
-                        lineHeight: 1,
-                        padding: "0 2px",
-                        marginLeft: "2px",
-                        marginBottom: "1px",
-                        outline: "none",
-                      }}
-                    >
-                      {String.fromCharCode(0x2715)}
-                    </button>
-                  ) : (
+                  {!queueMode && (
                     <img
+                      className="press-icon"
                       src="/add-to-queue.png"
                       onClick={handleQueueToggle}
                       title={inQueue ? "Remove from queue" : "Add to queue"}
@@ -200,7 +194,8 @@ export default function BookTbrComponent({
                         height: "22px",
                         cursor: "pointer",
                         opacity: inQueue ? 1 : 0.35,
-                        transition: "opacity 0.2s",
+                        transition:
+                          "opacity 0.2s, transform 120ms cubic-bezier(0.23, 1, 0.32, 1)",
                         marginLeft: "2px",
                         marginBottom: "1px",
                       }}
@@ -240,17 +235,17 @@ export default function BookTbrComponent({
           </div>
           {queueMode && (
             <div className="rank-controls-stack">
-              <button onClick={onSendTop} title="Send to top" style={queueBtnStyle}>
-                <img src="/doublepromote.png" alt="Top" style={{ width: 12, height: 12 }} />
+              <button className="rank-btn" onClick={onSendTop} title="Send to top" style={queueBtnStyle}>
+                <img src="/doublepromote.png" alt="Top" />
               </button>
-              <button onClick={onMoveUp} title="Move up" style={queueBtnStyle}>
-                <img src="/promote.png" alt="Up" style={{ width: 10, height: 10 }} />
+              <button className="rank-btn" onClick={onMoveUp} title="Move up" style={queueBtnStyle}>
+                <img src="/promote.png" alt="Up" />
               </button>
-              <button onClick={onMoveDown} title="Move down" style={queueBtnStyle}>
-                <img src="/demote.png" alt="Down" style={{ width: 10, height: 10 }} />
+              <button className="rank-btn" onClick={onMoveDown} title="Move down" style={queueBtnStyle}>
+                <img src="/demote.png" alt="Down" />
               </button>
-              <button onClick={onSendBottom} title="Send to bottom" style={queueBtnStyle}>
-                <img src="/doubledemote.png" alt="Bottom" style={{ width: 12, height: 12 }} />
+              <button className="rank-btn" onClick={onSendBottom} title="Send to bottom" style={queueBtnStyle}>
+                <img src="/doubledemote.png" alt="Bottom" />
               </button>
             </div>
           )}

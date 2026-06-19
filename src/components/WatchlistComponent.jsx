@@ -64,6 +64,7 @@ export default function WatchlistComponent({
         actionSlot={
           <>
             <img
+              className="press-icon"
               src="/add-to-queue.png"
               onClick={handleQueueToggle}
               title={inQueue ? "Remove from queue" : "Add to queue"}
@@ -72,13 +73,15 @@ export default function WatchlistComponent({
                 height: "22px",
                 cursor: "pointer",
                 opacity: inQueue ? 1 : 0.35,
-                transition: "opacity 0.2s",
+                transition:
+                  "opacity 0.2s, transform 120ms cubic-bezier(0.23, 1, 0.32, 1)",
                 marginLeft: "2px",
                 marginBottom: "1px",
               }}
             />
             {isTV ? (
               <img
+                className="press-icon"
                 src="/new_season_to_watch.png"
                 onClick={handleNewSeasonToggle}
                 title={
@@ -91,7 +94,8 @@ export default function WatchlistComponent({
                   height: "22px",
                   cursor: "pointer",
                   opacity: newSeason ? 1 : 0.35,
-                  transition: "opacity 0.2s",
+                  transition:
+                    "opacity 0.2s, transform 120ms cubic-bezier(0.23, 1, 0.32, 1)",
                   marginLeft: "2px",
                   marginBottom: "1px",
                 }}

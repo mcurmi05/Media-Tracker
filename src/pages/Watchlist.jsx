@@ -551,8 +551,10 @@ function Watchlist() {
             background: "#2a2a2a",
             border: "1px solid #2e2e2e",
             borderRadius: "14px",
-            padding: "12px 16px 6px",
-            marginBottom: "32px",
+            padding: "12px 8px 6px",
+            /* pull out into the page's side padding so the queue uses a bit
+               more horizontal space (esp. on mobile) */
+            margin: "0 -24px 32px",
             boxShadow: "0 4px 18px rgba(0,0,0,0.35)",
           }}
         >
@@ -588,7 +590,7 @@ function Watchlist() {
               src="/demote.png"
               alt=""
               className={`queue-chevron${queueOpen ? " open" : ""}`}
-              style={{ width: 14, height: 14 }}
+              style={{ width: 14, height: 14, marginRight: "6px" }}
             />
           </div>
           <div className={`queue-body-wrap${queueOpen ? " open" : ""}`}>
@@ -672,7 +674,7 @@ function Watchlist() {
                             onSendBottom={() =>
                               handleQueueSendBottom(category, item.queue_id)
                             }
-                            actionSlot={
+                            belowRank={
                               <button
                                 onClick={() => removeFromQueue(item.queue_id)}
                                 title="Remove from queue (keep in watchlist)"
@@ -681,11 +683,9 @@ function Watchlist() {
                                   border: "none",
                                   color: "#aaa",
                                   cursor: "pointer",
-                                  fontSize: "18px",
+                                  fontSize: "12px",
                                   lineHeight: 1,
-                                  padding: "0 2px",
-                                  marginLeft: "2px",
-                                  marginBottom: "1px",
+                                  padding: 0,
                                   outline: "none",
                                 }}
                               >
