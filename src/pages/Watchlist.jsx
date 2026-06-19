@@ -1,6 +1,6 @@
 import WatchlistComponent from "../components/WatchlistComponent.jsx";
 import BookTbrComponent from "../components/BookTbrComponent.jsx";
-import Rating from "../components/Rating.jsx";
+import ListComponent from "../components/ListComponent.jsx";
 import "../styles/Log.css";
 import "../styles/Toolbar.css";
 import { useEffect, useMemo, useState } from "react";
@@ -654,7 +654,7 @@ function Watchlist() {
                             }
                           />
                         ) : (
-                          <Rating
+                          <ListComponent
                             movie_object={item.movie}
                             ratingDate={null}
                             rankNumber={index + 1}

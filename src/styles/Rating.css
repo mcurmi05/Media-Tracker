@@ -254,22 +254,54 @@
     padding: 0;
   }
 
-  /* Watchlist delete icon: park it on the right edge, vertically centred, and
-     reserve room so the title-row actions don't slide under it. */
-  .log-delete-icon {
-    top: 50%;
-    transform: translateY(-50%);
-    right: 4px;
-    width: 16px;
+  /* Delete icon: tuck it into the top-right corner, small, and reserve a little
+     room so the title-row actions don't slide under it. `img.` adds specificity
+     so this beats the base `.log-delete-icon { width: 20px }` rule regardless of
+     stylesheet order. */
+  img.log-delete-icon {
+    top: 6px;
+    transform: none;
+    right: 6px;
+    width: 10px;
   }
   .log-rating-wrapper .right-stuff {
-    padding-right: 22px;
+    padding-right: 16px;
+  }
+}
+
+/* The ratings row goes full-width at <=1000px, so from that point the date
+   info should already sit on its own line(s) rather than trailing inline after
+   the year/IMDb. Stack "Rated: ..." and "(Last updated: ...)" as a column. */
+@media (max-width: 1000px) {
+  .rating-date-line {
+    flex-basis: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .rating-last-updated {
+    display: block;
+    white-space: normal;
   }
 }
 
 .top-stuff{
   display:flex;
   max-width: 100%;
+}
+
+/* Book rows have no description block under the meta line (movies do), so the
+   "by Author (year)" / date line sat near the top while the cover ran on below.
+   On desktop, make the column fill the row's (poster) height and push the meta
+   line to the bottom so it lines up with the bottom of the cover, like movies. */
+@media (min-width: 851px) {
+  .book-right-stuff {
+    display: flex;
+    flex-direction: column;
+  }
+  .book-right-stuff .rating-page-subtitle {
+    margin-top: auto;
+  }
 }
 
 /* Let the text column shrink so rows never overflow their container, while the
@@ -280,6 +312,26 @@
 }
 .poster-wrapper {
   flex-shrink: 0;
+}
+
+
+/* Watchlist-queue rows: drop the container's left padding so the #-rank sits
+   near the edge and the title gets more room (the reorder stack on the right
+   already eats into the row). */
+.container-queue {
+  padding-left: 4px;
+}
+
+/* Watchlist-queue reorder controls: a vertical stack (to-top / up / down /
+   to-bottom) pinned to the right edge of the row. As the last flex child of
+   .top-stuff, it sits to the right of the (flex:1) text column. */
+.rank-controls-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: center;
+  flex-shrink: 0;
+  margin-left: 10px;
 }
 
 /* Queue rank badge: fixed-width slot so every poster lines up regardless of the

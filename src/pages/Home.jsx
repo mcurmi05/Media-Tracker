@@ -17,8 +17,6 @@ import "../styles/Home.css";
 
 /* ---------- helpers ---------- */
 
-const CURRENT_YEAR = new Date().getFullYear();
-
 function isTV(mo) {
   if (!mo) return false;
   const t = (mo.type || "").toLowerCase();
@@ -368,15 +366,13 @@ export default function Home() {
   /* ---------- stats ---------- */
 
   const stats = useMemo(() => {
-    const ratingValues = userRatings
-      .map((r) => Number(r.rating))
-      .filter((v) => v >= 1 && v <= 10);
+    const ratingValues = [
+      ...userRatings.map((r) => Number(r.rating)),
+      ...bookRatings.map((r) => Number(r.book_rating)),
+    ].filter((v) => v >= 1 && v <= 10);
     const avg = ratingValues.length
       ? (ratingValues.reduce((s, v) => s + v, 0) / ratingValues.length).toFixed(2)
       : "-";
-    const thisYear = userLogs.filter(
-      (l) => new Date(l.created_at).getFullYear() === CURRENT_YEAR,
-    ).length;
     return [
       {
         num: userLogs.filter((l) => !isTV(l.movie_object)).length,
@@ -395,22 +391,9 @@ export default function Home() {
         onClick: () =>
           navigate("/log", { state: { mediaTypeFilter: "books" } }),
       },
-      {
-        num: thisYear,
-        label: "Logged this year",
-        onClick: () => {
-          const y = new Date().getFullYear();
-          navigate("/log", {
-            state: {
-              addedFrom: `${y}-01-01`,
-              addedTo: `${y}-12-31`,
-            },
-          });
-        },
-      },
-      { num: avg, label: "Avg screen rating" },
+      { num: avg, label: "Avg rating" },
     ];
-  }, [userRatings, userLogs, bookLogs, navigate]);
+  }, [userRatings, bookRatings, userLogs, bookLogs, navigate]);
 
   /* ---------- top 4 ranked per category ---------- */
 

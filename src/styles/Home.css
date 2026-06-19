@@ -751,31 +751,52 @@
 
 /* ---- responsive ---- */
 @media (max-width: 600px) {
-  /* On phones the borderless flex row wraps to an uneven 3 + 2 layout. Switch
-     to a tidy grid of cards instead: two per row, with the lone last stat
-     (avg rating) spanning the full width as a summary card. */
+  /* On phones, keep all the stats on a single row as compact cards, with the
+     type shrunk down enough to fit. */
   .hp-stats {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
     padding: 0;
     border: none;
-    margin-bottom: 28px;
+    margin-bottom: 14px;
+  }
+
+  /* Halve the vertical gaps between the page's components on mobile so it reads
+     tighter on a small screen. */
+  .hp-header {
+    margin-bottom: 14px;
+  }
+  .hp-section {
+    margin-bottom: 20px;
+  }
+  .hp-two-col {
+    margin-bottom: 20px;
+  }
+  .hp-col-left > .hp-section:last-child {
+    margin-bottom: 20px;
+  }
+  .hp-section:has(.hp-feed) {
+    margin-bottom: 12px;
   }
   .hp-stat {
-    padding: 14px 12px;
+    padding: 9px 3px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-right: 1px solid var(--border);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
   }
   .hp-stat:last-child {
-    grid-column: 1 / -1;
     /* override the desktop rule that drops the divider on the last item */
     border-right: 1px solid var(--border);
   }
   .hp-stat-num {
-    font-size: 1.5rem;
+    font-size: 1rem;
+  }
+  .hp-stat-label {
+    font-size: 0.42rem;
+    letter-spacing: 0.02em;
+    margin-top: 3px;
   }
   .hp-bar {
     width: 9px;

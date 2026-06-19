@@ -9,7 +9,7 @@ import IMDBInfo from "./IMDBInfo.jsx";
 import { getRatingDateInfo } from "../utils/ratingDate.js";
 import { makeNavHandlers } from "../utils/navClick.js";
 
-function Rating({
+function ListComponent({
   movie_object,
   ratingDate,
   ratingUpdatedDate,
@@ -40,8 +40,44 @@ function Rating({
     ratingAccurate,
   );
 
+  // The four reorder controls, shared between the inline (ratings) layout and
+  // the vertical right-side stack used in the watchlist queue. Stack order:
+  // send to top, move up, move down, send to bottom.
+  const rankBtnStyle = {
+    border: "1px solid #cccccc",
+    background: "#2a2a2a",
+    color: "#fff",
+    borderRadius: 4,
+    padding: 0,
+    cursor: "pointer",
+    width: 22,
+    height: 22,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    outline: "none",
+    boxShadow: "none",
+    WebkitTapHighlightColor: "transparent",
+  };
+  const rankButtons = (
+    <>
+      <button onClick={onSendTop} title="Send to top" style={rankBtnStyle}>
+        <img src="/doublepromote.png" alt="Top" style={{ width: 12, height: 12 }} />
+      </button>
+      <button onClick={onMoveUp} title="Move up" style={rankBtnStyle}>
+        <img src="/promote.png" alt="Up" style={{ width: 10, height: 10 }} />
+      </button>
+      <button onClick={onMoveDown} title="Move down" style={rankBtnStyle}>
+        <img src="/demote.png" alt="Down" style={{ width: 10, height: 10 }} />
+      </button>
+      <button onClick={onSendBottom} title="Send to bottom" style={rankBtnStyle}>
+        <img src="/doubledemote.png" alt="Bottom" style={{ width: 12, height: 12 }} />
+      </button>
+    </>
+  );
+
   return (
-    <div className="container">
+    <div className={`container${rankLeft ? " container-queue" : ""}`}>
       <div className="top-stuff">
         {rankLeft && rankNumber != null && (
           <div className="queue-rank">
@@ -69,7 +105,7 @@ function Rating({
               {movie_object.primaryTitle}{" "}
             </p>
             {/* Rank badge and optional controls */}
-            {(rankNumber || showRankControls) && (
+            {(rankNumber || showRankControls) && !rankLeft && (
               <div
                 style={{
                   display: "flex",
@@ -78,7 +114,6 @@ function Rating({
                   marginLeft: 8,
                 }}
               >
-                {!rankLeft && (
                 <span
                   title={rankNumber ? `#${rankNumber}` : "Unranked"}
                   style={{
@@ -100,114 +135,8 @@ function Rating({
                 >
                   {rankNumber ? `#${rankNumber}` : "Unranked"}
                 </span>
-                )}
                 {showRankControls && (
-                  <div style={{ display: "flex", gap: 3 }}>
-                    <button
-                      onClick={onSendTop}
-                      title="Send to top"
-                      style={{
-                        border: "1px solid #cccccc",
-                        background: "#2a2a2a",
-                        color: "#fff",
-                        borderRadius: 4,
-                        padding: 0,
-                        cursor: "pointer",
-                        width: 22,
-                        height: 22,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        outline: "none",
-                        boxShadow: "none",
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      <img
-                        src="/doublepromote.png"
-                        alt="Top"
-                        style={{ width: 12, height: 12 }}
-                      />
-                    </button>
-                    <button
-                      onClick={onMoveUp}
-                      title="Move up"
-                      style={{
-                        border: "1px solid #cccccc",
-                        background: "#2a2a2a",
-                        color: "#fff",
-                        borderRadius: 4,
-                        padding: 0,
-                        cursor: "pointer",
-                        width: 22,
-                        height: 22,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        outline: "none",
-                        boxShadow: "none",
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      <img
-                        src="/promote.png"
-                        alt="Up"
-                        style={{ width: 10, height: 10 }}
-                      />
-                    </button>
-                    <button
-                      onClick={onSendBottom}
-                      title="Send to bottom"
-                      style={{
-                        border: "1px solid #cccccc",
-                        background: "#2a2a2a",
-                        color: "#fff",
-                        borderRadius: 4,
-                        padding: 0,
-                        cursor: "pointer",
-                        width: 22,
-                        height: 22,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        outline: "none",
-                        boxShadow: "none",
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      <img
-                        src="/doubledemote.png"
-                        alt="Bottom"
-                        style={{ width: 12, height: 12 }}
-                      />
-                    </button>
-                    <button
-                      onClick={onMoveDown}
-                      title="Move down"
-                      style={{
-                        border: "1px solid #cccccc",
-                        background: "#2a2a2a",
-                        color: "#fff",
-                        borderRadius: 4,
-                        padding: 0,
-                        cursor: "pointer",
-                        width: 22,
-                        height: 22,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        outline: "none",
-                        boxShadow: "none",
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      <img
-                        src="/demote.png"
-                        alt="Down"
-                        style={{ width: 10, height: 10 }}
-                      />
-                    </button>
-                  </div>
+                  <div style={{ display: "flex", gap: 3 }}>{rankButtons}</div>
                 )}
               </div>
             )}
@@ -237,7 +166,7 @@ function Rating({
                 className="rating-date-line"
                 style={{
                   display: "flex",
-                  alignItems: "center",
+                  alignItems: "flex-start",
                   gap: "8px",
                 }}
               >
@@ -263,7 +192,7 @@ function Rating({
               >
                 {ratingDateInfo.dateInaccurate ? (
                   <span style={{ fontWeight: 600 }}>
-                    Last updated: {ratingDateInfo.lastUpdatedFormatted}
+                    Updated: {ratingDateInfo.lastUpdatedFormatted}
                     {ratingDateInfo.previousRating != null
                       ? `, was ${ratingDateInfo.previousRating}`
                       : ""}
@@ -274,7 +203,7 @@ function Rating({
                     {ratingDateInfo.changed ? (
                       <span className="rating-last-updated" style={{ fontWeight: 600 }}>
                         {" "}
-                        (Last updated: {ratingDateInfo.updatedFormatted}
+                        (Updated: {ratingDateInfo.updatedFormatted}
                         {ratingDateInfo.previousRating != null
                           ? `, was ${ratingDateInfo.previousRating}`
                           : ""}
@@ -321,9 +250,12 @@ function Rating({
             </div>
           </div>
         </div>
+        {showRankControls && rankLeft && (
+          <div className="rank-controls-stack">{rankButtons}</div>
+        )}
       </div>
     </div>
   );
 }
 
-export default Rating;
+export default ListComponent;

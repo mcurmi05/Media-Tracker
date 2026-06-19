@@ -2,13 +2,8 @@ import { useState } from "react";
 import "../styles/Rating.css";
 import "../styles/MovieRatingStar.css";
 import "../styles/LogComponent.css";
-import Modal from "@mui/material/Modal";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import { useBookTbr } from "../contexts/UserBookTbrContext.jsx";
 import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
 import { useWatchlist } from "../contexts/UserWatchlistContext.jsx";
-import { deleteBookTbr } from "../services/ratingsfromtable.js";
 import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import AddBookLogButton from "./AddBookLogButton.jsx";
 import RatingModal from "./RatingModal.jsx";
@@ -33,20 +28,6 @@ const queueBtnStyle = {
   WebkitTapHighlightColor: "transparent",
 };
 
-const modalStyle = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: 400,
-  bgcolor: "#1a1a1a",
-  color: "white",
-  boxShadow: 24,
-  p: 4,
-  borderRadius: 2,
-  fontWeight: "bold",
-};
-
 export default function BookTbrComponent({
   tbrEntry,
   queueMode = false,
@@ -56,12 +37,9 @@ export default function BookTbrComponent({
   onSendTop,
   onSendBottom,
 }) {
-  const { removeBookTbr } = useBookTbr();
   const { rateBook, findRatingForBook } = useBookRatings();
   const { watchlistQueue, addBookToQueue, removeFromQueue } = useWatchlist();
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [visible, setVisible] = useState(true);
   const navigate = useNavigate();
   const book = getBookInfo(tbrEntry);
   const currentRating = findRatingForBook(tbrEntry)?.book_rating ?? 0;
@@ -92,22 +70,6 @@ export default function BookTbrComponent({
     }
   };
 
-  async function confirmDelete() {
-    try {
-      // Remove the queue entry first so the TBR delete isn't blocked by the
-      // queue's foreign key reference.
-      if (queueEntry) await removeFromQueue(queueEntry.id);
-      await deleteBookTbr(tbrEntry.id);
-      removeBookTbr(tbrEntry.id);
-      setVisible(false);
-    } catch (err) {
-      console.error("Error deleting TBR entry:", err);
-    }
-    setShowDeleteModal(false);
-  }
-
-  if (!visible) return null;
-
   const openBookDetails = () => {
     const route = bookDetailsRoute(book.goodreads_link);
     if (route) {
@@ -133,10 +95,10 @@ export default function BookTbrComponent({
 
   return (
     <div
-      className={queueMode ? undefined : "log-rating-wrapper"}
+      className={queueMode ? undefined : "div-wrapper-rating-testing"}
       style={queueMode ? { width: "100%" } : undefined}
     >
-      <div className="container">
+      <div className={`container${queueMode ? " container-queue" : ""}`}>
         <div className="top-stuff">
           {queueMode && rankNumber != null && (
             <div className="queue-rank">
@@ -158,7 +120,7 @@ export default function BookTbrComponent({
               alt={`${book.title} cover`}
             />
           </div>
-          <div className="right-stuff" style={{ marginTop: "12px" }}>
+          <div className="right-stuff book-right-stuff">
             <div className="title-and-star">
               <p
                 className="movie-title"
@@ -169,62 +131,7 @@ export default function BookTbrComponent({
               >
                 {book.title}{" "}
               </p>
-              {queueMode && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 3,
-                    marginLeft: 8,
-                  }}
-                >
-                  <button
-                    onClick={onSendTop}
-                    title="Send to top"
-                    style={queueBtnStyle}
-                  >
-                    <img
-                      src="/doublepromote.png"
-                      alt="Top"
-                      style={{ width: 12, height: 12 }}
-                    />
-                  </button>
-                  <button
-                    onClick={onMoveUp}
-                    title="Move up"
-                    style={queueBtnStyle}
-                  >
-                    <img
-                      src="/promote.png"
-                      alt="Up"
-                      style={{ width: 10, height: 10 }}
-                    />
-                  </button>
-                  <button
-                    onClick={onSendBottom}
-                    title="Send to bottom"
-                    style={queueBtnStyle}
-                  >
-                    <img
-                      src="/doubledemote.png"
-                      alt="Bottom"
-                      style={{ width: 12, height: 12 }}
-                    />
-                  </button>
-                  <button
-                    onClick={onMoveDown}
-                    title="Move down"
-                    style={queueBtnStyle}
-                  >
-                    <img
-                      src="/demote.png"
-                      alt="Down"
-                      style={{ width: 10, height: 10 }}
-                    />
-                  </button>
-                </div>
-              )}
-              <div style={{ display: "flex" }}>
+              <div className="rating-actions" style={{ display: "flex" }}>
                 <div className="rating-star-div">
                   <span className="user-rating-movie-card">
                     {!currentRating || currentRating === 0 ? (
@@ -319,6 +226,7 @@ export default function BookTbrComponent({
               </span>
               {formattedDate ? (
                 <span
+                  className="rating-date-line"
                   style={{
                     color: "#888",
                     fontSize: "0.93em",
@@ -330,15 +238,24 @@ export default function BookTbrComponent({
               ) : null}
             </div>
           </div>
+          {queueMode && (
+            <div className="rank-controls-stack">
+              <button onClick={onSendTop} title="Send to top" style={queueBtnStyle}>
+                <img src="/doublepromote.png" alt="Top" style={{ width: 12, height: 12 }} />
+              </button>
+              <button onClick={onMoveUp} title="Move up" style={queueBtnStyle}>
+                <img src="/promote.png" alt="Up" style={{ width: 10, height: 10 }} />
+              </button>
+              <button onClick={onMoveDown} title="Move down" style={queueBtnStyle}>
+                <img src="/demote.png" alt="Down" style={{ width: 10, height: 10 }} />
+              </button>
+              <button onClick={onSendBottom} title="Send to bottom" style={queueBtnStyle}>
+                <img src="/doubledemote.png" alt="Bottom" style={{ width: 12, height: 12 }} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
-      {!queueMode && (
-        <img
-          src="/logdelete.png"
-          className="log-delete-icon"
-          onClick={() => setShowDeleteModal(true)}
-        />
-      )}
       <RatingModal
         open={showRatingModal}
         onClose={() => setShowRatingModal(false)}
@@ -348,67 +265,6 @@ export default function BookTbrComponent({
         movieTitle={book.title}
         isRated={currentRating && currentRating > 0}
       />
-      <Modal
-        open={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        aria-labelledby="delete-book-tbr-modal-title"
-      >
-        <Box sx={modalStyle}>
-          <div
-            style={{
-              textAlign: "center",
-              marginBottom: "18px",
-              fontWeight: "bold",
-            }}
-          >
-            Are you sure you want to remove this from your TBR?
-          </div>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Button
-              variant="outlined"
-              onClick={() => setShowDeleteModal(false)}
-              sx={{
-                color: "white",
-                borderColor: "#666",
-                "&:hover": { borderColor: "#888" },
-                fontWeight: "bold",
-                textTransform: "none",
-                "&.Mui-focusVisible": {
-                  boxShadow: "none",
-                  outline: "none",
-                  borderColor: "#666",
-                },
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              onClick={confirmDelete}
-              sx={{
-                backgroundColor: "#ff0000ff",
-                "&:hover": { backgroundColor: "#cc0000" },
-                fontWeight: "bold",
-                textTransform: "none",
-                "&.Mui-focusVisible": {
-                  boxShadow: "none",
-                  outline: "none",
-                  borderColor: "#ff0000ff",
-                },
-              }}
-            >
-              Remove
-            </Button>
-          </Box>
-        </Box>
-      </Modal>
     </div>
   );
 }

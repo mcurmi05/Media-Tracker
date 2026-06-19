@@ -1,6 +1,6 @@
 import { useRatings } from "../contexts/UserRatingsContext.jsx";
 import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
-import Rating from "../components/Rating.jsx";
+import ListComponent from "../components/ListComponent.jsx";
 import BookRating from "../components/BookRating.jsx";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -590,7 +590,7 @@ function Ratings() {
                   className="list-row"
                 >
                   <div className="div-wrapper-rating-testing">
-                    <Rating
+                    <ListComponent
                       movie_object={item.data.movie_object}
                       ratingDate={item.data.created_at}
                       ratingUpdatedDate={item.data.updated_at}
@@ -643,7 +643,7 @@ function Ratings() {
                 className="list-row"
               >
                 <div className="div-wrapper-rating-testing">
-                  <Rating
+                  <ListComponent
                     movie_object={rating.movie_object}
                     ratingDate={rating.created_at}
                     ratingUpdatedDate={rating.updated_at}

@@ -78,7 +78,7 @@ function BookRating({
             alt={`${book.title} cover`}
           />
         </div>
-        <div className="right-stuff">
+        <div className="right-stuff book-right-stuff">
           <div className="title-and-star">
             <p className="movie-title" {...detailHandlers} style={{ cursor: book.goodreads_link ? "pointer" : "default" }}>
               {book.title}{" "}
@@ -280,6 +280,7 @@ function BookRating({
             </span>
             {ratingDateInfo ? (
               <span
+                className="rating-date-line"
                 style={{
                   color: "#888",
                   fontSize: "0.93em",
@@ -288,7 +289,7 @@ function BookRating({
               >
                 {ratingDateInfo.dateInaccurate ? (
                   <span style={{ fontWeight: 600 }}>
-                    Last updated: {ratingDateInfo.lastUpdatedFormatted}
+                    Updated: {ratingDateInfo.lastUpdatedFormatted}
                     {ratingDateInfo.previousRating != null
                       ? `, was ${ratingDateInfo.previousRating}`
                       : ""}
@@ -299,7 +300,7 @@ function BookRating({
                     {ratingDateInfo.changed ? (
                       <span className="rating-last-updated" style={{ fontWeight: 600 }}>
                         {" "}
-                        (Last updated: {ratingDateInfo.updatedFormatted}
+                        (Updated: {ratingDateInfo.updatedFormatted}
                         {ratingDateInfo.previousRating != null
                           ? `, was ${ratingDateInfo.previousRating}`
                           : ""}

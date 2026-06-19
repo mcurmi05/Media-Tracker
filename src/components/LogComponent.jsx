@@ -1,4 +1,4 @@
-import Rating from "./Rating.jsx";
+import ListComponent from "./ListComponent.jsx";
 import "../styles/Rating.css";
 import "../styles/LogComponent.css";
 import { supabase } from "../services/supabase-client";
@@ -375,7 +375,7 @@ export default function LogComponent({
   return (
     //i am fully aware of how lazy this is
     <div className="log-rating-wrapper">
-      <Rating key={log_id} movie_object={movie} ratingDate="today"></Rating>
+      <ListComponent key={log_id} movie_object={movie} ratingDate="today"></ListComponent>
       {!isTV && (
         <div
           style={{
