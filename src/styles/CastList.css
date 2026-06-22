@@ -51,3 +51,33 @@
     font-weight:bold;
 }
 
+/* Scale the cast & crew strip down on mobile to match the rest of the
+   media details page. */
+@media (max-width: 900px) {
+    .list-title-cast {
+        font-size: 1rem;
+    }
+
+    .cast-list-container {
+        gap: 0.6rem;
+    }
+
+    .cast-member-container {
+        padding: 6px;
+    }
+
+    .cast-image {
+        width: 52px;
+        height: 52px;
+    }
+
+    .cast-member-fullname {
+        font-size: 0.62rem;
+        margin-top: 6px;
+    }
+
+    .cast-member-characters {
+        font-size: 0.46rem;
+    }
+}
+

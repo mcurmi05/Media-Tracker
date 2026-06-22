@@ -273,38 +273,38 @@ function MediaDetails() {
                 useLiveRating
               ></IMDBInfo>
             </div>
-            {movie.media_type === "movie" ? (
-              <div className="director-and-writer">
-                {movie.directors?.length > 0 && (
-                  <p>
-                    <span className="bold-span">Directed by</span>{" "}
-                    {movie.directors.map((d) => d.fullName).join(", ")}
-                  </p>
-                )}
-                {movie.writers?.length > 0 && (
-                  <p>
-                    <span className="bold-span">Written by</span>{" "}
-                    {movie.writers.map((w) => w.fullName).join(", ")}
-                  </p>
-                )}
-                {movie.budget ? (
-                  <p>
-                    <span className="bold-span">Budget</span> $
-                    {movie.budget.toLocaleString("en-US")} USD
-                  </p>
-                ) : null}
-              </div>
-            ) : movie.media_type === "tv" ? (
-              <div className="director-and-writer">
-                {movie.creators?.length > 0 && (
-                  <p>
-                    <span className="bold-span">Created by</span>{" "}
-                    {movie.creators.map((c) => c.fullName).join(", ")}
-                  </p>
-                )}
-              </div>
-            ) : null}
           </div>
+          {movie.media_type === "movie" ? (
+            <div className="director-and-writer">
+              {movie.directors?.length > 0 && (
+                <p>
+                  <span className="bold-span">Directed by</span>{" "}
+                  {movie.directors.map((d) => d.fullName).join(", ")}
+                </p>
+              )}
+              {movie.writers?.length > 0 && (
+                <p>
+                  <span className="bold-span">Written by</span>{" "}
+                  {movie.writers.map((w) => w.fullName).join(", ")}
+                </p>
+              )}
+              {movie.budget ? (
+                <p>
+                  <span className="bold-span">Budget</span> $
+                  {movie.budget.toLocaleString("en-US")} USD
+                </p>
+              ) : null}
+            </div>
+          ) : movie.media_type === "tv" ? (
+            <div className="director-and-writer">
+              {movie.creators?.length > 0 && (
+                <p>
+                  <span className="bold-span">Created by</span>{" "}
+                  {movie.creators.map((c) => c.fullName).join(", ")}
+                </p>
+              )}
+            </div>
+          ) : null}
         </div>
 
         <div className="cast-list">

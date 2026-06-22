@@ -99,16 +99,24 @@
 
 /* ---------- Hero row (poster + title / meta / actions) ---------- */
 .hero-row {
-    display: flex;
-    /* Bottom-align the title/meta block with the bottom edge of the poster. */
-    align-items: flex-end;
-    gap: 28px;
+    /* Poster spans both rows on the left; the title/meta block (info) sits in
+       the upper-right and the crew/budget block sits directly beneath it. The
+       1fr top row + bottom-aligned info keep the title block hugging the
+       poster's bottom edge, matching the prior flex-end layout. */
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+        "poster info"
+        "poster director";
+    column-gap: 28px;
     margin-bottom: 34px;
 }
 
 .hero-poster {
+    grid-area: poster;
+    align-self: end;
     width: 200px;
-    flex-shrink: 0;
     aspect-ratio: 2 / 3;
     object-fit: cover;
     border-radius: 10px;
@@ -118,12 +126,17 @@
 }
 
 .hero-info {
-    flex: 1 1 auto;
+    grid-area: info;
     min-width: 0;
     display: flex;
     flex-direction: column;
+    justify-content: flex-end;
     gap: 12px;
     padding-bottom: 6px;
+}
+
+.director-and-writer {
+    grid-area: director;
 }
 
 /* Title sits on one line with the rating star + watchlist/log actions,
@@ -222,12 +235,53 @@
     }
 
     .hero-row {
-        gap: 18px;
+        /* On mobile, drop the crew/budget block to a full-width row beneath
+           the poster instead of keeping it in the cramped right column. */
+        grid-template-areas:
+            "poster info"
+            "director director";
+        column-gap: 18px;
+        row-gap: 14px;
         margin-bottom: 26px;
     }
 
     .hero-poster {
         width: 128px;
+    }
+
+    /* Scale the meta line + rating star down to match the list/ratings pages.
+       Undo the desktop centering hacks (margin-top:40px / -40px) that float
+       the star out of place on the smaller row. */
+    .subtitle {
+        font-size: 0.8rem;
+        gap: 0 10px;
+    }
+    .subtitle .imdb-rating {
+        gap: 0.3rem;
+    }
+    .subtitle .imdb-movie-card {
+        width: 26px;
+    }
+    .subtitle .star-movie-card {
+        width: 12px;
+        height: 12px;
+    }
+    .star-container {
+        margin-top: 0;
+    }
+    .user-rating-movie-card {
+        width: 38px;
+        height: 38px;
+        margin-top: 0;
+        padding: 0;
+    }
+    .user-rating-star {
+        width: 30px !important;
+        height: 30px !important;
+        margin-top: 0;
+    }
+    .user-rating-number {
+        font-size: 0.78rem !important;
     }
 
     .info-row {
