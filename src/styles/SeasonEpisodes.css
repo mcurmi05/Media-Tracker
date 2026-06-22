@@ -157,6 +157,12 @@
     text-overflow: ellipsis;
 }
 
+.log-ep-air-date {
+    font-size: 0.66rem;
+    color: #888;
+    margin: 2px 0 0;
+}
+
 /* Compact the reused date picker so it fits inside the small card, pushed to
    the left edge under the episode name. The picker's inner wrapper stays
    full-width; we just flip its alignment from center to the left. */

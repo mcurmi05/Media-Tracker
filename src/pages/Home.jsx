@@ -992,6 +992,7 @@ export default function Home() {
               </button>
             }
           >
+        <div className="hp-feed-wrap">
         <ul className="hp-feed">
           {activity.length === 0 ? (
             <li className="hp-feed-empty">Nothing logged yet.</li>
@@ -1032,6 +1033,7 @@ export default function Home() {
             ))
           )}
         </ul>
+        </div>
       </Section>
 
       {/* ratings distribution */}

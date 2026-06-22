@@ -19,6 +19,17 @@ import { useAuth } from "../contexts/AuthContext.jsx";
 import { getWatchStatus, saveWatchStatus } from "../services/watchStatus.js";
 import Loader from "../components/Loader.jsx";
 
+function formatEpisodeDate(d) {
+  if (!d) return null;
+  const parsed = new Date(d);
+  if (Number.isNaN(parsed.getTime())) return d;
+  return parsed.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function MediaDetails() {
   const { mediaType, tmdbId } = useParams();
   const [movie, setMovie] = useState(null);
@@ -331,7 +342,15 @@ function MediaDetails() {
               {movie.seasons.map((season) => (
                 <div key={season.season_number} className="season-block">
                   <div className="season-header">
-                    <p className="season-name">{season.name}</p>
+                    <p className="season-name">
+                      {season.name}
+                      {season.air_date && (
+                        <span className="season-year">
+                          {" "}
+                          ({season.air_date.slice(0, 4)})
+                        </span>
+                      )}
+                    </p>
                     <span className="season-ep-count">
                       {season.episode_count} episodes
                     </span>
@@ -418,6 +437,11 @@ function MediaDetails() {
                             {ep.runtime ? ` · ${ep.runtime}m` : ""}
                           </p>
                           <p className="episode-name">{ep.name}</p>
+                          {ep.air_date && (
+                            <p className="episode-date">
+                              {formatEpisodeDate(ep.air_date)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     ))}

@@ -345,6 +345,11 @@
     margin: 0;
 }
 
+.season-year {
+    font-weight: 400;
+    color: #777;
+}
+
 .season-ep-count {
     font-size: 0.78rem;
     color: #777;
@@ -462,4 +467,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.episode-date {
+    font-size: 0.7rem;
+    color: #777;
+    margin: 2px 0 0;
 }
