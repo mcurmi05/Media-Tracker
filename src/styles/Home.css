@@ -167,11 +167,6 @@
   .hp-feed-wrap {
     position: static;
   }
-  .hp-feed {
-    position: static;
-    inset: auto;
-    height: 612px;
-  }
   /* once the columns stack, centre their content */
   .hp-two-col .hp-section-head {
     justify-content: center;
@@ -244,7 +239,7 @@
   color: #d4d4d4;
 }
 .hp-toggle:active {
-  transform: scale(0.92);
+  transform: scale(0.96);
 }
 .hp-toggle:focus,
 .hp-toggle:focus-visible {
@@ -667,6 +662,16 @@
   inset: 0;
   overflow-y: auto;
   scrollbar-width: thin;
+}
+/* Once the columns stack into one (see the 860px block above), drop the
+   absolute fill and give the feed a plain fixed height. This rule lives after
+   the base .hp-feed so it actually wins on mobile. */
+@media (max-width: 860px) {
+  .hp-feed {
+    position: static;
+    inset: auto;
+    height: 612px;
+  }
 }
 .hp-section:has(.hp-feed) .hp-section-head {
   margin-bottom: 3px;

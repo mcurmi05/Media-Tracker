@@ -73,6 +73,29 @@ function ListComponent({
     </>
   );
 
+  // The gold/silver/bronze rank pill. Rendered in two slots (title row on
+  // desktop, date line on mobile) and toggled by CSS - see .rank-badge-slot-*.
+  const rankBadge = (
+    <span
+      className="rank-badge"
+      title={rankNumber ? `#${rankNumber}` : "Unranked"}
+      style={{
+        background:
+          rankNumber === 1
+            ? "linear-gradient(135deg,#FFD700,#E6C200)"
+            : rankNumber === 2
+              ? "linear-gradient(135deg,#C0C0C0,#A9A9A9)"
+              : rankNumber === 3
+                ? "linear-gradient(135deg,#CD7F32,#B87333)"
+                : "#444",
+        color: rankNumber ? "#000" : "#fff",
+      }}
+    >
+      {rankNumber ? `#${rankNumber}` : "Unranked"}
+    </span>
+  );
+  const showRankBadge = (rankNumber || showRankControls) && !rankLeft;
+
   return (
     <div className={`container${rankLeft ? " container-queue" : ""}`}>
       <div className="top-stuff">
@@ -102,40 +125,10 @@ function ListComponent({
             <p className="movie-title" {...detailHandlers}>
               {movie_object.primaryTitle}{" "}
             </p>
-            {/* Rank badge and optional controls */}
-            {(rankNumber || showRankControls) && !rankLeft && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginLeft: 8,
-                }}
-              >
-                <span
-                  title={rankNumber ? `#${rankNumber}` : "Unranked"}
-                  style={{
-                    background:
-                      rankNumber === 1
-                        ? "linear-gradient(135deg,#FFD700,#E6C200)"
-                        : rankNumber === 2
-                          ? "linear-gradient(135deg,#C0C0C0,#A9A9A9)"
-                          : rankNumber === 3
-                            ? "linear-gradient(135deg,#CD7F32,#B87333)"
-                            : "#444",
-                    color: rankNumber ? "#000" : "#fff",
-                    borderRadius: 10,
-                    padding: "2px 8px",
-                    fontSize: "0.85rem",
-                    minWidth: 42,
-                    textAlign: "center",
-                  }}
-                >
-                  {rankNumber ? `#${rankNumber}` : "Unranked"}
-                </span>
-                {showRankControls && (
-                  <div style={{ display: "flex", gap: 3 }}>{rankButtons}</div>
-                )}
+            {/* Rank badge (desktop slot - in the title row) */}
+            {showRankBadge && (
+              <div className="rank-badge-slot rank-badge-slot-title">
+                {rankBadge}
               </div>
             )}
             <div className="rating-actions" style={{ display: "flex" }}>
@@ -159,59 +152,67 @@ function ListComponent({
             <span className="rating-imdb-wrap" style={{ position: "relative", top: "11px" }}>
               <IMDBInfo movie={movie_object} useLiveRating></IMDBInfo>
             </span>
-            {addedToWatchlistDate ? (
-              <span
-                className="rating-date-line"
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "8px",
-                }}
-              >
+            <div className="rating-date-row">
+              {addedToWatchlistDate ? (
                 <span
+                  className="rating-date-line"
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "8px",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#888",
+                      fontSize: "0.93em",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Added: {addedToWatchlistDate}
+                  </span>
+                  {dateSlot}
+                </span>
+              ) : ratingDateInfo ? (
+                <span
+                  className="rating-date-line"
                   style={{
                     color: "#888",
                     fontSize: "0.93em",
                     whiteSpace: "nowrap",
                   }}
                 >
-                  Added: {addedToWatchlistDate}
+                  {ratingDateInfo.dateInaccurate ? (
+                    <span style={{ fontWeight: 600 }}>
+                      Updated: {ratingDateInfo.lastUpdatedFormatted}
+                      {ratingDateInfo.previousRating != null
+                        ? `, was ${ratingDateInfo.previousRating}`
+                        : ""}
+                    </span>
+                  ) : (
+                    <>
+                      Rated: {ratingDateInfo.ratedFormatted}
+                      {ratingDateInfo.changed ? (
+                        <span className="rating-last-updated" style={{ fontWeight: 600 }}>
+                          {" "}
+                          (Updated: {ratingDateInfo.updatedFormatted}
+                          {ratingDateInfo.previousRating != null
+                            ? `, was ${ratingDateInfo.previousRating}`
+                            : ""}
+                          )
+                        </span>
+                      ) : null}
+                    </>
+                  )}
                 </span>
-                {dateSlot}
-              </span>
-            ) : ratingDateInfo ? (
-              <span
-                className="rating-date-line"
-                style={{
-                  color: "#888",
-                  fontSize: "0.93em",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {ratingDateInfo.dateInaccurate ? (
-                  <span style={{ fontWeight: 600 }}>
-                    Updated: {ratingDateInfo.lastUpdatedFormatted}
-                    {ratingDateInfo.previousRating != null
-                      ? `, was ${ratingDateInfo.previousRating}`
-                      : ""}
-                  </span>
-                ) : (
-                  <>
-                    Rated: {ratingDateInfo.ratedFormatted}
-                    {ratingDateInfo.changed ? (
-                      <span className="rating-last-updated" style={{ fontWeight: 600 }}>
-                        {" "}
-                        (Updated: {ratingDateInfo.updatedFormatted}
-                        {ratingDateInfo.previousRating != null
-                          ? `, was ${ratingDateInfo.previousRating}`
-                          : ""}
-                        )
-                      </span>
-                    ) : null}
-                  </>
-                )}
-              </span>
-            ) : null}
+              ) : null}
+              {/* Rank badge (mobile slot - to the right of the date text) */}
+              {showRankBadge && (
+                <span className="rank-badge-slot rank-badge-slot-date">
+                  {rankBadge}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="top">
@@ -248,7 +249,7 @@ function ListComponent({
             </div>
           </div>
         </div>
-        {showRankControls && rankLeft && (
+        {showRankControls && (
           <div className="rank-controls-stack">{rankButtons}</div>
         )}
       </div>

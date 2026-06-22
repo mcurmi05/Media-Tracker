@@ -11,6 +11,20 @@ import { useNavigate } from "react-router-dom";
 import { bookDetailsRoute } from "../utils/goodreads.js";
 import { makeNavHandlers } from "../utils/navClick.js";
 
+// Borderless glyph buttons, matching the watchlist/TBR queue reorder controls.
+const queueBtnStyle = {
+  border: "none",
+  background: "none",
+  padding: 0,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  outline: "none",
+  boxShadow: "none",
+  WebkitTapHighlightColor: "transparent",
+};
+
 function BookRating({
   bookLog,
   rankNumber = null,
@@ -62,6 +76,29 @@ function BookRating({
     bookLog.accurate,
   );
 
+  // The gold/silver/bronze rank pill. Rendered in two slots (title row on
+  // desktop, date line on mobile) and toggled by CSS - see .rank-badge-slot-*.
+  const rankBadge = (
+    <span
+      className="rank-badge"
+      title={rankNumber ? `#${rankNumber}` : "Unranked"}
+      style={{
+        background:
+          rankNumber === 1
+            ? "linear-gradient(135deg,#FFD700,#E6C200)"
+            : rankNumber === 2
+              ? "linear-gradient(135deg,#C0C0C0,#A9A9A9)"
+              : rankNumber === 3
+                ? "linear-gradient(135deg,#CD7F32,#B87333)"
+                : "#444",
+        color: rankNumber ? "#000" : "#fff",
+      }}
+    >
+      {rankNumber ? `#${rankNumber}` : "Unranked"}
+    </span>
+  );
+  const showRankBadge = rankNumber || showRankControls;
+
   return (
     <div className="container">
       <div className="top-stuff">
@@ -83,144 +120,10 @@ function BookRating({
             <p className="movie-title" {...detailHandlers} style={{ cursor: book.goodreads_link ? "pointer" : "default" }}>
               {book.title}{" "}
             </p>
-            {(rankNumber || showRankControls) && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginLeft: 8,
-                }}
-              >
-                <span
-                  title={rankNumber ? `#${rankNumber}` : "Unranked"}
-                  style={{
-                    background:
-                      rankNumber === 1
-                        ? "linear-gradient(135deg,#FFD700,#E6C200)"
-                        : rankNumber === 2
-                          ? "linear-gradient(135deg,#C0C0C0,#A9A9A9)"
-                          : rankNumber === 3
-                            ? "linear-gradient(135deg,#CD7F32,#B87333)"
-                            : "#444",
-                    color: rankNumber ? "#000" : "#fff",
-                    borderRadius: 10,
-                    padding: "2px 8px",
-                    fontSize: "0.85rem",
-                    minWidth: 42,
-                    textAlign: "center",
-                  }}
-                >
-                  {rankNumber ? `#${rankNumber}` : "Unranked"}
-                </span>
-                {showRankControls && (
-                  <div style={{ display: "flex", gap: 3 }}>
-                    <button
-                      onClick={onSendTop}
-                      title="Send to top"
-                      style={{
-                        border: "1px solid #cccccc",
-                        background: "#2a2a2a",
-                        color: "#fff",
-                        borderRadius: 4,
-                        padding: 0,
-                        cursor: "pointer",
-                        width: 22,
-                        height: 22,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        outline: "none",
-                        boxShadow: "none",
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      <img
-                        src="/doublepromote.png"
-                        alt="Top"
-                        style={{ width: 12, height: 12 }}
-                      />
-                    </button>
-                    <button
-                      onClick={onMoveUp}
-                      title="Move up"
-                      style={{
-                        border: "1px solid #cccccc",
-                        background: "#2a2a2a",
-                        color: "#fff",
-                        borderRadius: 4,
-                        padding: 0,
-                        cursor: "pointer",
-                        width: 22,
-                        height: 22,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        outline: "none",
-                        boxShadow: "none",
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      <img
-                        src="/promote.png"
-                        alt="Up"
-                        style={{ width: 10, height: 10 }}
-                      />
-                    </button>
-                    <button
-                      onClick={onSendBottom}
-                      title="Send to bottom"
-                      style={{
-                        border: "1px solid #cccccc",
-                        background: "#2a2a2a",
-                        color: "#fff",
-                        borderRadius: 4,
-                        padding: 0,
-                        cursor: "pointer",
-                        width: 22,
-                        height: 22,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        outline: "none",
-                        boxShadow: "none",
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      <img
-                        src="/doubledemote.png"
-                        alt="Bottom"
-                        style={{ width: 12, height: 12 }}
-                      />
-                    </button>
-                    <button
-                      onClick={onMoveDown}
-                      title="Move down"
-                      style={{
-                        border: "1px solid #cccccc",
-                        background: "#2a2a2a",
-                        color: "#fff",
-                        borderRadius: 4,
-                        padding: 0,
-                        cursor: "pointer",
-                        width: 22,
-                        height: 22,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        outline: "none",
-                        boxShadow: "none",
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      <img
-                        src="/demote.png"
-                        alt="Down"
-                        style={{ width: 10, height: 10 }}
-                      />
-                    </button>
-                  </div>
-                )}
+            {/* Rank badge (desktop slot - in the title row) */}
+            {showRankBadge && (
+              <div className="rank-badge-slot rank-badge-slot-title">
+                {rankBadge}
               </div>
             )}
             <div className="rating-actions" style={{ display: "flex" }}>
@@ -278,41 +181,65 @@ function BookRating({
               </span>
               {book.release_year ? ` (${book.release_year})` : ""}
             </span>
-            {ratingDateInfo ? (
-              <span
-                className="rating-date-line"
-                style={{
-                  color: "#888",
-                  fontSize: "0.93em",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {ratingDateInfo.dateInaccurate ? (
-                  <span style={{ fontWeight: 600 }}>
-                    Updated: {ratingDateInfo.lastUpdatedFormatted}
-                    {ratingDateInfo.previousRating != null
-                      ? `, was ${ratingDateInfo.previousRating}`
-                      : ""}
-                  </span>
-                ) : (
-                  <>
-                    Rated: {ratingDateInfo.ratedFormatted}
-                    {ratingDateInfo.changed ? (
-                      <span className="rating-last-updated" style={{ fontWeight: 600 }}>
-                        {" "}
-                        (Updated: {ratingDateInfo.updatedFormatted}
-                        {ratingDateInfo.previousRating != null
-                          ? `, was ${ratingDateInfo.previousRating}`
-                          : ""}
-                        )
-                      </span>
-                    ) : null}
-                  </>
-                )}
-              </span>
-            ) : null}
+            <div className="rating-date-row">
+              {ratingDateInfo ? (
+                <span
+                  className="rating-date-line"
+                  style={{
+                    color: "#888",
+                    fontSize: "0.93em",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {ratingDateInfo.dateInaccurate ? (
+                    <span style={{ fontWeight: 600 }}>
+                      Updated: {ratingDateInfo.lastUpdatedFormatted}
+                      {ratingDateInfo.previousRating != null
+                        ? `, was ${ratingDateInfo.previousRating}`
+                        : ""}
+                    </span>
+                  ) : (
+                    <>
+                      Rated: {ratingDateInfo.ratedFormatted}
+                      {ratingDateInfo.changed ? (
+                        <span className="rating-last-updated" style={{ fontWeight: 600 }}>
+                          {" "}
+                          (Updated: {ratingDateInfo.updatedFormatted}
+                          {ratingDateInfo.previousRating != null
+                            ? `, was ${ratingDateInfo.previousRating}`
+                            : ""}
+                          )
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                </span>
+              ) : null}
+              {/* Rank badge (mobile slot - to the right of the date text) */}
+              {showRankBadge && (
+                <span className="rank-badge-slot rank-badge-slot-date">
+                  {rankBadge}
+                </span>
+              )}
+            </div>
           </div>
         </div>
+        {showRankControls && (
+          <div className="rank-controls-stack">
+            <button className="rank-btn" onClick={onSendTop} title="Send to top" style={queueBtnStyle}>
+              <img src="/doublepromote.png" alt="Top" />
+            </button>
+            <button className="rank-btn" onClick={onMoveUp} title="Move up" style={queueBtnStyle}>
+              <img src="/promote.png" alt="Up" />
+            </button>
+            <button className="rank-btn" onClick={onMoveDown} title="Move down" style={queueBtnStyle}>
+              <img src="/demote.png" alt="Down" />
+            </button>
+            <button className="rank-btn" onClick={onSendBottom} title="Send to bottom" style={queueBtnStyle}>
+              <img src="/doubledemote.png" alt="Bottom" />
+            </button>
+          </div>
+        )}
       </div>
 
       <RatingModal

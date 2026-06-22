@@ -154,6 +154,7 @@
     gap: 8px;
   }
 
+
   .movie-title {
     flex: 1;
     min-width: 0;
@@ -384,6 +385,65 @@
   align-self: center;
   flex-shrink: 0;
   margin-left: 10px;
+}
+
+/* Gold/silver/bronze (or grey "Unranked") rank pill shown inline in the title
+   row on the ratings page. The dynamic background/colour stay inline; sizing
+   lives here so it can scale down on mobile with the rest of the row. */
+.rank-badge {
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 0.85rem;
+  min-width: 42px;
+  text-align: center;
+  white-space: nowrap;
+}
+/* Scale the gold #-rank pill down to match the compact mobile row. Placed after
+   the base rule so it actually wins on mobile. */
+@media (max-width: 850px) {
+  .rank-badge {
+    border-radius: 8px;
+    padding: 1px 6px;
+    font-size: 0.7rem;
+    min-width: 30px;
+  }
+}
+
+/* The rank badge lives in two slots; CSS picks which one shows. Desktop: in the
+   title row. Mobile: out of the title row and onto the date line, to the right
+   of the "Rated:/Updated:" text (frees up title space on small screens). */
+.rank-badge-slot-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+.rank-badge-slot-date {
+  display: none;
+}
+/* Desktop passthrough so the date line lays out exactly as before. */
+.rating-date-row {
+  display: contents;
+}
+@media (max-width: 850px) {
+  .rank-badge-slot-title {
+    display: none;
+  }
+  .rating-date-row {
+    display: flex;
+    flex-basis: 100%;
+    align-items: center;
+    gap: 8px;
+  }
+  .rating-date-row .rating-date-line {
+    flex-basis: auto;
+  }
+  .rank-badge-slot-date {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    top: -1px;
+  }
 }
 
 /* Minimal reorder controls: borderless arrow glyphs, dimmed until hovered. */
