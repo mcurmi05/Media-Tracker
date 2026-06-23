@@ -24,6 +24,7 @@ function ListComponent({
   onSendTop,
   onSendBottom,
   dateSlot = null,
+  betweenSlot = null,
   actionSlot = null,
   belowRank = null,
 }) {
@@ -138,6 +139,7 @@ function ListComponent({
               <div className="rating-action-spacer" style={{ margin: "5px" }}></div>
               <div style={{ display: "flex", alignItems: "center" }}>
                 <AddWatchlist movie={movie_object}></AddWatchlist>
+                {betweenSlot}
                 <AddLog movie={movie_object}></AddLog>
                 {actionSlot}
               </div>

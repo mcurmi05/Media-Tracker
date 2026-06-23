@@ -123,8 +123,11 @@ export default function AccountSettings() {
       const { data: pub } = supabase.storage
         .from(AVATAR_BUCKET)
         .getPublicUrl(path);
+      // Store under custom_avatar_url (not avatar_url) so an OAuth provider
+      // re-syncing avatar_url on the next sign-in can't overwrite the user's
+      // own picture. getAvatarUrl() prefers custom_avatar_url.
       const { error: metaErr } = await supabase.auth.updateUser({
-        data: { avatar_url: pub.publicUrl },
+        data: { custom_avatar_url: pub.publicUrl },
       });
       if (metaErr) throw metaErr;
 
@@ -142,7 +145,7 @@ export default function AccountSettings() {
   };
 
   const removeAvatar = async () => {
-    if (!user.user_metadata?.avatar_url) return;
+    if (!user.user_metadata?.custom_avatar_url) return;
     setUploadingAvatar(true);
     setProfileStatus(null);
     try {
@@ -155,7 +158,7 @@ export default function AccountSettings() {
           .remove(existing.map((f) => `${user.id}/${f.name}`));
       }
       const { error } = await supabase.auth.updateUser({
-        data: { avatar_url: null },
+        data: { custom_avatar_url: null },
       });
       if (error) throw error;
       setProfileStatus({ kind: "success", text: "Profile picture removed." });
@@ -258,7 +261,7 @@ export default function AccountSettings() {
             >
               {uploadingAvatar ? <Spinner /> : "Upload photo"}
             </button>
-            {user.user_metadata?.avatar_url && (
+            {user.user_metadata?.custom_avatar_url && (
               <button
                 type="button"
                 className="acct-btn acct-btn-ghost"

@@ -15,6 +15,20 @@ export const SignIn = () => {
 
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
+    const [switching, setSwitching] = useState(false);
+
+    // Crossfade between sign in / sign up: fade the card content out, swap the
+    // mode at the midpoint, then let it fade back in. The form fields stay
+    // mounted (only opacity changes), so typed values and focus are preserved.
+    const toggleMode = () => {
+        if (switching) return;
+        setSwitching(true);
+        setMessage("");
+        setTimeout(() => {
+            setIsSignUp((v) => !v);
+            setSwitching(false);
+        }, 150);
+    };
 
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
@@ -60,11 +74,26 @@ export const SignIn = () => {
         setLoading(false);
     };
 
+    const handleGoogleSignIn = async () => {
+        setMessage("");
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: {
+                redirectTo: window.location.origin,
+            },
+        });
+
+        if (error) {
+            setMessage("Error: " + error.message);
+        }
+    };
+
     const isError = message.includes("Error");
 
     return (
         <div className="signin-page">
             <div className="signin-card">
+              <div className={`signin-content ${switching ? "is-switching" : ""}`}>
 
                 <div className="signin-header">
                     <h2 className="signin-title">
@@ -125,19 +154,33 @@ export const SignIn = () => {
                     </button>
                 </form>
 
+                <div className="signin-divider">OR</div>
+
+                <button
+                    type="button"
+                    className="signin-google"
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                    aria-label="Continue with Google"
+                >
+                    <img src="/google-signin.svg" alt="Continue with Google" />
+                </button>
+
                 <div className="signin-divider">
                     {isSignUp ? "Already a member?" : "New here?"}
                 </div>
 
                 <button
                     className="signin-toggle"
-                    onClick={() => { setIsSignUp(!isSignUp); setMessage(""); }}
+                    onClick={toggleMode}
+                    disabled={switching}
                 >
                     {isSignUp
                         ? <>Already have an account? <strong>Sign in</strong></>
                         : <>Not registered? <strong>Sign up</strong></>}
                 </button>
 
+              </div>
             </div>
         </div>
     );

@@ -268,7 +268,13 @@
     width: 10px;
   }
   .log-rating-wrapper .right-stuff {
-    padding-right: 16px;
+    padding-right: 6px;
+  }
+  /* Pull the add-to-list button right so its edge lines up with the log text
+     box (which is inset ~2% on each side). */
+  .log-rating-wrapper .add-to-list-btn {
+    margin-right: -4px;
+    top: -1px;
   }
 }
 

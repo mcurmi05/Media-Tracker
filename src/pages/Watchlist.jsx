@@ -1,6 +1,7 @@
 import WatchlistComponent from "../components/WatchlistComponent.jsx";
 import BookTbrComponent from "../components/BookTbrComponent.jsx";
 import ListComponent from "../components/ListComponent.jsx";
+import AddToList from "../components/AddToList.jsx";
 import "../styles/Log.css";
 import "../styles/Toolbar.css";
 import { useEffect, useMemo, useState } from "react";
@@ -14,6 +15,7 @@ import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
 import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
+import { useDebouncedValue } from "../utils/useDebouncedValue.js";
 import {
   isTV,
   movieYear,
@@ -48,6 +50,9 @@ function Watchlist() {
   const [searchTerm, setSearchTerm] = useState(
     location.state?.searchTerm || "",
   );
+  // Debounced copy used for the (expensive) list/queue filtering so it doesn't
+  // recompute on every keystroke; the input itself stays on searchTerm.
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [mediaTypeFilter, setMediaTypeFilter] = useState(
     location.state?.mediaTypeFilter || "all",
   );
@@ -83,7 +88,7 @@ function Watchlist() {
   const goToRatings = () => {
     navigate("/ratings", {
       state: {
-        searchTerm,
+        debouncedSearch,
         genreFilter,
         mediaTypeFilter,
         sortKey,
@@ -99,7 +104,7 @@ function Watchlist() {
   const goToLog = () => {
     navigate("/log", {
       state: {
-        searchTerm,
+        debouncedSearch,
         genreFilter,
         mediaTypeFilter,
         sortKey,
@@ -189,6 +194,7 @@ function Watchlist() {
   // TV, and books each start their numbering at 1.
   const queueByCategory = useMemo(() => {
     const groups = { movies: [], tv: [], books: [] };
+    const term = debouncedSearch.trim().toLowerCase();
     watchlistQueue
       .slice()
       .sort(
@@ -200,6 +206,12 @@ function Watchlist() {
         if (q.book_tbr_id != null) {
           const entry = userBookTbr.find((b) => b.id === q.book_tbr_id);
           if (!entry) return;
+          if (term) {
+            const info = getBookInfo(entry);
+            const title = (info.title || "").toLowerCase();
+            const author = (info.author || "").toLowerCase();
+            if (!title.includes(term) && !author.includes(term)) return;
+          }
           groups.books.push({
             queue_id: q.id,
             queue_rank: q.queue_rank,
@@ -209,6 +221,10 @@ function Watchlist() {
         } else if (q.watchlist_id != null) {
           const entry = userWatchlist.find((w) => w.id === q.watchlist_id);
           if (!entry) return;
+          if (term) {
+            const title = (entry.movie_object?.primaryTitle || "").toLowerCase();
+            if (!title.includes(term)) return;
+          }
           groups[queueCategoryOf(entry.movie_object)].push({
             queue_id: q.id,
             queue_rank: q.queue_rank,
@@ -218,7 +234,7 @@ function Watchlist() {
         }
       });
     return groups;
-  }, [watchlistQueue, userWatchlist, userBookTbr]);
+  }, [watchlistQueue, userWatchlist, userBookTbr, debouncedSearch]);
 
   const queueCount =
     queueByCategory.movies.length +
@@ -285,9 +301,9 @@ function Watchlist() {
       const itemIsTV = isTV(item.movie_object);
       if (mediaTypeFilter === "movies" && itemIsTV) return false;
       if (mediaTypeFilter === "tv" && !itemIsTV) return false;
-      if (searchTerm.trim()) {
+      if (debouncedSearch.trim()) {
         const title = item.movie_object?.primaryTitle || "";
-        if (!title.toLowerCase().includes(searchTerm.toLowerCase()))
+        if (!title.toLowerCase().includes(debouncedSearch.toLowerCase()))
           return false;
       }
       if (genreFilter !== "all") {
@@ -324,7 +340,7 @@ function Watchlist() {
     queuedIds,
     newSeasonFilter,
     mediaTypeFilter,
-    searchTerm,
+    debouncedSearch,
     needsMovieData,
     sortKey,
     sortDir,
@@ -341,8 +357,8 @@ function Watchlist() {
     if (genreFilter !== "all") return [];
     const filtered = userBookTbr.filter((item) => {
       if (queuedBookIds.has(item.id)) return false;
-      if (searchTerm.trim()) {
-        const search = searchTerm.toLowerCase();
+      if (debouncedSearch.trim()) {
+        const search = debouncedSearch.toLowerCase();
         const info = getBookInfo(item);
         const title = (info.title || "").toLowerCase();
         const author = (info.author || "").toLowerCase();
@@ -369,7 +385,7 @@ function Watchlist() {
     userBookTbr,
     queuedBookIds,
     newSeasonFilter,
-    searchTerm,
+    debouncedSearch,
     needsBookData,
     sortKey,
     sortDir,
@@ -476,6 +492,16 @@ function Watchlist() {
           onClose={() => setFiltersOpen(false)}
           onToggle={() => setFiltersOpen((v) => !v)}
           activeCount={activeFilterCount}
+          onClear={() => {
+            setGenreFilter("all");
+            setYearFrom("");
+            setYearTo("");
+            setAddedFrom("");
+            setAddedTo("");
+            setSortKey("date");
+            setSortDir("desc");
+            setNewSeasonFilter(false);
+          }}
         >
           <select
             value={genreFilter}
@@ -659,6 +685,7 @@ function Watchlist() {
                           <ListComponent
                             movie_object={item.movie}
                             ratingDate={null}
+                            betweenSlot={<AddToList movie={item.movie} />}
                             rankNumber={index + 1}
                             showRankControls={true}
                             rankLeft={true}

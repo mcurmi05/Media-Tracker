@@ -170,6 +170,18 @@ function NavBar() {
             </a>
 
             <a
+              to="/lists"
+              className="dropdown-nav-item"
+              onClick={() => handleAuthOnlyRouteClick("/lists")}
+              {...PRESS_HANDLERS}
+            >
+              <div className="navbar-icon-div">
+                <img className="nav-icon" src="/lists.png"></img>
+                <p className="names-to-links">Lists</p>
+              </div>
+            </a>
+
+            <a
               to="/log"
               className="dropdown-nav-item"
               onClick={() => handleAuthOnlyRouteClick("/log")}
@@ -271,6 +283,18 @@ function NavBar() {
           <div className="navbar-icon-div">
             <img className="nav-icon" src="/watchlist-navbar.png"></img>
             <p className="names-to-links">Watchlist</p>
+          </div>
+        </a>
+
+        <a
+          to="/lists"
+          className="nav-link"
+          onClick={() => handleAuthOnlyRouteClick("/lists")}
+          {...PRESS_HANDLERS}
+        >
+          <div className="navbar-icon-div">
+            <img className="nav-icon" src="/lists.png"></img>
+            <p className="names-to-links">Lists</p>
           </div>
         </a>
 

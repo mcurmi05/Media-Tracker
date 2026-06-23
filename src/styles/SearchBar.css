@@ -1,6 +1,6 @@
 .search-form {
   display: flex;
-  justify-content:center;
+  justify-content: flex-start;
   gap: 1rem;
   padding: 0 1rem;
   box-sizing: border-box;
@@ -81,13 +81,27 @@
   box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.55);
 }
 
+/* On wider screens shrink the search bar to 60% of its desktop width (40vw). */
+@media (min-width: 768px) {
+  .search-input {
+    width: 24vw;
+  }
+}
+
 .search-button {
   background-color: var(--accent);
   color: white;
   border-radius: var(--radius-sm);
   transition: background-color 150ms ease, transform 160ms var(--ease-out);
   white-space: nowrap;
+  /* Square based on the button's own (smaller) width, not stretched to the
+     taller input height. */
   align-self: center;
+  aspect-ratio: 1 / 1;
+  padding: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-button:active {
@@ -135,7 +149,9 @@
 
 .search-container {
   position: relative;
-  margin: 0 0;
+  /* Center the search group in the space between the home/github icons and the
+     nav links (auto margins on both sides absorb the free space equally). */
+  margin: 0 auto;
 }
 
 .search-dropdown {

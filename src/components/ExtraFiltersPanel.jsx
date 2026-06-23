@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import "../styles/ExtraFiltersPanel.css";
 
-function ExtraFiltersPanel({ open, onClose, activeCount, onToggle, children }) {
+function ExtraFiltersPanel({ open, onClose, activeCount, onToggle, onClear, children }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -33,6 +33,16 @@ function ExtraFiltersPanel({ open, onClose, activeCount, onToggle, children }) {
       {open && (
         <div className="efp-panel">
           {children}
+          {onClear && (
+            <button
+              type="button"
+              className="efp-clear"
+              onClick={onClear}
+              disabled={!activeCount}
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       )}
     </div>

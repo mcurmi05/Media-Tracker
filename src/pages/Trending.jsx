@@ -231,6 +231,13 @@ function Trending() {
             onClose={() => setFiltersOpen(false)}
             onToggle={() => setFiltersOpen((v) => !v)}
             activeCount={activeFilterCount}
+            onClear={() => {
+              setGenreFilter("all");
+              setYearFrom("");
+              setYearTo("");
+              setSortKey("trending");
+              setSortDir("desc");
+            }}
           >
             <select
               value={genreFilter}

@@ -23,6 +23,8 @@ import { UserBookTbrProvider } from "./contexts/UserBookTbrContext.jsx";
 import { UserBookRatingsProvider } from "./contexts/UserBookRatingsContext.jsx";
 import Watchlist from "./pages/Watchlist.jsx";
 import AccountSettings from "./pages/AccountSettings.jsx";
+import Lists from "./pages/Lists.jsx";
+import ListView from "./pages/ListView.jsx";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -89,6 +91,8 @@ function App() {
                           path="/account"
                           element={<AccountSettings></AccountSettings>}
                         />
+                        <Route path="/lists" element={<Lists />} />
+                        <Route path="/lists/:id" element={<ListView />} />
                       </Routes>
                     </main>
                       </UserBookRatingsProvider>

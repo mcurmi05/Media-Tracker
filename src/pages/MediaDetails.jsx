@@ -13,6 +13,7 @@ import ScrollStrip from "../components/ScrollStrip.jsx";
 import EpisodeModal from "../components/EpisodeModal.jsx";
 import AddLog from "../components/AddLog.jsx";
 import AddWatchlist from "../components/AddWatchlist.jsx";
+import AddToList from "../components/AddToList.jsx";
 import { useRatings } from "../contexts/UserRatingsContext.jsx";
 import { getRatingForMovie } from "../services/ratingsfromtable.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
@@ -235,6 +236,7 @@ function MediaDetails() {
                 >
                   <AddWatchlist movie={movie} needMoreDetail={false}></AddWatchlist>
                   <AddLog movie={movie} needMoreDetail={false}></AddLog>
+                  <AddToList movie={movie} />
                 </div>
                 {/* Rank badge only if rated 10; no controls here */}
                 {(() => {

@@ -1,6 +1,7 @@
 import { useRatings } from "../contexts/UserRatingsContext.jsx";
 import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
 import ListComponent from "../components/ListComponent.jsx";
+import AddToList from "../components/AddToList.jsx";
 import BookRating from "../components/BookRating.jsx";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -11,6 +12,7 @@ import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
 import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
+import { useDebouncedValue } from "../utils/useDebouncedValue.js";
 import "../styles/Toolbar.css";
 import { isTV, movieYear, bookYear, compareNums, yearInRange, addedInRange, imdbRatingFor, imdbVotesFor } from "../utils/mediaFilters.js";
 
@@ -33,6 +35,8 @@ function Ratings() {
   const [searchTerm, setSearchTerm] = useState(
     location.state?.searchTerm || "",
   );
+  // Debounced copy used for filtering so it doesn't run on every keystroke.
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [ratingFilter, setRatingFilter] = useState(
     location.state?.ratingFilter || "all",
   );
@@ -182,9 +186,9 @@ function Ratings() {
     const itemIsTV = isTVItem(rating);
     if (mediaTypeFilter === "movies" && itemIsTV) return false;
     if (mediaTypeFilter === "tv" && !itemIsTV) return false;
-    if (searchTerm.trim()) {
+    if (debouncedSearch.trim()) {
       const title = rating.movie_object?.primaryTitle || "";
-      if (!title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (!title.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
     }
     if (ratingFilter !== "all") {
       if (Number(rating.rating) !== Number(ratingFilter)) return false;
@@ -257,11 +261,11 @@ function Ratings() {
     if (!includeBooks) return [];
     if (genreFilter !== "all") return [];
     return bookRatings.filter((bookRating) => {
-      if (searchTerm.trim()) {
+      if (debouncedSearch.trim()) {
         const info = getBookInfo(bookRating);
         const title = (info.title || "").toLowerCase();
         const author = (info.author || "").toLowerCase();
-        const search = searchTerm.toLowerCase();
+        const search = debouncedSearch.toLowerCase();
         if (!title.includes(search) && !author.includes(search)) return false;
       }
       if (ratingFilter !== "all") {
@@ -273,7 +277,7 @@ function Ratings() {
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookRatings, searchTerm, ratingFilter, includeBooks, yearFrom, yearTo, addedFrom, addedTo]);
+  }, [bookRatings, debouncedSearch, ratingFilter, includeBooks, yearFrom, yearTo, addedFrom, addedTo]);
 
   const bookSortDate = (b) => new Date(b.created_at);
 
@@ -483,6 +487,16 @@ function Ratings() {
           onClose={() => setFiltersOpen(false)}
           onToggle={() => setFiltersOpen((v) => !v)}
           activeCount={activeFilterCount}
+          onClear={() => {
+            setRatingFilter("all");
+            setGenreFilter("all");
+            setYearFrom("");
+            setYearTo("");
+            setAddedFrom("");
+            setAddedTo("");
+            setSortKey("date");
+            setSortDir("desc");
+          }}
         >
           <select
             value={ratingFilter}
@@ -592,6 +606,7 @@ function Ratings() {
                   <div className="div-wrapper-rating-testing">
                     <ListComponent
                       movie_object={item.data.movie_object}
+                      betweenSlot={<AddToList movie={item.data.movie_object} />}
                       ratingDate={item.data.created_at}
                       ratingUpdatedDate={item.data.updated_at}
                       ratingPreviousValue={item.data.previous_rating}
@@ -645,6 +660,7 @@ function Ratings() {
                 <div className="div-wrapper-rating-testing">
                   <ListComponent
                     movie_object={rating.movie_object}
+                    betweenSlot={<AddToList movie={rating.movie_object} />}
                     ratingDate={rating.created_at}
                     ratingUpdatedDate={rating.updated_at}
                     ratingPreviousValue={rating.previous_rating}

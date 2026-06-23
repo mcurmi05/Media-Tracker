@@ -104,3 +104,36 @@
 .efp-panel .range-filter-popover {
   z-index: 50;
 }
+
+/* Clear-filters button sits on its own row at the bottom of the panel */
+.efp-clear {
+  flex-basis: 100%;
+  margin: 6px 4px 0;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.efp-clear:hover:not(:disabled) {
+  background-color: var(--surface-hover);
+  border-color: #555;
+}
+
+.efp-clear:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.efp-clear:focus,
+.efp-clear:focus-visible,
+.efp-clear:active {
+  outline: none;
+  box-shadow: none;
+}

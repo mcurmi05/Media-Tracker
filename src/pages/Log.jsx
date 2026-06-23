@@ -26,6 +26,7 @@ import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
 import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
+import { useDebouncedValue } from "../utils/useDebouncedValue.js";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
@@ -46,6 +47,8 @@ function Log() {
   const [searchTerm, setSearchTerm] = useState(
     location.state?.searchTerm || "",
   );
+  // Debounced copy used for filtering so it doesn't run on every keystroke.
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [ratingFilter, setRatingFilter] = useState(
     location.state?.ratingFilter || "all",
   );
@@ -217,13 +220,13 @@ function Log() {
   const filteredBookLogs = (needsBookData && genreFilter === "all")
     ? bookLogs
         .filter((bookLog) => {
-          if (searchTerm.trim()) {
+          if (debouncedSearch.trim()) {
             const info = getBookInfo(bookLog);
             const title = info.title || "";
             const author = info.author || "";
             if (
-              !title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-              !author.toLowerCase().includes(searchTerm.toLowerCase())
+              !title.toLowerCase().includes(debouncedSearch.toLowerCase()) &&
+              !author.toLowerCase().includes(debouncedSearch.toLowerCase())
             ) {
               return false;
             }
@@ -258,9 +261,9 @@ function Log() {
           if (mediaTypeFilter === "movies" && itemIsTV) return false;
           if (mediaTypeFilter === "tv" && !itemIsTV) return false;
           //"all" and "moviesAndTV" include both
-          if (searchTerm.trim()) {
+          if (debouncedSearch.trim()) {
             const title = log.movie_object?.primaryTitle || "";
-            if (!title.toLowerCase().includes(searchTerm.toLowerCase()))
+            if (!title.toLowerCase().includes(debouncedSearch.toLowerCase()))
               return false;
           }
           if (ratingFilter !== "all") {
@@ -397,6 +400,16 @@ function Log() {
           onClose={() => setFiltersOpen(false)}
           onToggle={() => setFiltersOpen((v) => !v)}
           activeCount={activeFilterCount}
+          onClear={() => {
+            setRatingFilter("all");
+            setGenreFilter("all");
+            setYearFrom("");
+            setYearTo("");
+            setAddedFrom("");
+            setAddedTo("");
+            setSortKey("date");
+            setSortDir("desc");
+          }}
         >
           <select
             value={ratingFilter}

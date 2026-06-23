@@ -1,4 +1,5 @@
 import ListComponent from "./ListComponent.jsx";
+import AddToList from "./AddToList.jsx";
 import "../styles/Rating.css";
 import "../styles/LogComponent.css";
 import { supabase } from "../services/supabase-client";
@@ -61,6 +62,7 @@ export default function WatchlistComponent({
         addedToWatchlistDate={
           formattedDate !== "Invalid Date" ? formattedDate : null
         }
+        betweenSlot={<AddToList movie={movie} />}
         actionSlot={
           <>
             <img

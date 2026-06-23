@@ -11,8 +11,9 @@ import { useCache } from "../contexts/PopularMoviesCacheContext";
 import { getPopularMovies, getPopularTV } from "../services/api.js";
 import { SignIn } from "./SignIn.jsx";
 import { bookDetailsRoute } from "../utils/goodreads.js";
+import { getListsActivity } from "../services/lists.js";
 import { PRESS_HANDLERS } from "../utils/pressHandlers.js";
-import { getDisplayName } from "../utils/profile.js";
+import { getDisplayName, getAvatarUrl } from "../utils/profile.js";
 import "../styles/Home.css";
 
 /* ---------- helpers ---------- */
@@ -287,6 +288,19 @@ export default function Home() {
     popularTVLoaded,
     cachePopularTV,
   } = useCache();
+
+  // List activity (created lists + items added) for the recent-activity feed.
+  const [listsActivity, setListsActivity] = useState([]);
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    let cancelled = false;
+    getListsActivity(user.id)
+      .then((data) => !cancelled && setListsActivity(data))
+      .catch((err) => console.error("Failed to load list activity:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     if (popularMoviesLoaded) return;
@@ -620,12 +634,37 @@ export default function Home() {
         onClick: goWatchlist(stripSeries(t.book_entries?.title)),
       }),
     );
+    listsActivity.forEach((list) => {
+      ev.push({
+        date: list.created_at,
+        type: "list",
+        media: "list",
+        prefix: "Created list",
+        title: list.title,
+        onClick: () => navigate(`/lists/${list.id}`),
+      });
+      (list.list_items || []).forEach((it) => {
+        const itemTitle =
+          it.media_type === "book"
+            ? stripSeries(it.item_data?.title)
+            : it.item_data?.primaryTitle;
+        ev.push({
+          date: it.created_at,
+          type: "list",
+          media: it.media_type === "book" ? "book" : "screen",
+          prefix: "Added",
+          title: itemTitle || "an item",
+          suffix: ` to ${list.title}`,
+          onClick: () => navigate(`/lists/${list.id}`),
+        });
+      });
+    });
     return ev
       .filter((e) => e.date)
       .filter((e) => showListAdds || e.type !== "add")
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 36);
-  }, [userRatings, userLogs, userWatchlist, bookRatings, bookLogs, userBookTbr, navigate, showListAdds]);
+  }, [userRatings, userLogs, userWatchlist, bookRatings, bookLogs, userBookTbr, listsActivity, navigate, showListAdds]);
 
   /* ---------- in-progress: unfinished TV seasons + unfinished books ---------- */
 
@@ -841,7 +880,10 @@ export default function Home() {
   /* ---------- render ---------- */
 
   const displayName = isAuthenticated ? getDisplayName(user) : "";
-  const avatarUrl = user?.user_metadata?.avatar_url;
+  // Use the same resolver as the navbar avatar so they always match — this
+  // prefers a user-uploaded custom_avatar_url over the OAuth provider's
+  // avatar_url (which Google overwrites on each login).
+  const avatarUrl = isAuthenticated ? getAvatarUrl(user) : null;
 
   // Signed-out visitors get the sign-in screen instead of an empty library.
   if (!loading && !isAuthenticated) {
@@ -1005,22 +1047,50 @@ export default function Home() {
                 style={{ cursor: e.onClick ? "pointer" : "default" }}
                 {...PRESS_HANDLERS}
               >
-                <img
-                  className="hp-feed-media-icon"
-                  src={e.media === "book" ? "/book.png" : "/movie.png"}
-                  alt={e.media === "book" ? "Book" : "Movie/TV"}
-                />
-                <img
-                  className="hp-feed-media-icon"
-                  src={
-                    e.type === "rate"
-                      ? "/ratings.png"
-                      : e.type === "add"
-                        ? "/watchlist-navbar.png"
-                        : "/log.png"
-                  }
-                  alt={e.type}
-                />
+                {e.type === "list" ? (
+                  e.media === "list" ? (
+                    // "Created list" — just the lists icon.
+                    <img
+                      className="hp-feed-media-icon"
+                      src="/lists.png"
+                      alt="List"
+                    />
+                  ) : (
+                    // "Added X to list" — show what was added (movie/TV or book)
+                    // alongside the lists icon.
+                    <>
+                      <img
+                        className="hp-feed-media-icon"
+                        src={e.media === "book" ? "/book.png" : "/movie.png"}
+                        alt={e.media === "book" ? "Book" : "Movie/TV"}
+                      />
+                      <img
+                        className="hp-feed-media-icon"
+                        src="/lists.png"
+                        alt="List"
+                      />
+                    </>
+                  )
+                ) : (
+                  <>
+                    <img
+                      className="hp-feed-media-icon"
+                      src={e.media === "book" ? "/book.png" : "/movie.png"}
+                      alt={e.media === "book" ? "Book" : "Movie/TV"}
+                    />
+                    <img
+                      className="hp-feed-media-icon"
+                      src={
+                        e.type === "rate"
+                          ? "/ratings.png"
+                          : e.type === "add"
+                            ? "/watchlist-navbar.png"
+                            : "/log.png"
+                      }
+                      alt={e.type}
+                    />
+                  </>
+                )}
                 <span className="hp-feed-body">
                   <span className="hp-feed-text">
                     {e.prefix} <strong>{e.title}</strong>

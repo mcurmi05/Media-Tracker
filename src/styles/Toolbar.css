@@ -63,13 +63,21 @@
   transition: border-color 120ms ease, background-color 120ms ease;
 }
 
+/* Symmetric padding (26px each side) so the centered placeholder/text isn't
+   pushed left by the space reserved for the clear (x) button. */
 .toolbar-search .toolbar-input {
+  padding-left: 26px;
   padding-right: 26px;
 }
 
 .toolbar-input::placeholder {
   color: #898888;
   opacity: 1;
+}
+
+/* Hide the placeholder while the field is focused */
+.toolbar-input:focus::placeholder {
+  color: transparent;
 }
 
 .toolbar-input:focus {
@@ -276,10 +284,17 @@
 .toolbar-btn:focus-visible,
 .toolbar-select:focus-visible,
 .toolbar-icon-btn:focus-visible,
-.toolbar-clear:focus-visible,
 .menu-pop-item:focus-visible {
   outline: 2px solid rgba(229, 9, 20, 0.65);
   outline-offset: 2px;
+}
+
+/* Never show a focus outline on the clear (x) button */
+.toolbar-clear:focus,
+.toolbar-clear:focus-visible,
+.toolbar-clear:active {
+  outline: none;
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

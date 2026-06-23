@@ -731,6 +731,11 @@
   flex-shrink: 0;
   margin-left: -4px;
 }
+/* Push the first icon in off the container's left edge so it isn't clipped
+   (the negative margin above only tightens the gap between the two icons). */
+.hp-feed-media-icon:first-of-type {
+  margin-left: 2px;
+}
 .hp-feed-body {
   flex: 1;
   min-width: 0;

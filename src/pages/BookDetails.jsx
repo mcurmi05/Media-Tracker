@@ -9,6 +9,7 @@ import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
 import BookRatingStar from "../components/BookRatingStar.jsx";
 import AddBookWatchlist from "../components/AddBookWatchlist.jsx";
 import AddBookLogButton from "../components/AddBookLogButton.jsx";
+import AddToList from "../components/AddToList.jsx";
 import EditBookInfoModal from "../components/EditBookInfoModal.jsx";
 import Loader, { Spinner } from "../components/Loader.jsx";
 import "../styles/BookDetails.css";
@@ -190,6 +191,7 @@ export default function BookDetails() {
       <div className="bd-action-buttons">
         <AddBookWatchlist book={bookObj} />
         <AddBookLogButton book={bookObj} />
+        <AddToList book={bookObj} />
         <div
           className="white-highlight"
           onClick={() => setShowEditModal(true)}

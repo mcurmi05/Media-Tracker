@@ -27,6 +27,24 @@
   margin-bottom: 1.75rem;
 }
 
+/* Crossfade when toggling between sign in and sign up. */
+.signin-content {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.signin-content.is-switching {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signin-content {
+    transition: none;
+  }
+}
+
 .signin-title {
   font-size: 1.7rem;
   font-weight: 600;
@@ -170,6 +188,40 @@
   flex: 1;
   height: 1px;
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+.signin-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.35rem;
+  /* Transparent so the container blends into whatever it sits on (the card). */
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.1s;
+}
+
+.signin-google img {
+  height: 42px;
+  width: auto;
+  display: block;
+  pointer-events: none;
+}
+
+.signin-google:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.signin-google:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.signin-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .signin-toggle {
