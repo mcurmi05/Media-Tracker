@@ -102,7 +102,7 @@ export default function AddLog({movie}){
             <img
                 ref={iconRef}
                 src="/addlog.png"
-                className="addlog-icon"
+                className="addlog-icon addlog-log-icon"
                 onClick={onClick}
                 title={alreadyLogged ? "Logged - options" : "Add to log"}
             ></img>

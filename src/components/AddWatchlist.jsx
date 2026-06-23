@@ -97,7 +97,7 @@ export default function AddWatchlist({movie}){
 
     return(
         <div className="white-highlight">
-            <img src={onWatchlist?"/on-watchlist.png":"/noton-watchlist.png"} className="addlog-icon" onClick={onClick}></img>
+            <img src={onWatchlist?"/on-watchlist.png":"/noton-watchlist.png"} className="addlog-icon addlog-watchlist-icon" onClick={onClick}></img>
         </div>
     );
 
