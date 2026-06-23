@@ -62,6 +62,16 @@
   color: #fff;
   font-weight: 500;
 }
+.trending-letterboxd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 /*media type select reuses the toolbar look*/
 .mediatype-selector {

@@ -1,0 +1,21 @@
+.letterboxd-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Match the IMDb logo's footprint on the media details subtitle. */
+.letterboxd-movie-card {
+  width: 35px;
+  height: auto;
+}
+
+/* Reuse the IMDb star, recoloured to Letterboxd green (#00e054). The
+   brightness(0) step flattens the star to black first, then the chain tints it
+   so the result is independent of the source star's colour. */
+.letterboxd-star {
+  filter: brightness(0) saturate(100%) invert(64%) sepia(72%) saturate(2200%)
+    hue-rotate(86deg) brightness(97%) contrast(101%);
+}

@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { getPopularMovies, getPopularTV } from "../services/api.js";
 import { useCache } from "../contexts/PopularMoviesCacheContext";
 import { useImdbRating, useImdbRatings } from "../contexts/ImdbRatingsContext";
+import { useLetterboxdRating } from "../contexts/LetterboxdRatingsContext";
+import "../styles/LetterboxdInfo.css";
 import { useNavigate } from "react-router-dom";
 import "../styles/Trending.css";
 import "../styles/Toolbar.css";
@@ -56,6 +58,30 @@ function TrendingRating({ movie }) {
     <span className="trending-imdb trending-imdb--none">
       <img src="/imdbicon.png" alt="IMDb" className="trending-imdb-logo" />
       No rating yet
+    </span>
+  );
+}
+
+// Compact live Letterboxd rating badge (native 0–5 scale), keyed by tmdb_id.
+// Movies only; renders nothing until the batched lookup resolves.
+function TrendingLetterboxd({ movie }) {
+  const data = useLetterboxdRating(movie?.tmdb_id ?? undefined);
+  if (movie?.media_type !== "movie") return null;
+  const rating = data?.rating;
+  if (rating == null) return null;
+  return (
+    <span className="trending-letterboxd">
+      <img
+        src="/letterboxdicon.png"
+        alt="Letterboxd"
+        className="trending-imdb-logo"
+      />
+      <img
+        src="/staricon.png"
+        alt=""
+        className="trending-imdb-star letterboxd-star"
+      />
+      {Number(rating).toFixed(1)}
     </span>
   );
 }
@@ -313,6 +339,7 @@ function Trending() {
                         <span className="tf-year">{mo.startYear}</span>
                       )}
                       <TrendingRating movie={mo} />
+                      <TrendingLetterboxd movie={mo} />
                       {mo.interests?.length > 0 && (
                         <span className="tf-genres">
                           {mo.interests.slice(0, 3).map((g) => (
@@ -348,6 +375,7 @@ function Trending() {
                       <span className="trending-year">{mo.startYear}</span>
                     )}
                     <TrendingRating movie={mo} />
+                    <TrendingLetterboxd movie={mo} />
                     {mo.interests?.slice(0, 2).map((g) => (
                       <span key={g} className="trending-genre-tag">{g}</span>
                     ))}

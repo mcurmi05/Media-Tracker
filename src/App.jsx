@@ -5,6 +5,7 @@ import NavBar from "./components/NavBar.jsx";
 import { SearchProvider } from "./contexts/SearchContext";
 import { PopularMoviesCacheProvider } from "./contexts/PopularMoviesCacheContext.jsx";
 import { ImdbRatingsProvider } from "./contexts/ImdbRatingsContext.jsx";
+import { LetterboxdRatingsProvider } from "./contexts/LetterboxdRatingsContext.jsx";
 import { Routes, Route, useLocation } from "react-router-dom";
 import MediaDetails from "./pages/MediaDetails.jsx";
 import BookDetails from "./pages/BookDetails.jsx";
@@ -53,6 +54,7 @@ function App() {
         <SearchProvider>
           <PopularMoviesCacheProvider>
             <ImdbRatingsProvider>
+            <LetterboxdRatingsProvider>
             <UserRatingsProvider>
               <UserLogsProvider>
                 <UserWatchlistProvider>
@@ -101,6 +103,7 @@ function App() {
                 </UserWatchlistProvider>
               </UserLogsProvider>
             </UserRatingsProvider>
+            </LetterboxdRatingsProvider>
             </ImdbRatingsProvider>
           </PopularMoviesCacheProvider>
         </SearchProvider>

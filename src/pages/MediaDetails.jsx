@@ -6,6 +6,7 @@ import { useImdbRating } from "../contexts/ImdbRatingsContext";
 import "../styles/MediaDetails.css";
 import ReleaseAndRunTime from "../components/ReleaseAndRunTime";
 import IMDBInfo from "../components/IMDBInfo";
+import LetterboxdInfo from "../components/LetterboxdInfo";
 import MediaGenres from "../components/MediaGenres.jsx";
 import MovieRatingStar from "../components/MovieRatingStar";
 import CastList from "../components/CastList.jsx";
@@ -274,6 +275,12 @@ function MediaDetails() {
                 className="media-details-imdb"
                 useLiveRating
               ></IMDBInfo>
+              {movie.media_type === "movie" && (
+                <>
+                  ·
+                  <LetterboxdInfo movie={movie} live />
+                </>
+              )}
             </div>
           </div>
           {movie.media_type === "movie" ? (
