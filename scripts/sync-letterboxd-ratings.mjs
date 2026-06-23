@@ -39,7 +39,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // --- Letterboxd scrape ------------------------------------------------------
 
 // Pull the JSON-LD block (CDATA-wrapped) and return { slug, rating,
-// ratingCount, reviewCount } for a tmdb id, or null if the film can't be
+// ratingCount } for a tmdb id, or null if the film can't be
 // resolved or has no aggregate rating yet.
 async function scrapeRating(tmdbId) {
   const res = await fetch(`https://letterboxd.com/tmdb/${tmdbId}/`, {
@@ -77,7 +77,6 @@ async function scrapeRating(tmdbId) {
     slug,
     rating: Number(agg.ratingValue),
     rating_count: agg.ratingCount != null ? Number(agg.ratingCount) : null,
-    review_count: agg.reviewCount != null ? Number(agg.reviewCount) : null,
   };
 }
 

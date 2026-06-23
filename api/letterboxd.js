@@ -48,7 +48,6 @@ async function scrapeRating(tmdbId) {
     slug,
     rating: Number(agg.ratingValue),
     rating_count: agg.ratingCount != null ? Number(agg.ratingCount) : null,
-    review_count: agg.reviewCount != null ? Number(agg.reviewCount) : null,
   };
 }
 
@@ -87,7 +86,6 @@ export default async function handler(req, res) {
       slug: row.slug,
       rating: row.rating,
       ratingCount: row.rating_count,
-      reviewCount: row.review_count,
     });
   } catch (err) {
     return res.status(502).json({ error: err.message });

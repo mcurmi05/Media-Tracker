@@ -24,7 +24,7 @@ const CHUNK = 300;
 const FLUSH_DELAY_MS = 50;
 
 export function LetterboxdRatingsProvider({ children }) {
-  // tmdb_id -> { rating, ratingCount, reviewCount, slug } when found, or null
+  // tmdb_id -> { rating, ratingCount, slug } when found, or null
   // when looked up but absent (so we don't keep re-requesting it).
   const [ratings, setRatings] = useState({});
   const cacheRef = useRef(ratings);
@@ -46,7 +46,7 @@ export function LetterboxdRatingsProvider({ children }) {
       const slice = ids.slice(i, i + CHUNK);
       const { data, error } = await supabase
         .from("letterboxd_ratings")
-        .select("tmdb_id, slug, rating, rating_count, review_count")
+        .select("tmdb_id, slug, rating, rating_count")
         .in("tmdb_id", slice);
       if (error) {
         console.error("letterboxd_ratings fetch error", error);
@@ -58,7 +58,6 @@ export function LetterboxdRatingsProvider({ children }) {
         updates[row.tmdb_id] = {
           rating: row.rating,
           ratingCount: row.rating_count,
-          reviewCount: row.review_count,
           slug: row.slug,
         };
         found.add(Number(row.tmdb_id));
@@ -100,7 +99,6 @@ export function LetterboxdRatingsProvider({ children }) {
         [id]: {
           rating: d.rating,
           ratingCount: d.ratingCount,
-          reviewCount: d.reviewCount,
           slug: d.slug,
         },
       }));
@@ -124,7 +122,7 @@ export function useLetterboxdRatings() {
 }
 
 // Returns: undefined while loading, null if the title has no Letterboxd rating,
-// or { rating, ratingCount, reviewCount, slug } when available.
+// or { rating, ratingCount, slug } when available.
 // Pass { live: true } to additionally trigger a fresh on-demand scrape.
 export function useLetterboxdRating(tmdbId, { live = false } = {}) {
   const ctx = useContext(LetterboxdRatingsContext);
