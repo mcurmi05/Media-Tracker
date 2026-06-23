@@ -170,6 +170,15 @@
     flex-wrap: wrap;
 }
 
+/* Desktop only: nudge the add-to-list icon down 1px to line up with its
+   neighbours. Mobile has its own rule in the max-width:900px block. */
+@media (min-width: 901px) {
+    .hero-actions .add-to-list-btn .addlog-icon {
+        position: relative;
+        top: 1px;
+    }
+}
+
 .star-container {
     display: flex;
     align-items: center;

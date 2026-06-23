@@ -62,6 +62,19 @@
   flex-wrap:wrap;
 }
 
+/* Letterboxd badge sits ~10px lower than IMDb because its taller icon shifts
+   the baseline; keep the mobile offset matching IMDb, but on desktop pull it
+   up so the two rating rows line up. */
+.rating-letterboxd-wrap {
+  position: relative;
+  top: 11px;
+}
+@media (min-width: 851px) {
+  .rating-letterboxd-wrap {
+    top: 3px;
+  }
+}
+
 .directors-and-stars {
   display: flex;
   gap: 1rem;
@@ -124,6 +137,7 @@
     margin-top: 0;
     padding: 10px 6px 10px 8px;
     border-radius: 0;
+    position: relative;
   }
 
   .top-stuff {
@@ -220,6 +234,8 @@
   /* date ("Rated: ..." / "Added: ...") drops onto its own full-width line */
   .rating-date-line {
     flex-basis: 100%;
+    /* override the inline 0.93em so the date sits smaller on mobile */
+    font-size: 0.7em !important;
   }
 
   /* Drop the "(Last updated: ...)" onto its own line under "Rated: ..." */
@@ -236,6 +252,54 @@
   }
   .rating-page-subtitle .imdb-rating {
     gap: 0.3rem;
+  }
+  .rating-page-subtitle .letterboxd-movie-card {
+    width: 26px;
+  }
+  .rating-page-subtitle .letterboxd-rating {
+    gap: 0.3rem;
+  }
+  /* push the letterboxd badge to the right edge of the meta line on mobile */
+  .rating-page-subtitle .rating-letterboxd-wrap {
+    margin-left: auto;
+    top: 3px;
+  }
+  /* TV rows have no letterboxd badge (the wrap is empty), so right-justify the
+     imdb badge instead. */
+  .rating-page-subtitle:has(.rating-letterboxd-wrap:empty) .rating-imdb-wrap {
+    margin-left: auto;
+  }
+  .rating-page-subtitle:has(.rating-letterboxd-wrap:empty) .rating-letterboxd-wrap {
+    margin-left: 0;
+  }
+  /* nudge the date line up to sit level with the rest of the meta line */
+  .rating-page-subtitle .rating-date-line {
+    position: relative;
+    top: -8px;
+  }
+  /* TV rows have no letterboxd badge, leaving the meta line short. Stretch the
+     right column to match the poster height and push the date to the bottom of
+     it, so it lines up with the bottom of the poster. Because it's driven by the
+     real poster height (not a fixed offset), short posters clamp naturally
+     instead of pushing the date out of the row. */
+  .top-stuff:has(.rating-letterboxd-wrap:empty),
+  .top-stuff:has(.book-right-stuff) {
+    align-items: stretch;
+  }
+  .top-stuff:has(.rating-letterboxd-wrap:empty) .right-stuff,
+  .top-stuff:has(.book-right-stuff) .right-stuff {
+    flex: 1;
+  }
+  .top-stuff:has(.rating-letterboxd-wrap:empty) .rating-page-subtitle,
+  .top-stuff:has(.book-right-stuff) .rating-page-subtitle {
+    flex: 1;
+    align-content: space-between;
+  }
+  .rating-page-subtitle:has(.rating-letterboxd-wrap:empty) .rating-date-line {
+    top: -6px;
+  }
+  .book-right-stuff .rating-date-line {
+    top: -7px;
   }
 
   /* directors / stars block: drop it on mobile to keep the row compact */
@@ -415,6 +479,40 @@
   }
 }
 
+/* Rank badge that sits in the poster, mirroring the home top-4 (.cv-rank).
+   Desktop keeps the title-row badge, so this only shows on mobile. */
+.poster-rank {
+  display: none;
+}
+@media (max-width: 850px) {
+  .poster-wrapper {
+    position: relative;
+  }
+  .poster-rank {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: #8a8a8a;
+    color: #1c1c1c;
+    font-size: 0.5rem;
+    font-weight: 700;
+    padding: 0 3px;
+    border-bottom-right-radius: 5px;
+    border-top-left-radius: 8px;
+    z-index: 1;
+  }
+  .poster-rank-1 {
+    background: #e8c14e;
+  }
+  .poster-rank-2 {
+    background: #c8c8c8;
+  }
+  .poster-rank-3 {
+    background: #cd7f32;
+  }
+}
+
 /* The rank badge lives in two slots; CSS picks which one shows. Desktop: in the
    title row. Mobile: out of the title row and onto the date line, to the right
    of the "Rated:/Updated:" text (frees up title space on small screens). */
@@ -431,6 +529,14 @@
 .rating-date-row {
   display: contents;
 }
+/* Desktop: the date line is baseline-aligned with the rating badges (the row is
+   display:contents), so nudge just the date text up to sit on the same line. */
+@media (min-width: 851px) {
+  .rating-page-subtitle .rating-date-line {
+    position: relative;
+    top: -1px;
+  }
+}
 @media (max-width: 850px) {
   .rank-badge-slot-title {
     display: none;
@@ -444,11 +550,9 @@
   .rating-date-row .rating-date-line {
     flex-basis: auto;
   }
+  /* Mobile uses the in-poster rank badge instead of the date-line slot. */
   .rank-badge-slot-date {
-    display: inline-flex;
-    align-items: center;
-    position: relative;
-    top: -1px;
+    display: none;
   }
 }
 

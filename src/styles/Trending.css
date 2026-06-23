@@ -72,6 +72,10 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.trending-letterboxd--none {
+  color: #fff;
+  font-weight: 500;
+}
 
 /*media type select reuses the toolbar look*/
 .mediatype-selector {

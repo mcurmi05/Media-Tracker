@@ -6,6 +6,7 @@ import ReleaseAndRunTime from "./ReleaseAndRunTime";
 import AddLog from "./AddLog.jsx";
 import AddWatchlist from "./AddWatchlist.jsx";
 import IMDBInfo from "./IMDBInfo.jsx";
+import LetterboxdInfo from "./LetterboxdInfo.jsx";
 import { getRatingDateInfo } from "../utils/ratingDate.js";
 import { makeNavHandlers } from "../utils/navClick.js";
 
@@ -107,6 +108,12 @@ function ListComponent({
           </div>
         )}
         <div className="poster-wrapper">
+          {/* Rank badge sitting in the poster (mobile), like the home top-4. */}
+          {showRankBadge && rankNumber != null && (
+            <span className={`poster-rank poster-rank-${rankNumber}`}>
+              {rankNumber}
+            </span>
+          )}
           <img
             src={
               movie_object.primaryImage
@@ -151,8 +158,11 @@ function ListComponent({
               style={{ textWrap: "wrap" }}
               movie={movie_object}
             ></ReleaseAndRunTime>
-            <span className="rating-imdb-wrap" style={{ position: "relative", top: "11px" }}>
+            <span className="rating-imdb-wrap" style={{ position: "relative", top: "12px" }}>
               <IMDBInfo movie={movie_object} useLiveRating></IMDBInfo>
+            </span>
+            <span className="rating-letterboxd-wrap">
+              <LetterboxdInfo movie={movie_object}></LetterboxdInfo>
             </span>
             <div className="rating-date-row">
               {addedToWatchlistDate ? (

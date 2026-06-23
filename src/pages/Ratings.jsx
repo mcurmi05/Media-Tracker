@@ -11,10 +11,11 @@ import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
+import { useLetterboxdRatings } from "../contexts/LetterboxdRatingsContext.jsx";
 import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
 import { useDebouncedValue } from "../utils/useDebouncedValue.js";
 import "../styles/Toolbar.css";
-import { isTV, movieYear, bookYear, compareNums, yearInRange, addedInRange, imdbRatingFor, imdbVotesFor } from "../utils/mediaFilters.js";
+import { isTV, movieYear, bookYear, compareNums, yearInRange, addedInRange, imdbRatingFor, imdbVotesFor, letterboxdRatingFor, letterboxdCountFor } from "../utils/mediaFilters.js";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
@@ -22,6 +23,8 @@ const SORT_OPTIONS = [
   { value: "rating", label: "Rating" },
   { value: "imdb", label: "IMDb Rating" },
   { value: "imdbVotes", label: "IMDb Votes" },
+  { value: "letterboxd", label: "Letterboxd Rating" },
+  { value: "letterboxdCount", label: "Letterboxd Votes" },
 ];
 
 function Ratings() {
@@ -29,6 +32,7 @@ function Ratings() {
   const { bookRatings, bookRatingsLoaded, updateBookRanking } =
     useBookRatings();
   const { ratings: imdbRatings } = useImdbRatings();
+  const { ratings: lbRatings } = useLetterboxdRatings();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -113,6 +117,8 @@ function Ratings() {
   //live imdb rating/votes, falls back to whats on the movie object until the dataset loads
   const imdbRatingOf = (mo) => imdbRatingFor(imdbRatings, mo);
   const imdbVotesOf = (mo) => imdbVotesFor(imdbRatings, mo);
+  const lbRatingOf = (mo) => letterboxdRatingFor(lbRatings, mo);
+  const lbCountOf = (mo) => letterboxdCountFor(lbRatings, mo);
 
   const movieRatingValue = (r) => {
     const v = Number(r.rating);
@@ -245,6 +251,14 @@ function Ratings() {
         return new Date(b.created_at) - new Date(a.created_at);
       });
     }
+    if (sortKey === "letterboxd" || sortKey === "letterboxdCount") {
+      const valOf = sortKey === "letterboxd" ? lbRatingOf : lbCountOf;
+      return filteredRatings.slice().sort((a, b) => {
+        const rc = compareNumeric(valOf(a.movie_object), valOf(b.movie_object));
+        if (rc !== 0) return rc;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
     if (ratingFilter === "10") {
       return [...allTens].sort(rankSort);
     }
@@ -254,7 +268,7 @@ function Ratings() {
       return sortDir === "asc" ? dateA - dateB : dateB - dateA;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredRatings, allTens, ratingFilter, rankSort, sortKey, sortDir, imdbRatings]);
+  }, [filteredRatings, allTens, ratingFilter, rankSort, sortKey, sortDir, imdbRatings, lbRatings]);
 
   // Books: every row in book_ratings is a rated book
   const filteredBooks = useMemo(() => {

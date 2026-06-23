@@ -14,6 +14,7 @@ import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
+import { useLetterboxdRatings } from "../contexts/LetterboxdRatingsContext.jsx";
 import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
 import { useDebouncedValue } from "../utils/useDebouncedValue.js";
 import {
@@ -25,6 +26,8 @@ import {
   addedInRange,
   imdbRatingFor,
   imdbVotesFor,
+  letterboxdRatingFor,
+  letterboxdCountFor,
 } from "../utils/mediaFilters.js";
 
 const SORT_OPTIONS = [
@@ -32,6 +35,8 @@ const SORT_OPTIONS = [
   { value: "year", label: "Release Date" },
   { value: "imdb", label: "IMDb Rating" },
   { value: "imdbVotes", label: "IMDb Votes" },
+  { value: "letterboxd", label: "Letterboxd Rating" },
+  { value: "letterboxdCount", label: "Letterboxd Votes" },
 ];
 
 function Watchlist() {
@@ -44,6 +49,7 @@ function Watchlist() {
   } = useWatchlist();
   const { userBookTbr, userBookTbrLoaded } = useBookTbr();
   const { ratings: imdbRatings } = useImdbRatings();
+  const { ratings: lbRatings } = useLetterboxdRatings();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -123,6 +129,8 @@ function Watchlist() {
   const compareNumeric = (a, b) => compareNums(a, b, sortDir);
   const imdbRatingOf = (mo) => imdbRatingFor(imdbRatings, mo);
   const imdbVotesOf = (mo) => imdbVotesFor(imdbRatings, mo);
+  const lbRatingOf = (mo) => letterboxdRatingFor(lbRatings, mo);
+  const lbCountOf = (mo) => letterboxdCountFor(lbRatings, mo);
 
   const yearRange = useMemo(() => {
     const years = [];
@@ -329,6 +337,14 @@ function Watchlist() {
         return new Date(b.created_at) - new Date(a.created_at);
       });
     }
+    if (sortKey === "letterboxd" || sortKey === "letterboxdCount") {
+      const valOf = sortKey === "letterboxd" ? lbRatingOf : lbCountOf;
+      return filtered.sort((a, b) => {
+        const rc = compareNumeric(valOf(a.movie_object), valOf(b.movie_object));
+        if (rc !== 0) return rc;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
     return filtered.sort((a, b) =>
       sortDir === "asc"
         ? new Date(a.created_at) - new Date(b.created_at)
@@ -349,6 +365,7 @@ function Watchlist() {
     addedFrom,
     addedTo,
     imdbRatings,
+    lbRatings,
   ]);
 
   const filteredBookTbr = useMemo(() => {
@@ -408,6 +425,8 @@ function Watchlist() {
       year: movieYear(item),
       imdb: imdbRatingOf(item.movie_object),
       imdbVotes: imdbVotesOf(item.movie_object),
+      letterboxd: lbRatingOf(item.movie_object),
+      letterboxdCount: lbCountOf(item.movie_object),
     }));
     const bookItems = filteredBookTbr.map((item) => ({
       kind: "book",
@@ -417,6 +436,8 @@ function Watchlist() {
       year: bookYear(item),
       imdb: null,
       imdbVotes: null,
+      letterboxd: null,
+      letterboxdCount: null,
     }));
     return [...movieItems, ...bookItems].sort((a, b) => {
       if (sortKey === "year") {
@@ -427,6 +448,12 @@ function Watchlist() {
         if (rc !== 0) return rc;
       } else if (sortKey === "imdbVotes") {
         const rc = compareNumeric(a.imdbVotes, b.imdbVotes);
+        if (rc !== 0) return rc;
+      } else if (sortKey === "letterboxd") {
+        const rc = compareNumeric(a.letterboxd, b.letterboxd);
+        if (rc !== 0) return rc;
+      } else if (sortKey === "letterboxdCount") {
+        const rc = compareNumeric(a.letterboxdCount, b.letterboxdCount);
         if (rc !== 0) return rc;
       } else if (sortKey === "date" && sortDir === "asc") {
         return a.date - b.date;

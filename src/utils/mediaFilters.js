@@ -62,3 +62,14 @@ export function imdbVotesFor(table, mo) {
   const v = table[mo?.id]?.votes ?? mo?.numVotes;
   return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
 }
+
+//live letterboxd value, keyed by tmdb_id. movies only; tv/books return null
+export function letterboxdRatingFor(table, mo) {
+  const v = table[mo?.tmdb_id]?.rating;
+  return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
+}
+
+export function letterboxdCountFor(table, mo) {
+  const v = table[mo?.tmdb_id]?.ratingCount;
+  return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
+}

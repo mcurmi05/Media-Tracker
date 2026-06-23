@@ -12,6 +12,8 @@ import {
   addedInRange,
   imdbRatingFor,
   imdbVotesFor,
+  letterboxdRatingFor,
+  letterboxdCountFor,
 } from "../utils/mediaFilters.js";
 import { useLogs } from "../contexts/UserLogsContext.jsx";
 import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
@@ -25,6 +27,7 @@ import ReleaseYearFilter from "../components/ReleaseYearFilter.jsx";
 import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
+import { useLetterboxdRatings } from "../contexts/LetterboxdRatingsContext.jsx";
 import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
 import { useDebouncedValue } from "../utils/useDebouncedValue.js";
 
@@ -34,6 +37,8 @@ const SORT_OPTIONS = [
   { value: "rating", label: "Rating" },
   { value: "imdb", label: "IMDb Rating" },
   { value: "imdbVotes", label: "IMDb Votes" },
+  { value: "letterboxd", label: "Letterboxd Rating" },
+  { value: "letterboxdCount", label: "Letterboxd Votes" },
 ];
 
 function Log() {
@@ -42,6 +47,7 @@ function Log() {
   const { userRatings } = useRatings();
   const { findRatingForBook } = useBookRatings();
   const { ratings: imdbRatings } = useImdbRatings();
+  const { ratings: lbRatings } = useLetterboxdRatings();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState(
@@ -133,6 +139,8 @@ function Log() {
   //live imdb rating/votes, books have no imdb entry so they null out and sink in these sorts
   const imdbRatingOf = (mo) => imdbRatingFor(imdbRatings, mo);
   const imdbVotesOf = (mo) => imdbVotesFor(imdbRatings, mo);
+  const lbRatingOf = (mo) => letterboxdRatingFor(lbRatings, mo);
+  const lbCountOf = (mo) => letterboxdCountFor(lbRatings, mo);
   const yearRange = useMemo(() => {
     const years = [];
     userLogs.forEach((l) => {
@@ -304,6 +312,18 @@ function Log() {
               imdbVotesOf(b.movie_object),
             );
             if (rc !== 0) return rc;
+          } else if (sortKey === "letterboxd") {
+            const rc = compareNumeric(
+              lbRatingOf(a.movie_object),
+              lbRatingOf(b.movie_object),
+            );
+            if (rc !== 0) return rc;
+          } else if (sortKey === "letterboxdCount") {
+            const rc = compareNumeric(
+              lbCountOf(a.movie_object),
+              lbCountOf(b.movie_object),
+            );
+            if (rc !== 0) return rc;
           } else if (sortKey === "date" && sortDir === "asc") {
             return getMostRecentDate(a) - getMostRecentDate(b);
           }
@@ -324,6 +344,8 @@ function Log() {
             rating: movieRating(log),
             imdb: imdbRatingOf(log.movie_object),
             imdbVotes: imdbVotesOf(log.movie_object),
+            letterboxd: lbRatingOf(log.movie_object),
+            letterboxdCount: lbCountOf(log.movie_object),
           })),
           ...filteredBookLogs.map((bookLog) => ({
             kind: "book",
@@ -334,6 +356,8 @@ function Log() {
             rating: bookRating(bookLog),
             imdb: null,
             imdbVotes: null,
+            letterboxd: null,
+            letterboxdCount: null,
           })),
         ].sort((a, b) => {
           if (sortKey === "year") {
@@ -347,6 +371,12 @@ function Log() {
             if (rc !== 0) return rc;
           } else if (sortKey === "imdbVotes") {
             const rc = compareNumeric(a.imdbVotes, b.imdbVotes);
+            if (rc !== 0) return rc;
+          } else if (sortKey === "letterboxd") {
+            const rc = compareNumeric(a.letterboxd, b.letterboxd);
+            if (rc !== 0) return rc;
+          } else if (sortKey === "letterboxdCount") {
+            const rc = compareNumeric(a.letterboxdCount, b.letterboxdCount);
             if (rc !== 0) return rc;
           } else if (sortKey === "date" && sortDir === "asc") {
             return a.date - b.date;

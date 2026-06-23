@@ -2,7 +2,10 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { getPopularMovies, getPopularTV } from "../services/api.js";
 import { useCache } from "../contexts/PopularMoviesCacheContext";
 import { useImdbRating, useImdbRatings } from "../contexts/ImdbRatingsContext";
-import { useLetterboxdRating } from "../contexts/LetterboxdRatingsContext";
+import {
+  useLetterboxdRating,
+  useLetterboxdRatings,
+} from "../contexts/LetterboxdRatingsContext";
 import "../styles/LetterboxdInfo.css";
 import { useNavigate } from "react-router-dom";
 import "../styles/Trending.css";
@@ -19,6 +22,12 @@ const SORT_OPTIONS = [
   { value: "trending", label: "Trending" },
   { value: "imdb", label: "IMDb Rating" },
   { value: "imdbVotes", label: "IMDb Votes" },
+];
+
+// Letterboxd sorts only make sense on the movies tab (no TV / book ratings).
+const LETTERBOXD_SORT_OPTIONS = [
+  { value: "letterboxd", label: "Letterboxd Rating" },
+  { value: "letterboxdCount", label: "Letterboxd Votes" },
 ];
 
 const yearOf = (mo) => {
@@ -63,25 +72,42 @@ function TrendingRating({ movie }) {
 }
 
 // Compact live Letterboxd rating badge (native 0–5 scale), keyed by tmdb_id.
-// Movies only; renders nothing until the batched lookup resolves.
+// Mirrors TrendingRating: logo + star + rating + count, movies only.
 function TrendingLetterboxd({ movie }) {
-  const data = useLetterboxdRating(movie?.tmdb_id ?? undefined);
-  if (movie?.media_type !== "movie") return null;
+  const isMovie = movie?.media_type === "movie";
+  const data = useLetterboxdRating(isMovie ? movie?.tmdb_id : undefined);
+  if (!isMovie) return null;
+  const loading = data === undefined;
   const rating = data?.rating;
-  if (rating == null) return null;
+  const count = formatVotes(data?.ratingCount);
+  if (rating != null) {
+    return (
+      <span className="trending-letterboxd">
+        <img
+          src="/letterboxdicon.png"
+          alt="Letterboxd"
+          className="trending-imdb-logo"
+        />
+        <img
+          src="/staricon.png"
+          alt=""
+          className="trending-imdb-star letterboxd-star"
+        />
+        {Number(rating).toFixed(1)}
+        {count ? ` (${count})` : null}
+      </span>
+    );
+  }
+  // Wait for the batched lookup to resolve before declaring it has no rating.
+  if (loading) return null;
   return (
-    <span className="trending-letterboxd">
+    <span className="trending-letterboxd trending-letterboxd--none">
       <img
         src="/letterboxdicon.png"
         alt="Letterboxd"
         className="trending-imdb-logo"
       />
-      <img
-        src="/staricon.png"
-        alt=""
-        className="trending-imdb-star letterboxd-star"
-      />
-      {Number(rating).toFixed(1)}
+      No rating yet
     </span>
   );
 }
@@ -96,6 +122,7 @@ function Trending() {
     cachePopularTV,
   } = useCache();
   const { ratings: imdbRatings } = useImdbRatings();
+  const { ratings: lbRatings } = useLetterboxdRatings();
 
   const navigate = useNavigate();
 
@@ -120,7 +147,12 @@ function Trending() {
 
   useEffect(() => {
     localStorage.setItem("trendingMediaType", mediaType);
-  }, [mediaType]);
+    // Letterboxd sorts don't apply to TV; fall back to trending order.
+    if (mediaType === "tv" && sortKey.startsWith("letterboxd")) {
+      setSortKey("trending");
+      setSortDir("desc");
+    }
+  }, [mediaType, sortKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -190,6 +222,14 @@ function Trending() {
       const v = imdbRatings[mo?.id]?.votes;
       return v == null ? null : Number(v);
     };
+    const lbRatingOf = (mo) => {
+      const v = lbRatings[mo?.tmdb_id]?.rating;
+      return v == null ? null : Number(v);
+    };
+    const lbCountOf = (mo) => {
+      const v = lbRatings[mo?.tmdb_id]?.ratingCount;
+      return v == null ? null : Number(v);
+    };
     const ranked = movies.map((mo, i) => ({ mo, rank: i + 1 }));
     const filtered = ranked.filter(({ mo }) => {
       if (genreFilter !== "all" && !(mo.interests || []).includes(genreFilter))
@@ -211,6 +251,15 @@ function Trending() {
       } else if (sortKey === "imdbVotes") {
         const r = compareNums(votesOf(a.mo), votesOf(b.mo), sortDir);
         if (r) return r;
+      } else if (sortKey === "letterboxd") {
+        const r = compareNums(lbRatingOf(a.mo), lbRatingOf(b.mo), sortDir);
+        if (r) return r;
+        // equal rating -> the title with more ratings wins
+        const c = compareNums(lbCountOf(a.mo), lbCountOf(b.mo), sortDir);
+        if (c) return c;
+      } else if (sortKey === "letterboxdCount") {
+        const r = compareNums(lbCountOf(a.mo), lbCountOf(b.mo), sortDir);
+        if (r) return r;
       } else if (sortKey === "trending") {
         return sortDir === "desc" ? a.rank - b.rank : b.rank - a.rank;
       }
@@ -218,7 +267,13 @@ function Trending() {
     });
 
     return sorted;
-  }, [movies, genreFilter, yearFrom, yearTo, sortKey, sortDir, imdbRatings]);
+  }, [movies, genreFilter, yearFrom, yearTo, sortKey, sortDir, imdbRatings, lbRatings]);
+
+  // Letterboxd sorts only on the movies tab.
+  const sortOptions =
+    mediaType === "movies"
+      ? [...SORT_OPTIONS, ...LETTERBOXD_SORT_OPTIONS]
+      : SORT_OPTIONS;
 
   const activeFilterCount =
     (genreFilter !== "all" ? 1 : 0) +
@@ -299,7 +354,7 @@ function Trending() {
                   setSortDir(d);
                 }
               }}
-              options={SORT_OPTIONS}
+              options={sortOptions}
             />
           </ExtraFiltersPanel>
         </div>
