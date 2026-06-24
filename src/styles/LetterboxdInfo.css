@@ -4,12 +4,25 @@
   gap: 0.5rem;
   text-decoration: none;
   color: inherit;
+  cursor: pointer;
+  /* no mobile tap flash; the only feedback is the press below */
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+/* The global a:hover snaps links to full white - override it so the rating text
+   stays at the line colour and the only hover/press feedback is the button push. */
+a.letterboxd-rating:hover {
+  color: inherit;
+}
+.letterboxd-rating:active {
+  transform: scale(0.92);
 }
 
 /* Match the IMDb logo's footprint on the media details subtitle. */
 .letterboxd-movie-card {
   width: 35px;
   height: auto;
+  border-radius: 4px;
 }
 
 /* Reuse the IMDb star, recoloured to Letterboxd green (#00e054). The

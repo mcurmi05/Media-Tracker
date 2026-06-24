@@ -206,9 +206,39 @@ function Watchlist() {
   //which movie/tv queue category a watchlist item belongs to
   const queueCategoryOf = (m) => (isTV(m) ? "tv" : "movies");
 
-  // Queue rows joined with their watchlist/book data, grouped by category and
-  // each group ordered by queue_rank. Ranks are tracked per category, so movies,
-  // TV, and books each start their numbering at 1.
+  // The metric a queue row sorts on for the active sort key, scoped to its media
+  // type. Mirrors the main list/combinedAll getters: books have no imdb/lb value
+  // and movies/TV have no goodreads value, so those return null and sink.
+  const queueSortValue = (item, category) => {
+    const isBook = category === "books";
+    switch (sortKey) {
+      case "year":
+        return isBook
+          ? bookYear(item.book)
+          : movieYear({ movie_object: item.movie });
+      case "imdb":
+        return isBook ? null : imdbRatingOf(item.movie);
+      case "imdbVotes":
+        return isBook ? null : imdbVotesOf(item.movie);
+      case "letterboxd":
+        return isBook ? null : lbRatingOf(item.movie);
+      case "letterboxdCount":
+        return isBook ? null : lbCountOf(item.movie);
+      case "goodreads":
+        return isBook ? grRatingOf(item.book) : null;
+      case "goodreadsCount":
+        return isBook ? grCountOf(item.book) : null;
+      default:
+        return null;
+    }
+  };
+
+  // Queue rows joined with their watchlist/book data, grouped by category. The
+  // same search/genre/year/date/new-season filters as the main list are applied
+  // here, and each group is ordered by the active sort *within its media type*.
+  // For the default Date sort the manual queue_rank order is kept (that's the
+  // "up next" priority); explicit sorts reorder each group, with queue_rank
+  // breaking ties so the manual order still shows through equal values.
   const queueByCategory = useMemo(() => {
     const groups = { movies: [], tv: [], books: [] };
     const term = debouncedSearch.trim().toLowerCase();
@@ -223,12 +253,18 @@ function Watchlist() {
         if (q.book_tbr_id != null) {
           const entry = userBookTbr.find((b) => b.id === q.book_tbr_id);
           if (!entry) return;
+          // books drop out of the genre / new-season filters entirely, the same
+          // way they do in the main TBR list
+          if (newSeasonFilter) return;
+          if (genreFilter !== "all") return;
           if (term) {
             const info = getBookInfo(entry);
             const title = (info.title || "").toLowerCase();
             const author = (info.author || "").toLowerCase();
             if (!title.includes(term) && !author.includes(term)) return;
           }
+          if (!yearMatchesFilter(bookYear(entry))) return;
+          if (!addedMatchesFilter(entry.created_at)) return;
           groups.books.push({
             queue_id: q.id,
             queue_rank: q.queue_rank,
@@ -238,20 +274,60 @@ function Watchlist() {
         } else if (q.watchlist_id != null) {
           const entry = userWatchlist.find((w) => w.id === q.watchlist_id);
           if (!entry) return;
+          const mo = entry.movie_object;
+          if (newSeasonFilter && !entry.new_season_to_watch) return;
           if (term) {
-            const title = (entry.movie_object?.primaryTitle || "").toLowerCase();
+            const title = (mo?.primaryTitle || "").toLowerCase();
             if (!title.includes(term)) return;
           }
-          groups[queueCategoryOf(entry.movie_object)].push({
+          if (genreFilter !== "all") {
+            const genres = mo?.interests || [];
+            if (!genres.includes(genreFilter)) return;
+          }
+          if (!yearMatchesFilter(movieYear(entry))) return;
+          if (!addedMatchesFilter(entry.created_at)) return;
+          groups[queueCategoryOf(mo)].push({
             queue_id: q.id,
             queue_rank: q.queue_rank,
             watchlist_id: q.watchlist_id,
-            movie: entry.movie_object,
+            movie: mo,
           });
         }
       });
+    if (sortKey !== "date") {
+      ["movies", "tv", "books"].forEach((category) => {
+        groups[category].sort((a, b) => {
+          const c = compareNumeric(
+            queueSortValue(a, category),
+            queueSortValue(b, category),
+          );
+          if (c !== 0) return c;
+          return (
+            (a.queue_rank ?? Number.MAX_SAFE_INTEGER) -
+            (b.queue_rank ?? Number.MAX_SAFE_INTEGER)
+          );
+        });
+      });
+    }
     return groups;
-  }, [watchlistQueue, userWatchlist, userBookTbr, debouncedSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    watchlistQueue,
+    userWatchlist,
+    userBookTbr,
+    debouncedSearch,
+    newSeasonFilter,
+    genreFilter,
+    yearFrom,
+    yearTo,
+    addedFrom,
+    addedTo,
+    sortKey,
+    sortDir,
+    imdbRatings,
+    lbRatings,
+    grRatings,
+  ]);
 
   const queueCount =
     queueByCategory.movies.length +

@@ -52,6 +52,8 @@
   height: 1.25em;
   width: auto;
   display: block;
+  /* lightly round the IMDb / Letterboxd marks */
+  border-radius: 3px;
 }
 .trending-imdb-star {
   height: 11px;

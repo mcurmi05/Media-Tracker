@@ -7,9 +7,18 @@
      don't inherit a grey/italic byline, and don't recolour on hover */
   color: #fff;
   font-style: normal;
+  cursor: pointer;
+  /* no mobile tap flash; the only feedback is the press below */
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-.goodreads-rating:hover {
+/* Hold the colour steady on hover (the global a:hover would otherwise recolour
+   it) so the only feedback is the button push. */
+a.goodreads-rating:hover {
   color: #fff;
+}
+.goodreads-rating:active {
+  transform: scale(0.92);
 }
 .goodreads-rating p {
   font-style: normal;

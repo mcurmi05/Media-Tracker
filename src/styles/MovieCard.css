@@ -90,10 +90,25 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  /* sit at the line colour, not a brighter white, in every state */
+  color: inherit;
+  cursor: pointer;
+  /* no mobile tap flash; the only feedback is the press below */
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+/* Don't let the global a:hover snap the text to white - keep it stable so the
+   only hover/press feedback is the smooth button push. */
+a.imdb-rating:hover {
+  color: inherit;
+}
+.imdb-rating:active {
+  transform: scale(0.92);
 }
 
 .imdb-movie-card {
   width: 35px;
+  border-radius: 4px;
 }
 
 .star-movie-card {
