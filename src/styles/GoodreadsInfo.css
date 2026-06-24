@@ -1,0 +1,25 @@
+.goodreads-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Match the IMDb/Letterboxd logo footprint on the subtitle line. */
+.goodreads-movie-card {
+  width: 35px;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* The shared star shape, recoloured to an exact Goodreads-red (#ed5e4b) by
+   using the star PNG as a mask over a solid fill - a filter chain can only
+   approximate a target colour, the mask is exact. (Letterboxd tints its star
+   green via a filter; here we need a precise hex.) */
+.goodreads-star {
+  display: inline-block;
+  background-color: #ed5e4b;
+  -webkit-mask: url("/staricon.png") center / contain no-repeat;
+  mask: url("/staricon.png") center / contain no-repeat;
+}

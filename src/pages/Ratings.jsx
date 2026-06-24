@@ -12,10 +12,11 @@ import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
 import { useLetterboxdRatings } from "../contexts/LetterboxdRatingsContext.jsx";
+import { useGoodreadsRatings } from "../contexts/GoodreadsRatingsContext.jsx";
 import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
 import { useDebouncedValue } from "../utils/useDebouncedValue.js";
 import "../styles/Toolbar.css";
-import { isTV, movieYear, bookYear, compareNums, yearInRange, addedInRange, imdbRatingFor, imdbVotesFor, letterboxdRatingFor, letterboxdCountFor } from "../utils/mediaFilters.js";
+import { isTV, movieYear, bookYear, compareNums, yearInRange, addedInRange, imdbRatingFor, imdbVotesFor, letterboxdRatingFor, letterboxdCountFor, goodreadsRatingFor, goodreadsCountFor } from "../utils/mediaFilters.js";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
@@ -25,6 +26,8 @@ const SORT_OPTIONS = [
   { value: "imdbVotes", label: "IMDb Votes" },
   { value: "letterboxd", label: "Letterboxd Rating" },
   { value: "letterboxdCount", label: "Letterboxd Votes" },
+  { value: "goodreads", label: "Goodreads Rating" },
+  { value: "goodreadsCount", label: "Goodreads Votes" },
 ];
 
 function Ratings() {
@@ -33,6 +36,7 @@ function Ratings() {
     useBookRatings();
   const { ratings: imdbRatings } = useImdbRatings();
   const { ratings: lbRatings } = useLetterboxdRatings();
+  const { ratings: grRatings } = useGoodreadsRatings();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -119,6 +123,9 @@ function Ratings() {
   const imdbVotesOf = (mo) => imdbVotesFor(imdbRatings, mo);
   const lbRatingOf = (mo) => letterboxdRatingFor(lbRatings, mo);
   const lbCountOf = (mo) => letterboxdCountFor(lbRatings, mo);
+  //live goodreads rating/votes for a book row; movies/tv return null
+  const grRatingOf = (row) => goodreadsRatingFor(grRatings, row);
+  const grCountOf = (row) => goodreadsCountFor(grRatings, row);
 
   const movieRatingValue = (r) => {
     const v = Number(r.rating);
@@ -317,6 +324,14 @@ function Ratings() {
         return bookSortDate(b) - bookSortDate(a);
       });
     }
+    if (sortKey === "goodreads" || sortKey === "goodreadsCount") {
+      const valOf = sortKey === "goodreads" ? grRatingOf : grCountOf;
+      return filteredBooks.slice().sort((a, b) => {
+        const rc = compareNumeric(valOf(a), valOf(b));
+        if (rc !== 0) return rc;
+        return bookSortDate(b) - bookSortDate(a);
+      });
+    }
     if (rankModeType === "books") {
       return filteredBooks.slice().sort(bookRankSort);
     }
@@ -328,7 +343,7 @@ function Ratings() {
           : bookSortDate(b) - bookSortDate(a),
       );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredBooks, rankModeType, bookRankSort, sortKey, sortDir]);
+  }, [filteredBooks, rankModeType, bookRankSort, sortKey, sortDir, grRatings]);
 
   // Move rank up/down among 10s by swapping ranking values and normalizing
   // Note: normalization handled implicitly by applyRankOrder indices
@@ -435,6 +450,9 @@ function Ratings() {
       year: bookYear(b),
       rating: bookRatingValue(b),
     }));
+    const isGoodreads =
+      sortKey === "goodreads" || sortKey === "goodreadsCount";
+    const grValOf = sortKey === "goodreads" ? grRatingOf : grCountOf;
     return [...ratingItems, ...bookItems].sort((a, b) => {
       if (sortKey === "year") {
         const yc = compareNumeric(a.year, b.year);
@@ -442,13 +460,20 @@ function Ratings() {
       } else if (sortKey === "rating") {
         const rc = compareNumeric(a.rating, b.rating);
         if (rc !== 0) return rc;
+      } else if (isGoodreads) {
+        // Only books have a Goodreads rating; movies/TV sink to the bottom
+        // regardless of direction (compareNums sends nulls down).
+        const va = a.kind === "book" ? grValOf(a.data) : null;
+        const vb = b.kind === "book" ? grValOf(b.data) : null;
+        const rc = compareNumeric(va, vb);
+        if (rc !== 0) return rc;
       } else if (sortKey === "date" && sortDir === "asc") {
         return a.date - b.date;
       }
       return b.date - a.date;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAllView, sortedRatings, sortedBooks, sortKey, sortDir]);
+  }, [isAllView, sortedRatings, sortedBooks, sortKey, sortDir, grRatings]);
 
   const displayCount = isAllView
     ? combinedAll.length

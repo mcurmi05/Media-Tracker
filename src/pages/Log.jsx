@@ -14,6 +14,8 @@ import {
   imdbVotesFor,
   letterboxdRatingFor,
   letterboxdCountFor,
+  goodreadsRatingFor,
+  goodreadsCountFor,
 } from "../utils/mediaFilters.js";
 import { useLogs } from "../contexts/UserLogsContext.jsx";
 import { useBookLogs } from "../contexts/UserBookLogsContext.jsx";
@@ -28,6 +30,7 @@ import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
 import { useLetterboxdRatings } from "../contexts/LetterboxdRatingsContext.jsx";
+import { useGoodreadsRatings } from "../contexts/GoodreadsRatingsContext.jsx";
 import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
 import { useDebouncedValue } from "../utils/useDebouncedValue.js";
 
@@ -39,6 +42,8 @@ const SORT_OPTIONS = [
   { value: "imdbVotes", label: "IMDb Votes" },
   { value: "letterboxd", label: "Letterboxd Rating" },
   { value: "letterboxdCount", label: "Letterboxd Votes" },
+  { value: "goodreads", label: "Goodreads Rating" },
+  { value: "goodreadsCount", label: "Goodreads Votes" },
 ];
 
 function Log() {
@@ -48,6 +53,7 @@ function Log() {
   const { findRatingForBook } = useBookRatings();
   const { ratings: imdbRatings } = useImdbRatings();
   const { ratings: lbRatings } = useLetterboxdRatings();
+  const { ratings: grRatings } = useGoodreadsRatings();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState(
@@ -141,6 +147,9 @@ function Log() {
   const imdbVotesOf = (mo) => imdbVotesFor(imdbRatings, mo);
   const lbRatingOf = (mo) => letterboxdRatingFor(lbRatings, mo);
   const lbCountOf = (mo) => letterboxdCountFor(lbRatings, mo);
+  //live goodreads rating/votes for a book row; movies/tv null out and sink
+  const grRatingOf = (row) => goodreadsRatingFor(grRatings, row);
+  const grCountOf = (row) => goodreadsCountFor(grRatings, row);
   const yearRange = useMemo(() => {
     const years = [];
     userLogs.forEach((l) => {
@@ -255,6 +264,10 @@ function Log() {
           } else if (sortKey === "rating") {
             const rc = compareNumeric(bookRating(a), bookRating(b));
             if (rc !== 0) return rc;
+          } else if (sortKey === "goodreads" || sortKey === "goodreadsCount") {
+            const valOf = sortKey === "goodreads" ? grRatingOf : grCountOf;
+            const rc = compareNumeric(valOf(a), valOf(b));
+            if (rc !== 0) return rc;
           } else if (sortKey === "date" && sortDir === "asc") {
             return getMostRecentBookDate(a) - getMostRecentBookDate(b);
           }
@@ -346,6 +359,8 @@ function Log() {
             imdbVotes: imdbVotesOf(log.movie_object),
             letterboxd: lbRatingOf(log.movie_object),
             letterboxdCount: lbCountOf(log.movie_object),
+            goodreads: null,
+            goodreadsCount: null,
           })),
           ...filteredBookLogs.map((bookLog) => ({
             kind: "book",
@@ -358,6 +373,8 @@ function Log() {
             imdbVotes: null,
             letterboxd: null,
             letterboxdCount: null,
+            goodreads: grRatingOf(bookLog),
+            goodreadsCount: grCountOf(bookLog),
           })),
         ].sort((a, b) => {
           if (sortKey === "year") {
@@ -377,6 +394,13 @@ function Log() {
             if (rc !== 0) return rc;
           } else if (sortKey === "letterboxdCount") {
             const rc = compareNumeric(a.letterboxdCount, b.letterboxdCount);
+            if (rc !== 0) return rc;
+          } else if (sortKey === "goodreads") {
+            // books only; movies/TV (null) sink to the bottom either direction
+            const rc = compareNumeric(a.goodreads, b.goodreads);
+            if (rc !== 0) return rc;
+          } else if (sortKey === "goodreadsCount") {
+            const rc = compareNumeric(a.goodreadsCount, b.goodreadsCount);
             if (rc !== 0) return rc;
           } else if (sortKey === "date" && sortDir === "asc") {
             return a.date - b.date;

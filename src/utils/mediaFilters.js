@@ -1,5 +1,6 @@
 //shared filter + sort helpers for the ratings, watchlist and log pages
 //these used to be copy-pasted in each page, now they live here
+import { goodreadsId } from "./goodreads.js";
 
 //tv check based on whatever tmdb gave us
 export function isTV(mo) {
@@ -71,5 +72,24 @@ export function letterboxdRatingFor(table, mo) {
 
 export function letterboxdCountFor(table, mo) {
   const v = table[mo?.tmdb_id]?.ratingCount;
+  return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
+}
+
+//live goodreads value, keyed by the numeric goodreads book id parsed from the
+//book's link. books only; movies/tv have no goodreads link so they return
+//null (which compareNums sinks to the bottom regardless of sort direction)
+function goodreadsLinkOf(row) {
+  return row?.book_entries?.goodreads_link ?? row?.goodreads_link ?? null;
+}
+
+export function goodreadsRatingFor(table, row) {
+  const id = goodreadsId(goodreadsLinkOf(row));
+  const v = id == null ? null : table[id]?.rating;
+  return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
+}
+
+export function goodreadsCountFor(table, row) {
+  const id = goodreadsId(goodreadsLinkOf(row));
+  const v = id == null ? null : table[id]?.ratingCount;
   return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
 }

@@ -18,6 +18,17 @@ export function goodreadsPath(link) {
   }
 }
 
+// The numeric Goodreads book id from a link or path, e.g.
+// "https://www.goodreads.com/book/show/2767052-the-hunger-games" -> 2767052.
+// This is the stable per-book identity (the slug part can change), and is the
+// key the `goodreads_ratings` cache is stored under - the books equivalent of
+// a movie's tmdb_id.
+export function goodreadsId(link) {
+  const path = goodreadsPath(link) || String(link || "");
+  const m = path.match(/book\/show\/(\d+)/);
+  return m ? Number(m[1]) : null;
+}
+
 // Route to a book's details page, or null when there is no usable link.
 export function bookDetailsRoute(link) {
   const path = goodreadsPath(link);

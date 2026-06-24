@@ -6,6 +6,7 @@ import AddBookLogButton from "./AddBookLogButton.jsx";
 import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import BookRatingStar from "./BookRatingStar.jsx";
 import EditBookInfoModal from "./EditBookInfoModal.jsx";
+import GoodreadsInfo from "./GoodreadsInfo.jsx";
 import { bookDetailsRoute } from "../utils/goodreads.js";
 import { makeNavHandlers } from "../utils/navClick.js";
 
@@ -165,6 +166,7 @@ function BookCard({ book: bookProp }) {
                 />
               </a>
             ) : null}
+            <GoodreadsInfo book={book} />
             <div
               style={{
                 marginLeft: "auto",

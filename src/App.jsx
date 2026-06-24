@@ -6,6 +6,7 @@ import { SearchProvider } from "./contexts/SearchContext";
 import { PopularMoviesCacheProvider } from "./contexts/PopularMoviesCacheContext.jsx";
 import { ImdbRatingsProvider } from "./contexts/ImdbRatingsContext.jsx";
 import { LetterboxdRatingsProvider } from "./contexts/LetterboxdRatingsContext.jsx";
+import { GoodreadsRatingsProvider } from "./contexts/GoodreadsRatingsContext.jsx";
 import { Routes, Route, useLocation } from "react-router-dom";
 import MediaDetails from "./pages/MediaDetails.jsx";
 import BookDetails from "./pages/BookDetails.jsx";
@@ -55,6 +56,7 @@ function App() {
           <PopularMoviesCacheProvider>
             <ImdbRatingsProvider>
             <LetterboxdRatingsProvider>
+            <GoodreadsRatingsProvider>
             <UserRatingsProvider>
               <UserLogsProvider>
                 <UserWatchlistProvider>
@@ -103,6 +105,7 @@ function App() {
                 </UserWatchlistProvider>
               </UserLogsProvider>
             </UserRatingsProvider>
+            </GoodreadsRatingsProvider>
             </LetterboxdRatingsProvider>
             </ImdbRatingsProvider>
           </PopularMoviesCacheProvider>

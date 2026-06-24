@@ -4,8 +4,13 @@ import {
   getBookEntryByGoodreadsPath,
   updateBookEntry,
 } from "../services/ratingsfromtable.js";
-import { goodreadsUrlFromPath, parseBookTitle } from "../utils/goodreads.js";
+import {
+  goodreadsUrlFromPath,
+  goodreadsId,
+  parseBookTitle,
+} from "../utils/goodreads.js";
 import { useBookRatings } from "../contexts/UserBookRatingsContext.jsx";
+import { useGoodreadsRating } from "../contexts/GoodreadsRatingsContext.jsx";
 import BookRatingStar from "../components/BookRatingStar.jsx";
 import AddBookWatchlist from "../components/AddBookWatchlist.jsx";
 import AddBookLogButton from "../components/AddBookLogButton.jsx";
@@ -55,6 +60,11 @@ export default function BookDetails() {
   const goodreadsUrl = goodreadsUrlFromPath(splat);
 
   const { findRatingForBook } = useBookRatings();
+
+  // Goodreads rating from the daily-synced cache, with a live on-demand scrape
+  // for this one book (mirrors how the movie details page uses Letterboxd).
+  const grId = goodreadsId(goodreadsUrl);
+  const grData = useGoodreadsRating(grId ?? undefined, { live: true });
 
   const [dbEntry, setDbEntry] = useState(null);
   const [scrape, setScrape] = useState(null);
@@ -152,8 +162,11 @@ export default function BookDetails() {
     meta.cover_image || scrape?.cover_image || "/placeholderimage.jpg";
   const releaseYear = meta.release_year || scrape?.release_year || null;
   const description = meta.book_description || scrape?.description || "";
-  const rating = scrape?.rating ?? null;
-  const ratingsCount = scrape?.ratings_count ?? null;
+  // Rating comes from the cache/live context; fall back to the page scrape
+  // (which we still run for the description) until the cache resolves.
+  const ratingLoading = grData === undefined;
+  const rating = grData?.rating ?? scrape?.rating ?? null;
+  const ratingsCount = grData?.ratingCount ?? scrape?.ratings_count ?? null;
   const ranking = bookObj ? findRatingForBook(bookObj)?.ranking ?? null : null;
 
   // Decide whether the action buttons sit on the title's line: only when the
@@ -282,7 +295,7 @@ export default function BookDetails() {
                 </a>
               )}
 
-              {scrapeLoading ? (
+              {rating == null && ratingLoading ? (
                 <span className="bd-muted">Fetching rating...</span>
               ) : rating != null ? (
                 <a

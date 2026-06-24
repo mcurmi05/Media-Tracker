@@ -15,6 +15,7 @@ import DateAddedFilter from "../components/DateAddedFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import { useImdbRatings } from "../contexts/ImdbRatingsContext.jsx";
 import { useLetterboxdRatings } from "../contexts/LetterboxdRatingsContext.jsx";
+import { useGoodreadsRatings } from "../contexts/GoodreadsRatingsContext.jsx";
 import ExtraFiltersPanel from "../components/ExtraFiltersPanel.jsx";
 import { useDebouncedValue } from "../utils/useDebouncedValue.js";
 import {
@@ -28,6 +29,8 @@ import {
   imdbVotesFor,
   letterboxdRatingFor,
   letterboxdCountFor,
+  goodreadsRatingFor,
+  goodreadsCountFor,
 } from "../utils/mediaFilters.js";
 
 const SORT_OPTIONS = [
@@ -37,6 +40,8 @@ const SORT_OPTIONS = [
   { value: "imdbVotes", label: "IMDb Votes" },
   { value: "letterboxd", label: "Letterboxd Rating" },
   { value: "letterboxdCount", label: "Letterboxd Votes" },
+  { value: "goodreads", label: "Goodreads Rating" },
+  { value: "goodreadsCount", label: "Goodreads Votes" },
 ];
 
 function Watchlist() {
@@ -50,6 +55,7 @@ function Watchlist() {
   const { userBookTbr, userBookTbrLoaded } = useBookTbr();
   const { ratings: imdbRatings } = useImdbRatings();
   const { ratings: lbRatings } = useLetterboxdRatings();
+  const { ratings: grRatings } = useGoodreadsRatings();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -131,6 +137,9 @@ function Watchlist() {
   const imdbVotesOf = (mo) => imdbVotesFor(imdbRatings, mo);
   const lbRatingOf = (mo) => letterboxdRatingFor(lbRatings, mo);
   const lbCountOf = (mo) => letterboxdCountFor(lbRatings, mo);
+  //live goodreads rating/votes for a book row; movies/tv null out and sink
+  const grRatingOf = (row) => goodreadsRatingFor(grRatings, row);
+  const grCountOf = (row) => goodreadsCountFor(grRatings, row);
 
   const yearRange = useMemo(() => {
     const years = [];
@@ -392,6 +401,14 @@ function Watchlist() {
         return new Date(b.created_at) - new Date(a.created_at);
       });
     }
+    if (sortKey === "goodreads" || sortKey === "goodreadsCount") {
+      const valOf = sortKey === "goodreads" ? grRatingOf : grCountOf;
+      return filtered.sort((a, b) => {
+        const rc = compareNumeric(valOf(a), valOf(b));
+        if (rc !== 0) return rc;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
     return filtered.sort((a, b) =>
       sortDir === "asc"
         ? new Date(a.created_at) - new Date(b.created_at)
@@ -410,6 +427,7 @@ function Watchlist() {
     yearTo,
     addedFrom,
     addedTo,
+    grRatings,
   ]);
 
   const isAllView = mediaTypeFilter === "all";
@@ -427,6 +445,8 @@ function Watchlist() {
       imdbVotes: imdbVotesOf(item.movie_object),
       letterboxd: lbRatingOf(item.movie_object),
       letterboxdCount: lbCountOf(item.movie_object),
+      goodreads: null,
+      goodreadsCount: null,
     }));
     const bookItems = filteredBookTbr.map((item) => ({
       kind: "book",
@@ -438,6 +458,8 @@ function Watchlist() {
       imdbVotes: null,
       letterboxd: null,
       letterboxdCount: null,
+      goodreads: grRatingOf(item),
+      goodreadsCount: grCountOf(item),
     }));
     return [...movieItems, ...bookItems].sort((a, b) => {
       if (sortKey === "year") {
@@ -455,13 +477,20 @@ function Watchlist() {
       } else if (sortKey === "letterboxdCount") {
         const rc = compareNumeric(a.letterboxdCount, b.letterboxdCount);
         if (rc !== 0) return rc;
+      } else if (sortKey === "goodreads") {
+        // books only; movies/TV (null) sink to the bottom either direction
+        const rc = compareNumeric(a.goodreads, b.goodreads);
+        if (rc !== 0) return rc;
+      } else if (sortKey === "goodreadsCount") {
+        const rc = compareNumeric(a.goodreadsCount, b.goodreadsCount);
+        if (rc !== 0) return rc;
       } else if (sortKey === "date" && sortDir === "asc") {
         return a.date - b.date;
       }
       return b.date - a.date;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAllView, filteredWatchlist, filteredBookTbr, sortKey, sortDir]);
+  }, [isAllView, filteredWatchlist, filteredBookTbr, sortKey, sortDir, grRatings]);
 
   const displayCount = isAllView
     ? combinedAll.length
