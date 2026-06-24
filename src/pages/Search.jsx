@@ -163,10 +163,10 @@ function Search() {
       {searchLoading ? (
         <Loader />
       ) : searchResults && searchResults.length > 0 ? (
-        <div className={`movies-grid${isBooks ? "" : " movies-grid--posters"}`}>
+        <div className="movies-grid movies-grid--posters">
           {isBooks
             ? sortedBooks.map((book) => (
-                <BookCard book={book} key={book.id} />
+                <BookCard book={book} posterOnly key={book.id} />
               ))
             : searchResults.map((movie) => (
                 <MovieCard

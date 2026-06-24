@@ -19,9 +19,6 @@ import EditBookInfoModal from "../components/EditBookInfoModal.jsx";
 import Loader, { Spinner } from "../components/Loader.jsx";
 import "../styles/BookDetails.css";
 
-const GOODREADS_ICON =
-  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVWGYFkKfh28rOYSP6XPkZgf3Cya8tsWasxA&s";
-
 // Compact ratings count, matching the movie page (e.g. 540600 -> "(541K)").
 function formatRatingsCount(n) {
   if (!n) return "";
@@ -281,18 +278,6 @@ export default function BookDetails() {
                   {author}
                   {author ? " · " : ""}
                 </span>
-              )}
-
-              {goodreadsUrl && (
-                <a
-                  className="bd-gr-link"
-                  href={goodreadsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="View on Goodreads"
-                >
-                  <img src={GOODREADS_ICON} alt="Goodreads" />
-                </a>
               )}
 
               {rating == null && ratingLoading ? (

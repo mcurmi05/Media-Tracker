@@ -429,8 +429,10 @@
 
 .book-author {
   margin: 0 0 12px 0;
-  color: #aaa;
-  font-style: italic;
+  /* match the movie log card's "Directed by" line: upright, default text
+     colour (not the old grey italic) */
+  color: rgba(255, 255, 255, 0.87);
+  font-style: normal;
 }
 
 .book-rating {

@@ -24,9 +24,11 @@ const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 
-// Be polite to Goodreads: a handful of requests in flight, with small gaps.
-const CONCURRENCY = 6;
+// Be polite to Goodreads: a few requests in flight, with small gaps. Goodreads
+// returns 503/429 when hit too fast, so keep this modest and lean on retries.
+const CONCURRENCY = 4;
 const UPSERT_BATCH = 500;
+const MAX_ATTEMPTS = 4; // retry transient 503/429/5xx with backoff
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -98,14 +100,30 @@ function extractRating(html) {
   return { rating, rating_count };
 }
 
+// Fetch a Goodreads book page, retrying transient rate-limit responses
+// (503/429/5xx) with exponential backoff. Returns the ok response, or null.
+async function fetchBook(id) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const res = await fetch(`https://www.goodreads.com/book/show/${id}`, {
+      headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9" },
+      redirect: "follow",
+    });
+    if (res.ok) return res;
+    // 503/429/5xx are Goodreads throttling us - back off and try again.
+    if (res.status === 429 || res.status >= 500) {
+      await sleep(800 * (attempt + 1) + Math.floor(Math.random() * 500));
+      continue;
+    }
+    return null; // 404 and other hard failures: don't retry
+  }
+  return null;
+}
+
 // Returns { goodreads_id, slug, rating, rating_count } for a book id, or null
 // if the page can't be loaded or has no aggregate rating yet.
 async function scrapeRating(id) {
-  const res = await fetch(`https://www.goodreads.com/book/show/${id}`, {
-    headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9" },
-    redirect: "follow",
-  });
-  if (!res.ok) return null;
+  const res = await fetchBook(id);
+  if (!res) return null;
 
   const html = await res.text();
   const { rating, rating_count } = extractRating(html);

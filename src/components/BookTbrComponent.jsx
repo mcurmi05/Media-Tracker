@@ -10,6 +10,7 @@ import RatingModal from "./RatingModal.jsx";
 import { getBookInfo } from "../utils/bookInfo.js";
 import { useNavigate } from "react-router-dom";
 import { bookDetailsRoute } from "../utils/goodreads.js";
+import GoodreadsInfo from "./GoodreadsInfo.jsx";
 
 const queueBtnStyle = {
   border: "none",
@@ -209,16 +210,30 @@ export default function BookTbrComponent({
               className="rating-page-subtitle"
               style={{ display: "flex", alignItems: "baseline", gap: "24px" }}
             >
-              <span style={{ fontSize: "0.95em" }}>
-                by{" "}
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
                 <span
-                  onClick={handleAuthorSearch}
-                  style={{ cursor: "pointer" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    fontSize: "0.95em",
+                  }}
                 >
-                  {book.author}
+                  {book.release_year ? <span>{book.release_year}</span> : null}
+                  <GoodreadsInfo book={book} />
                 </span>
-                {book.release_year ? ` (${book.release_year})` : ""}
-              </span>
+                <span className="book-by-line" style={{ fontSize: "0.95em" }}>
+                  <span className="bold-span">By</span>{" "}
+                  <span
+                    onClick={handleAuthorSearch}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {book.author}
+                  </span>
+                </span>
+              </div>
               {formattedDate ? (
                 <span
                   className="rating-date-line"

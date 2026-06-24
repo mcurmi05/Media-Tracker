@@ -14,6 +14,7 @@ import Button from "@mui/material/Button";
 import { getBookInfo } from "../utils/bookInfo.js";
 import { useNavigate } from "react-router-dom";
 import { bookDetailsRoute } from "../utils/goodreads.js";
+import GoodreadsInfo from "./GoodreadsInfo.jsx";
 
 const modalStyle = {
   position: "absolute",
@@ -193,12 +194,6 @@ const BookLogCard = ({ bookLog }) => {
     setShowDeleteModal(false);
   };
 
-  const handleGoodreadsSearch = () => {
-    if (book.goodreads_link) {
-      window.open(book.goodreads_link, "_blank");
-    }
-  };
-
   const openBookDetails = () => {
     const route = bookDetailsRoute(book.goodreads_link);
     if (route) {
@@ -272,43 +267,33 @@ const BookLogCard = ({ bookLog }) => {
                       >
                         {book.title}
                       </h3>
-                      <p
-                        className="book-author"
-                        style={{
-                          margin: 0,
-                          marginTop: "10px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                        }}
-                      >
-                        <span>
-                          by{" "}
+                      <div style={{ marginTop: "10px" }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          {book.release_year ? (
+                            <span>{book.release_year}</span>
+                          ) : null}
+                          <GoodreadsInfo book={book} />
+                        </p>
+                        <p
+                          className="book-author book-by-line"
+                          style={{ margin: 0, marginTop: "6px" }}
+                        >
+                          <span className="bold-span">By</span>{" "}
                           <span
                             onClick={handleAuthorSearch}
                             style={{ cursor: "pointer" }}
                           >
                             {book.author}
                           </span>
-                          {book.release_year
-                            ? ` (${book.release_year})`
-                            : ""}
-                        </span>
-                        <img
-                          src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVWGYFkKfh28rOYSP6XPkZgf3Cya8tsWasxA&s"
-                          alt="Goodreads"
-                          onClick={handleGoodreadsSearch}
-                          style={{
-                            width: "20px",
-                            height: "20px",
-                            cursor: "pointer",
-                            borderRadius: "4px",
-                            transition: "opacity 0.2s",
-                          }}
-                          onMouseOver={(e) => (e.target.style.opacity = "0.8")}
-                          onMouseOut={(e) => (e.target.style.opacity = "1")}
-                        />
-                      </p>
+                        </p>
+                      </div>
                     </div>
                     <span
                       className="user-rating-movie-card"

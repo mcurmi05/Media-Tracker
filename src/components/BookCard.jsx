@@ -24,7 +24,7 @@ function parseTitle(rawTitle) {
   };
 }
 
-function BookCard({ book: bookProp }) {
+function BookCard({ book: bookProp, posterOnly = false }) {
   const [book, setBook] = useState(bookProp);
   const [showEditModal, setShowEditModal] = useState(false);
   const navigate = useNavigate();
@@ -55,6 +55,30 @@ function BookCard({ book: bookProp }) {
       "noopener,noreferrer",
     );
   };
+
+  // Search results: cover only, no title/buttons. The shared .movie-poster box
+  // (aspect-ratio 2/3 + object-fit cover) makes every cover the same size.
+  if (posterOnly) {
+    return (
+      <div className="movie-card movie-card--poster">
+        <div
+          className="movie-poster"
+          {...detailHandlers}
+          style={{ cursor: goodreadsLink ? "pointer" : "default" }}
+        >
+          <img
+            className="movie-poster-img"
+            src={book.cover_image ? book.cover_image : "/placeholderimage.jpg"}
+            alt={book.title}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "/placeholderimage.jpg";
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="movie-card">
@@ -148,24 +172,6 @@ function BookCard({ book: bookProp }) {
               {book.author && book.release_year ? " · " : ""}
               {book.release_year ? `${book.release_year}` : ""}
             </p>
-            {goodreadsLink ? (
-              <a
-                href={goodreadsLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="View on Goodreads"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                }}
-              >
-                <img
-                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVWGYFkKfh28rOYSP6XPkZgf3Cya8tsWasxA&s"
-                  alt="Goodreads"
-                  style={{ width: 20, height: 20, borderRadius: 4 }}
-                />
-              </a>
-            ) : null}
             <GoodreadsInfo book={book} />
             <div
               style={{

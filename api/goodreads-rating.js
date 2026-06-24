@@ -15,6 +15,30 @@ const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Fetch a Goodreads book page, retrying transient rate-limit responses
+// (503/429/5xx) with backoff - Goodreads throttles aggressively. Returns the
+// ok response, or null.
+async function fetchBook(goodreadsId, attempts = 3) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const res = await fetch(
+      `https://www.goodreads.com/book/show/${goodreadsId}`,
+      {
+        headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9" },
+        redirect: "follow",
+      },
+    );
+    if (res.ok) return res;
+    if (res.status === 429 || res.status >= 500) {
+      await sleep(600 * (attempt + 1) + Math.floor(Math.random() * 400));
+      continue;
+    }
+    return null;
+  }
+  return null;
+}
+
 // Pull the aggregate rating + count out of a Goodreads book page. Tries the
 // JSON-LD block first, then the Apollo/__NEXT_DATA__ work stats, then the
 // visible rating widget as a last resort.
@@ -76,14 +100,8 @@ function extractRating(html) {
 }
 
 async function scrapeRating(goodreadsId) {
-  const res = await fetch(
-    `https://www.goodreads.com/book/show/${goodreadsId}`,
-    {
-      headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9" },
-      redirect: "follow",
-    },
-  );
-  if (!res.ok) return null;
+  const res = await fetchBook(goodreadsId);
+  if (!res) return null;
 
   const html = await res.text();
   const { rating, rating_count } = extractRating(html);
