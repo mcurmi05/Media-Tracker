@@ -1,0 +1,340 @@
+import { createContext, useContext, useState } from "react";
+import { getUserLogs } from "../services/ratingsfromtable";
+import { useAuth } from "./AuthContext";
+import { useEffect, useRef } from "react";
+import { supabase } from "../services/supabase-client";
+
+/* eslint-disable react-refresh/only-export-components */
+
+const UserLogsContext = createContext();
+
+export const useLogs = () => {
+  const context = useContext(UserLogsContext);
+  if (!context) {
+    throw new Error("useLogs must be used within a UserLogsProvider");
+  }
+  return context;
+};
+
+export const UserLogsProvider = ({ children }) => {
+  const [userLogs, setUserLogs] = useState([]);
+  const [userLogsLoaded, setUserLogsLoaded] = useState(false);
+  const { user } = useAuth();
+  const hasFetched = useRef(false);
+
+  const addLog = (movieId, log, movie, log_id) => {
+    const newLog = {
+      id: log_id,
+      imdb_movie_id: movieId,
+      user_id: user.id,
+      log: log,
+      movie_object: movie,
+      created_at: new Date().toISOString(),
+    };
+    setUserLogs((prev) => [newLog, ...prev]);
+  };
+
+  // Add a season to a log's season_info JSONB column. `seasonNumber` lets the
+  // caller pick a specific season (e.g. one that actually exists per TMDB and
+  // hasn't been logged yet); when omitted it falls back to the next number after
+  // the highest already logged. The list is kept ordered by season number.
+  const addSeason = async (log_id, seasonNumber = null) => {
+    // Capture the exact creation timestamp once and preserve it
+    const creationTimestamp = new Date().toISOString();
+
+    // Create the season object with the permanent creation date
+    const createNewSeasonObject = (num) => ({
+      season: num,
+      start_date: creationTimestamp, // This date is set once and never auto-updated
+      end_date: null,
+      finished: false,
+      finished_at: null,
+      created_at: creationTimestamp, // Track when this season was originally created
+    });
+
+    const pickNumber = (current) =>
+      seasonNumber != null
+        ? seasonNumber
+        : current.reduce((max, s) => Math.max(max, s.season || 0), 0) + 1;
+
+    const withNewSeason = (current) => {
+      const num = pickNumber(current);
+      if (current.some((s) => s.season === num)) return current; // already logged
+      return [...current, createNewSeasonObject(num)].sort(
+        (a, b) => (a.season || 0) - (b.season || 0),
+      );
+    };
+
+    setUserLogs((prev) =>
+      prev.map((l) =>
+        l.id === log_id
+          ? { ...l, season_info: withNewSeason(l.season_info || []) }
+          : l,
+      ),
+    );
+
+    // Persist to Supabase
+    try {
+      const logRow = userLogs.find((x) => x.id === log_id);
+      const newSeasonInfo = withNewSeason(logRow?.season_info || []);
+      const { error } = await supabase
+        .from("logs")
+        .update({ season_info: newSeasonInfo })
+        .eq("id", log_id);
+      if (error) console.error("Failed to persist new season:", error);
+    } catch (err) {
+      console.error("addSeason error:", err);
+    }
+  };
+
+  // Mark or unmark a season as finished and persist
+  const setSeasonFinished = async (log_id, seasonIndex, finished) => {
+    setUserLogs((prev) => {
+      return prev.map((l) => {
+        if (l.id !== log_id) return l;
+        const current = Array.isArray(l.season_info) ? [...l.season_info] : [];
+        if (!current[seasonIndex]) return l;
+        const now = finished ? new Date().toISOString() : null;
+        current[seasonIndex] = {
+          ...current[seasonIndex],
+          finished: !!finished,
+          finished_at: now,
+          end_date: finished ? current[seasonIndex].end_date || now : null,
+        };
+        return { ...l, season_info: current };
+      });
+    });
+
+    try {
+      const logRow = userLogs.find((x) => x.id === log_id);
+      const current = logRow?.season_info ? [...logRow.season_info] : [];
+      if (!current[seasonIndex])
+        current[seasonIndex] = {
+          season: seasonIndex + 1,
+          start_date: null,
+          end_date: null,
+          finished: false,
+          finished_at: null,
+        };
+      const now = finished ? new Date().toISOString() : null;
+      current[seasonIndex] = {
+        ...current[seasonIndex],
+        finished: !!finished,
+        finished_at: now,
+        end_date: finished ? current[seasonIndex].end_date || now : null,
+      };
+      const { error } = await supabase
+        .from("logs")
+        .update({ season_info: current })
+        .eq("id", log_id);
+      if (error) console.error("Failed to persist setSeasonFinished:", error);
+    } catch (err) {
+      console.error("setSeasonFinished error:", err);
+    }
+  };
+
+  // Mark a season as DNF (did not finish), or clear that flag.
+  // A DNF season is not "finished", so finished state is cleared alongside.
+  const setSeasonDnf = async (log_id, seasonIndex, dnf) => {
+    const applyUpdate = (current) => {
+      if (!current[seasonIndex]) return current;
+      current[seasonIndex] = {
+        ...current[seasonIndex],
+        dnf: !!dnf,
+        finished: dnf ? false : current[seasonIndex].finished,
+        finished_at: dnf ? null : current[seasonIndex].finished_at,
+        end_date: dnf ? null : current[seasonIndex].end_date,
+      };
+      return current;
+    };
+
+    setUserLogs((prev) =>
+      prev.map((l) => {
+        if (l.id !== log_id) return l;
+        const current = Array.isArray(l.season_info) ? [...l.season_info] : [];
+        return { ...l, season_info: applyUpdate(current) };
+      }),
+    );
+
+    try {
+      const logRow = userLogs.find((x) => x.id === log_id);
+      const current = logRow?.season_info ? [...logRow.season_info] : [];
+      if (!current[seasonIndex]) return;
+      applyUpdate(current);
+      const { error } = await supabase
+        .from("logs")
+        .update({ season_info: current })
+        .eq("id", log_id);
+      if (error) console.error("Failed to persist setSeasonDnf:", error);
+    } catch (err) {
+      console.error("setSeasonDnf error:", err);
+    }
+  };
+
+  // Update a single season date (start_date or end_date)
+  const updateSeasonDate = async (log_id, seasonIndex, field, isoDate) => {
+    // field should be 'start_date' or 'end_date'
+    setUserLogs((prev) => {
+      return prev.map((l) => {
+        if (l.id !== log_id) return l;
+        const current = Array.isArray(l.season_info) ? [...l.season_info] : [];
+        if (!current[seasonIndex]) return l;
+        current[seasonIndex] = { ...current[seasonIndex], [field]: isoDate };
+        return { ...l, season_info: current };
+      });
+    });
+
+    try {
+      const logRow = userLogs.find((x) => x.id === log_id);
+      const current = logRow?.season_info ? [...logRow.season_info] : [];
+      if (!current[seasonIndex])
+        current[seasonIndex] = {
+          season: seasonIndex + 1,
+          start_date: null,
+          end_date: null,
+        };
+      current[seasonIndex] = { ...current[seasonIndex], [field]: isoDate };
+      const { error } = await supabase
+        .from("logs")
+        .update({ season_info: current })
+        .eq("id", log_id);
+      if (error) console.error("Failed to persist season date update:", error);
+    } catch (err) {
+      console.error("updateSeasonDate error:", err);
+    }
+  };
+
+  // Remove the newest season for a log (only removes the last season)
+  const removeSeason = async (log_id) => {
+    setUserLogs((prev) => {
+      return prev.map((l) => {
+        if (l.id !== log_id) return l;
+        const current = Array.isArray(l.season_info) ? [...l.season_info] : [];
+        if (current.length === 0) return l;
+        current.pop();
+        return { ...l, season_info: current };
+      });
+    });
+
+    try {
+      const logRow = userLogs.find((x) => x.id === log_id);
+      const current = logRow?.season_info ? [...logRow.season_info] : [];
+      if (current.length > 0) current.pop();
+      const { error } = await supabase
+        .from("logs")
+        .update({ season_info: current })
+        .eq("id", log_id);
+      if (error) console.error("Failed to persist remove season:", error);
+    } catch (err) {
+      console.error("removeSeason error:", err);
+    }
+  };
+
+  // Remove a season at a specific index for a log. Season numbers are NOT
+  // renumbered - a log may hold an arbitrary subset of the show's seasons, so
+  // the remaining seasons keep their real numbers.
+  const removeSeasonAt = async (log_id, seasonIndex) => {
+    setUserLogs((prev) => {
+      return prev.map((l) => {
+        if (l.id !== log_id) return l;
+        const current = Array.isArray(l.season_info) ? [...l.season_info] : [];
+        if (seasonIndex < 0 || seasonIndex >= current.length) return l;
+        current.splice(seasonIndex, 1);
+        return { ...l, season_info: current };
+      });
+    });
+
+    try {
+      const logRow = userLogs.find((x) => x.id === log_id);
+      const current = logRow?.season_info ? [...logRow.season_info] : [];
+      if (seasonIndex < 0 || seasonIndex >= current.length) return;
+      current.splice(seasonIndex, 1);
+      const { error } = await supabase
+        .from("logs")
+        .update({ season_info: current })
+        .eq("id", log_id);
+      if (error) console.error("Failed to persist removeSeasonAt:", error);
+    } catch (err) {
+      console.error("removeSeasonAt error:", err);
+    }
+  };
+
+  const updateLog = (log_id, newLog) => {
+    setUserLogs((prev) =>
+      prev.map((log) => (log.id === log_id ? { ...log, log: newLog } : log)),
+    );
+  };
+
+  const updateDate = (log_id, newCreated_at) => {
+    setUserLogs((prev) =>
+      prev.map((log) =>
+        log.id === log_id ? { ...log, created_at: newCreated_at } : log,
+      ),
+    );
+  };
+
+  // Update the multi-day end date for a movie log (null clears multi-day mode)
+  const updateEndDate = (log_id, newEndDate) => {
+    setUserLogs((prev) =>
+      prev.map((log) =>
+        log.id === log_id ? { ...log, movie_end_date: newEndDate } : log,
+      ),
+    );
+  };
+
+  // Merge an arbitrary set of fields into a log row (local state only).
+  const patchLog = (log_id, updates) => {
+    setUserLogs((prev) =>
+      prev.map((log) =>
+        log.id === log_id ? { ...log, ...updates } : log,
+      ),
+    );
+  };
+
+  const removeLog = (log_id) => {
+    setUserLogs((prev) => prev.filter((log) => log.id !== log_id));
+  };
+
+  useEffect(() => {
+    const loadLogs = async () => {
+      if (user && !hasFetched.current) {
+        hasFetched.current = true;
+        try {
+          setUserLogsLoaded(false);
+          const logs = await getUserLogs(user);
+          console.log(logs);
+          setUserLogs(logs);
+          setUserLogsLoaded(true);
+        } catch (err) {
+          setUserLogsLoaded(false);
+          console.log(err);
+        }
+      }
+    };
+    loadLogs();
+  }, [user]);
+
+  return (
+    <UserLogsContext.Provider
+      value={{
+        userLogs,
+        userLogsLoaded,
+        setUserLogs,
+        addLog,
+        addSeason,
+        updateSeasonDate,
+        removeSeason,
+        removeSeasonAt,
+        setSeasonFinished,
+        setSeasonDnf,
+        removeLog,
+        updateLog,
+        updateDate,
+        updateEndDate,
+        patchLog,
+      }}
+    >
+      {children}
+    </UserLogsContext.Provider>
+  );
+};

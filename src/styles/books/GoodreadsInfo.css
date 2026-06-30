@@ -1,0 +1,51 @@
+.goodreads-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  /* white and upright, exactly like the IMDb/Letterboxd rating text on movies -
+     don't inherit a grey/italic byline, and don't recolour on hover */
+  color: #fff;
+  font-style: normal;
+  cursor: pointer;
+  /* no mobile tap flash; the only feedback is the press below */
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+/* Hold the colour steady on hover (the global a:hover would otherwise recolour
+   it) so the only feedback is the button push. */
+a.goodreads-rating:hover {
+  color: #fff;
+}
+.goodreads-rating:active {
+  transform: scale(0.92);
+}
+.goodreads-rating p {
+  font-style: normal;
+}
+
+/* Match the IMDb/Letterboxd logo footprint on the subtitle line. */
+.goodreads-movie-card {
+  width: 35px;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* The shared star shape, recoloured to an exact Goodreads-red (#ed5e4b) by
+   using the star PNG as a mask over a solid fill - a filter chain can only
+   approximate a target colour, the mask is exact. (Letterboxd tints its star
+   green via a filter; here we need a precise hex.) */
+/* Hide the "By {author}" line on mobile, mirroring how the movie cards drop
+   the "Directed by" credit (.directors-and-stars) at the same breakpoint. */
+@media (max-width: 850px) {
+  .book-by-line {
+    display: none;
+  }
+}
+
+.goodreads-star {
+  display: inline-block;
+  background-color: #ed5e4b;
+  -webkit-mask: url("/images/staricon.png") center / contain no-repeat;
+  mask: url("/images/staricon.png") center / contain no-repeat;
+}
