@@ -65,7 +65,14 @@ export function StorygraphRatingsProvider({ children }) {
   const request = useCallback(
     (hardcoverId) => {
       const id = String(hardcoverId || "").trim();
-      if (!id || id in cacheRef.current || inflightRef.current.has(id)) return;
+      if (
+        !id ||
+        cacheRef.current[id] ||
+        inflightRef.current.has(id) ||
+        pendingRef.current.has(id)
+      ) {
+        return;
+      }
       pendingRef.current.add(id);
       if (!timerRef.current) {
         timerRef.current = setTimeout(flush, FLUSH_DELAY_MS);
@@ -117,6 +124,14 @@ export function useStorygraphRating(
     request?.(id);
     if (live) refresh?.(id);
   }, [id, live, refresh, request]);
-  if (!context || !id) return undefined;
-  return id in context.ratings ? context.ratings[id] : undefined;
+  const data =
+    context && id && id in context.ratings
+      ? context.ratings[id]
+      : undefined;
+  useEffect(() => {
+    if (!id || data !== null) return;
+    const timer = setTimeout(() => request?.(id), 60_000);
+    return () => clearTimeout(timer);
+  }, [data, id, request]);
+  return data;
 }

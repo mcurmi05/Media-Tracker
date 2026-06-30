@@ -250,16 +250,43 @@ export default function BookDetails() {
       );
   }, [dbEntry, scrape]);
 
-  const meta = dbEntry || remoteBook || seedBook || scrape || {};
-  const bookObj = dbEntry || remoteBook || seedBook || null;
-  const title = meta.title || scrape?.title || "";
+  const bookObj = dbEntry
+    ? { ...(seedBook || {}), ...(remoteBook || {}), ...dbEntry }
+    : remoteBook || seedBook || null;
+  const meta = bookObj || scrape || {};
+  const title =
+    dbEntry?.title ||
+    remoteBook?.title ||
+    seedBook?.title ||
+    scrape?.title ||
+    "";
   const { mainTitle, seriesName, seriesIndex } = parseBookTitle(title);
-  const author = meta.author || scrape?.author || "";
+  const author =
+    dbEntry?.author ||
+    remoteBook?.author ||
+    seedBook?.author ||
+    scrape?.author ||
+    "";
   const cover =
-    meta.cover_image || scrape?.cover_image || "/images/placeholderimage.jpg";
-  const releaseYear = meta.release_year || scrape?.release_year || null;
+    dbEntry?.cover_image ||
+    remoteBook?.cover_image ||
+    seedBook?.cover_image ||
+    scrape?.cover_image ||
+    "/images/placeholderimage.jpg";
+  const releaseYear =
+    dbEntry?.release_year ||
+    remoteBook?.release_year ||
+    seedBook?.release_year ||
+    scrape?.release_year ||
+    null;
   const description =
-    meta.book_description || meta.description || scrape?.description || "";
+    dbEntry?.book_description ||
+    remoteBook?.book_description ||
+    remoteBook?.description ||
+    seedBook?.book_description ||
+    seedBook?.description ||
+    scrape?.description ||
+    "";
   const ranking = bookObj ? findRatingForBook(bookObj)?.ranking ?? null : null;
 
   useEffect(() => {

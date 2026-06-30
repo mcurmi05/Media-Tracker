@@ -4,7 +4,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const HARDCOVER_TOKEN = process.env.HARDCOVER_API_TOKEN;
 const REST = `${String(SUPABASE_URL || "").replace(/\/$/, "")}/rest/v1`;
-const CONCURRENCY = 2;
+const CONCURRENCY = 1;
 const PAGE_SIZE = 1000;
 const STORYGRAPH_ORIGIN = "https://app.thestorygraph.com";
 const HARDCOVER_GRAPHQL = "https://api.hardcover.app/v1/graphql";
@@ -292,10 +292,22 @@ async function resolveStorygraphId(page, book) {
       .first()
       .waitFor({ state: "attached", timeout: 20000 })
       .catch(() => {});
-    const hrefs = await links.evaluateAll((nodes) =>
-      nodes.map((node) => node.getAttribute("href")).filter(Boolean),
+    const candidates = await links.evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        href: node.getAttribute("href"),
+        label: node.querySelector("img")?.getAttribute("alt") || "",
+      })),
     );
-    const slug = hrefs.map(storygraphIdFromHref).find(Boolean) || null;
+    const expectedLabel = normalizeIdentity(
+      `${baseTitle(book.title)} by ${String(book.author || "").split(",")[0]}`,
+    );
+    const exact = candidates.find(
+      (candidate) => normalizeIdentity(candidate.label) === expectedLabel,
+    );
+    const slug =
+      storygraphIdFromHref(exact?.href) ||
+      candidates.map((candidate) => storygraphIdFromHref(candidate.href)).find(Boolean) ||
+      null;
     if (slug) {
       if (slug !== book.storygraph_slug) await persistSlug(book.id, slug);
       return slug;
@@ -313,7 +325,7 @@ async function scrapeRating(page, slug) {
   await ratingNode.waitFor({ state: "attached", timeout: 20000 });
   const label = await ratingNode.getAttribute("aria-label");
   const match = String(label || "").match(
-    /book rating:\s*([\d.]+)\s*out of 5 stars based on\s*([\d,]+)\s*reviews/i,
+    /book rating:\s*([\d.]+)\s*out of 5 stars based on\s*([\d,]+)\s*reviews?/i,
   );
   if (!match) return null;
   return {
@@ -321,6 +333,24 @@ async function scrapeRating(page, slug) {
     rating: Number(match[1]),
     rating_count: Number(match[2].replace(/,/g, "")),
   };
+}
+
+async function syncStorygraphBook(page, book, attempts = 3) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const slug = await resolveStorygraphId(page, book);
+      const rating = slug ? await scrapeRating(page, slug) : null;
+      if (rating) return rating;
+      lastError = new Error("storygraph rating not found");
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < attempts) {
+      await sleep(attempt * 1500 + Math.floor(Math.random() * 1000));
+    }
+  }
+  throw lastError || new Error("storygraph sync failed");
 }
 
 async function launchBrowser() {
@@ -383,18 +413,13 @@ async function main() {
       const book = books[cursor++];
       try {
         await resolveGoodreadsId(book);
-        const slug = await resolveStorygraphId(page, book);
-        const rating = slug ? await scrapeRating(page, slug) : null;
-        if (rating) {
-          pending.push({
-            hardcover_id: String(book.hardcover_id),
-            ...rating,
-            updated_at: new Date().toISOString(),
-          });
-          synced++;
-        } else {
-          missed++;
-        }
+        const rating = await syncStorygraphBook(page, book);
+        pending.push({
+          hardcover_id: String(book.hardcover_id),
+          ...rating,
+          updated_at: new Date().toISOString(),
+        });
+        synced++;
       } catch (error) {
         missed++;
         console.warn(`${book.hardcover_id} ${error.message}`);
@@ -402,7 +427,7 @@ async function main() {
       if (pending.length >= 100) {
         await upsertRatings(pending.splice(0, pending.length));
       }
-      await sleep(500 + Math.floor(Math.random() * 500));
+      await sleep(1000 + Math.floor(Math.random() * 1000));
     }
     await page.close();
   }
