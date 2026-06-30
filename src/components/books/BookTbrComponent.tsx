@@ -6,6 +6,7 @@ import { useBookRatings } from "../../contexts/UserBookRatingsContext";
 import { useWatchlist } from "../../contexts/UserWatchlistContext";
 import AddBookWatchlist from "./AddBookWatchlist";
 import AddBookLogButton from "./AddBookLogButton";
+import AddToList from "../common/AddToList";
 import RatingModal from "../common/RatingModal";
 import { getBookInfo } from "../../utils/bookInfo";
 import { useNavigate } from "react-router-dom";
@@ -184,6 +185,7 @@ export default function BookTbrComponent({
                 <div style={{ margin: "5px" }}></div>
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <AddBookWatchlist book={tbrEntry} />
+                  <AddToList book={book} />
                   <AddBookLogButton book={tbrEntry} />
                   {!queueMode && (
                     <img

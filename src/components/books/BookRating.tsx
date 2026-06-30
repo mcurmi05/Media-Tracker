@@ -3,6 +3,7 @@ import "../../styles/media/MovieRatingStar.css";
 import { useState } from "react";
 import { useBookRatings } from "../../contexts/UserBookRatingsContext";
 import RatingModal from "../common/RatingModal";
+import AddToList from "../common/AddToList";
 import AddBookWatchlist from "./AddBookWatchlist";
 import AddBookLogButton from "./AddBookLogButton";
 import GoodreadsInfo from "./GoodreadsInfo";
@@ -167,6 +168,7 @@ function BookRating({
               <div className="rating-action-spacer" style={{ margin: "5px" }}></div>
               <div style={{ display: "flex", alignItems: "center" }}>
                 <AddBookWatchlist book={bookLog} />
+                <AddToList book={book} />
                 <AddBookLogButton book={bookLog} />
               </div>
             </div>
