@@ -2,10 +2,14 @@ import { chromium } from "playwright";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const HARDCOVER_TOKEN = process.env.HARDCOVER_API_TOKEN;
 const REST = `${String(SUPABASE_URL || "").replace(/\/$/, "")}/rest/v1`;
 const CONCURRENCY = 2;
 const PAGE_SIZE = 1000;
 const STORYGRAPH_ORIGIN = "https://app.thestorygraph.com";
+const HARDCOVER_GRAPHQL = "https://api.hardcover.app/v1/graphql";
+const HARDCOVER_DELAY_MS = 1100;
+let nextHardcoverRequestAt = 0;
 
 const supabaseHeaders = {
   apikey: SERVICE_KEY,
@@ -22,8 +26,7 @@ async function catalogue() {
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const url =
       `${REST}/book_entries` +
-      "?select=id,hardcover_id,isbn13,title,author,goodreads_id,storygraph_slug" +
-      "&hardcover_id=not.is.null" +
+      "?select=id,hardcover_id,isbn13,title,author,release_year,goodreads_id,storygraph_slug" +
       `&limit=${PAGE_SIZE}&offset=${offset}`;
     const response = await fetch(url, { headers: supabaseHeaders });
     if (!response.ok) {
@@ -34,6 +37,179 @@ async function catalogue() {
     if (page.length < PAGE_SIZE) break;
   }
   return rows;
+}
+
+function normalizeIdentity(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/&/g, " and ")
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function primaryAuthor(value) {
+  return normalizeIdentity(String(value || "").split(",")[0]).replace(
+    /\s+/g,
+    "",
+  );
+}
+
+function baseTitle(value) {
+  return String(value || "")
+    .replace(/\s*\([^)]*#(?:\d|[ivxlcdm])[^)]*\)\s*$/i, "")
+    .trim();
+}
+
+function contributorName(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return value.map(contributorName).filter(Boolean).join(", ");
+  }
+  return (
+    value.name ||
+    value.author_name ||
+    contributorName(value.author) ||
+    contributorName(value.author_names) ||
+    contributorName(value.contributors)
+  );
+}
+
+function isbn13From(value) {
+  const candidates = Array.isArray(value) ? value : value ? [value] : [];
+  for (const candidate of candidates) {
+    const normalized = String(candidate).replace(/[^0-9X]/gi, "");
+    if (/^\d{13}$/.test(normalized)) return normalized;
+  }
+  return null;
+}
+
+function parseHardcoverResults(search) {
+  let results = search?.results;
+  if (typeof results === "string") {
+    try {
+      results = JSON.parse(results);
+    } catch {
+      return [];
+    }
+  }
+  if (Array.isArray(results?.hits)) {
+    results = results.hits.map((hit) => hit?.document || hit).filter(Boolean);
+  }
+  if (!Array.isArray(results)) return [];
+  const ids = Array.isArray(search?.ids) ? search.ids : [];
+  return results.map((result, index) => ({
+    hardcover_id: String(
+      result.hardcover_id ?? result.book_id ?? result.id ?? ids[index] ?? "",
+    ),
+    title: result.title || "",
+    author:
+      contributorName(result.author_names) ||
+      contributorName(result.cached_contributors) ||
+      contributorName(result.contributions),
+    release_year: Number(result.release_year) || null,
+    isbn13:
+      isbn13From(result.isbn13 || result.isbn_13 || result.isbns) ||
+      isbn13From(result.default_physical_edition?.isbn_13),
+  }));
+}
+
+async function hardcoverSearch(query) {
+  const delay = Math.max(0, nextHardcoverRequestAt - Date.now());
+  if (delay) await sleep(delay);
+  nextHardcoverRequestAt = Date.now() + HARDCOVER_DELAY_MS;
+  const authorization = /^Bearer\s/i.test(HARDCOVER_TOKEN)
+    ? HARDCOVER_TOKEN
+    : `Bearer ${HARDCOVER_TOKEN}`;
+  const response = await fetch(HARDCOVER_GRAPHQL, {
+    method: "POST",
+    headers: {
+      Authorization: authorization,
+      "Content-Type": "application/json",
+      "User-Agent": "Movie-Library/1.0",
+    },
+    body: JSON.stringify({
+      query: `
+        query SearchBooks($query: String!, $perPage: Int!, $page: Int!) {
+          search(
+            query: $query
+            query_type: "Book"
+            per_page: $perPage
+            page: $page
+          ) {
+            ids
+            results
+          }
+        }
+      `,
+      variables: { query, perPage: 25, page: 1 },
+    }),
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.errors?.length) {
+    throw new Error(`hardcover search failed ${response.status}`);
+  }
+  return parseHardcoverResults(payload?.data?.search);
+}
+
+async function persistHardcoverMatch(entryId, match) {
+  const response = await fetch(
+    `${REST}/book_entries?id=eq.${encodeURIComponent(entryId)}`,
+    {
+      method: "PATCH",
+      headers: { ...supabaseHeaders, Prefer: "return=minimal" },
+      body: JSON.stringify({
+        hardcover_id: match.hardcover_id,
+        ...(match.isbn13 ? { isbn13: match.isbn13 } : {}),
+      }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`hardcover match update failed ${response.status}`);
+  }
+}
+
+async function resolveHardcoverBook(book) {
+  if (book.hardcover_id) return book;
+  const title = baseTitle(book.title);
+  const author = String(book.author || "").trim();
+  if (!title || !author) return null;
+  const targetTitle = normalizeIdentity(title);
+  const targetAuthor = primaryAuthor(author);
+  const findMatches = (results) => results.filter((result) => {
+    const resultTitle = normalizeIdentity(baseTitle(result.title));
+    const resultAuthor = primaryAuthor(result.author);
+    return (
+      result.hardcover_id &&
+      resultTitle === targetTitle &&
+      resultAuthor &&
+      resultAuthor === targetAuthor
+    );
+  });
+  let matches = findMatches(await hardcoverSearch(title));
+  if (!matches.length && /^the\s+/i.test(title)) {
+    matches = findMatches(await hardcoverSearch(title.replace(/^the\s+/i, "")));
+  }
+  if (matches.length > 1 && book.release_year) {
+    const targetYear = Number(book.release_year);
+    const yearMatches = matches.filter(
+      (match) =>
+        match.release_year &&
+        Math.abs(Number(match.release_year) - targetYear) <= 1,
+    );
+    if (yearMatches.length) matches = yearMatches;
+  }
+  const ids = [...new Set(matches.map((match) => match.hardcover_id))];
+  if (ids.length !== 1) return null;
+  const match = matches.find((result) => result.hardcover_id === ids[0]);
+  await persistHardcoverMatch(book.id, match);
+  return {
+    ...book,
+    hardcover_id: match.hardcover_id,
+    isbn13: book.isbn13 || match.isbn13,
+  };
 }
 
 async function persistSlug(entryId, slug) {
@@ -164,7 +340,22 @@ async function main() {
   if (!SUPABASE_URL || !SERVICE_KEY) {
     throw new Error("missing supabase url or service role key");
   }
-  const books = await catalogue();
+  if (!HARDCOVER_TOKEN) {
+    throw new Error("missing hardcover api token");
+  }
+  const entries = await catalogue();
+  const books = [];
+  let unresolved = 0;
+  for (const entry of entries) {
+    try {
+      const book = await resolveHardcoverBook(entry);
+      if (book) books.push(book);
+      else unresolved++;
+    } catch (error) {
+      unresolved++;
+      console.warn(`${entry.title} ${error.message}`);
+    }
+  }
   console.log(`refreshing ${books.length} storygraph ratings`);
   const browser = await launchBrowser();
   const context = await browser.newContext({
@@ -215,7 +406,7 @@ async function main() {
     await context.close();
     await browser.close();
   }
-  console.log(`done synced ${synced} missed ${missed}`);
+  console.log(`done synced ${synced} missed ${missed} unresolved ${unresolved}`);
 }
 
 main().catch((error) => {

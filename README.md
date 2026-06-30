@@ -6,32 +6,21 @@ you finish, rate and rank titles, and organize mixed media into shareable
 lists.
 
 The current deployment is available at
-[media-library-mcurmi05.vercel.app](https://media-library-mcurmi05.vercel.app/).
+[media-library-mcurmi05.vercel.app](https://media-library-mcurmi05.vercel.app/)
 
 ## Features
 
-- Combined Books, Movies, and TV search with source-specific filtering
-- TMDB-native movie and TV metadata
-- Hardcover-native book metadata and stable book identity
+- Combined Books, Movies, and TV search with source specific filtering
+- TMDB native movie and TV metadata
+- Hardcover native book metadata and stable book identity
 - IMDb and Letterboxd community ratings for movies and TV
 - Goodreads and StoryGraph community ratings for books
 - Personal ratings, ranked favourites, logs, watchlists, TBR queues, and lists
 - Responsive layouts and Supabase authentication
 
-## Screenshots
-
-![Trending titles](./docs/images/trending.png)
-![Ratings](./docs/images/ratings.png)
-![Watchlist](./docs/images/watchlist.png)
-![Log](./docs/images/log.png)
-![Media details](./docs/images/mediadetails.png)
-![Search](./docs/images/searchbar.png)
-![Responsive search](./docs/images/responsive-dropdown.png)
-
 ## Stack
 
 - React 19 and Vite
-- React Router
 - Supabase authentication and Postgres
 - Vercel functions for server-side API proxies
 - TMDB and Hardcover for metadata
@@ -76,19 +65,19 @@ npm run typecheck
 npm run build
 ```
 
-TypeScript is being introduced incrementally with `allowJs`. Shared media
-contracts and the client API boundary are typed first while existing JSX
-continues to build normally.
+Application and API modules now use TypeScript extensions. Shared media
+contracts and the client API boundary are type-checked first while strict
+coverage expands across the remaining components.
 
 ## Rating synchronization
 
 Four scheduled GitHub Actions refresh community ratings:
 
-| Source | Workflow | Schedule |
-| --- | --- | --- |
-| IMDb | `sync-imdb-ratings.yml` | 08:00 UTC |
+| Source     | Workflow                        | Schedule  |
+| ---------- | ------------------------------- | --------- |
+| IMDb       | `sync-imdb-ratings.yml`       | 08:00 UTC |
 | Letterboxd | `sync-letterboxd-ratings.yml` | 09:30 UTC |
-| Goodreads | `sync-goodreads-ratings.yml` | 11:00 UTC |
+| Goodreads  | `sync-goodreads-ratings.yml`  | 11:00 UTC |
 | StoryGraph | `sync-storygraph-ratings.yml` | 12:30 UTC |
 
 The workflows require these repository secrets:
@@ -96,11 +85,13 @@ The workflows require these repository secrets:
 ```env
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+HARDCOVER_API_TOKEN=
 ```
 
-StoryGraph blocks raw server-side requests. Its workflow installs Chromium and
-runs the scraper in a virtual display. To test only the extractor locally
-without writing to Supabase:
+StoryGraph blocks raw server side requests. Its workflow installs Chromium and
+runs the scraper in a virtual display. The Hardcover token lets the workflow
+backfill legacy books before looking them up on StoryGraph. To test only the
+extractor locally without writing to Supabase:
 
 ```bash
 node scripts/sync-storygraph-ratings.mjs \
@@ -119,7 +110,7 @@ row is created when a user saves, logs, rates, or adds a book to a list.
 
 ## Production environment
 
-Set these server-side variables in Vercel:
+Set these server side variables in Vercel:
 
 ```env
 TMDB_API_KEY=
