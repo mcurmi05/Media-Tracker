@@ -20,10 +20,13 @@ export default function StorygraphInfo({ book, live = false }) {
     book?.book_entries?.storygraph_slug ||
     null;
   const isbn13 = book?.isbn13 || book?.book_entries?.isbn13 || null;
+  const title = book?.title || book?.book_entries?.title || "";
+  const author = book?.author || book?.book_entries?.author || "";
+  const searchTerm = `${title} ${author}`.trim() || isbn13;
   const href = slug
     ? `https://app.thestorygraph.com/books/${slug}`
-    : isbn13
-      ? `https://app.thestorygraph.com/search?search_term=${encodeURIComponent(isbn13)}`
+    : searchTerm
+      ? `https://app.thestorygraph.com/search?search_term=${encodeURIComponent(searchTerm)}`
       : undefined;
 
   return (

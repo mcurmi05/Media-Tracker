@@ -279,21 +279,29 @@ function storygraphIdFromHref(href) {
 }
 
 async function resolveStorygraphId(page, book) {
-  if (book.storygraph_slug) return book.storygraph_slug;
-  const term = book.isbn13 || `${book.title || ""} ${book.author || ""}`;
-  if (!term.trim()) return null;
-  const url =
-    `${STORYGRAPH_ORIGIN}/search?turbo_frame=search_results` +
-    `&search_term=${encodeURIComponent(term.trim())}`;
-  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
-  const links = page.locator('a[href^="/books/"]');
-  await links.first().waitFor({ state: "attached", timeout: 20000 }).catch(() => {});
-  const hrefs = await links.evaluateAll((nodes) =>
-    nodes.map((node) => node.getAttribute("href")).filter(Boolean),
-  );
-  const slug = hrefs.map(storygraphIdFromHref).find(Boolean) || null;
-  if (slug) await persistSlug(book.id, slug);
-  return slug;
+  const titleAndAuthor =
+    `${baseTitle(book.title)} ${book.author || ""}`.trim();
+  const terms = [titleAndAuthor, book.isbn13].filter(Boolean);
+  for (const term of terms) {
+    const url =
+      `${STORYGRAPH_ORIGIN}/search?turbo_frame=search_results` +
+      `&search_term=${encodeURIComponent(term)}`;
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
+    const links = page.locator('a[href^="/books/"]');
+    await links
+      .first()
+      .waitFor({ state: "attached", timeout: 20000 })
+      .catch(() => {});
+    const hrefs = await links.evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute("href")).filter(Boolean),
+    );
+    const slug = hrefs.map(storygraphIdFromHref).find(Boolean) || null;
+    if (slug) {
+      if (slug !== book.storygraph_slug) await persistSlug(book.id, slug);
+      return slug;
+    }
+  }
+  return book.storygraph_slug || null;
 }
 
 async function scrapeRating(page, slug) {
