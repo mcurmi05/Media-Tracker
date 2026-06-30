@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { getDisplayName } from "../utils/profile.js";
+import { getBookInfo } from "../utils/bookInfo.js";
+import { findOrCreateBookEntry } from "../services/ratingsfromtable.js";
 import {
   getMyLists,
   createList,
@@ -55,7 +57,11 @@ export default function AddToList({ movie, book }) {
     if (addedIds.has(listId) || busyId) return;
     setBusyId(listId);
     try {
-      await addMediaToList(listId, snapshot);
+      const entry = book
+        ? await findOrCreateBookEntry(getBookInfo(book))
+        : null;
+      const itemSnapshot = entry ? bookToListItem(entry) : snapshot;
+      await addMediaToList(listId, itemSnapshot);
       setAddedIds((prev) => new Set(prev).add(listId));
     } catch (err) {
       console.error("Failed to add to list:", err);
@@ -70,11 +76,15 @@ export default function AddToList({ movie, book }) {
     if (!title || busyId) return;
     setBusyId("new");
     try {
+      const entry = book
+        ? await findOrCreateBookEntry(getBookInfo(book))
+        : null;
+      const itemSnapshot = entry ? bookToListItem(entry) : snapshot;
       const list = await createList(user.id, {
         title,
         ownerName: getDisplayName(user),
       });
-      await addMediaToList(list.id, snapshot);
+      await addMediaToList(list.id, itemSnapshot);
       setLists((prev) => [{ ...list, list_items: [{ count: 1 }] }, ...prev]);
       setAddedIds((prev) => new Set(prev).add(list.id));
       setNewTitle("");

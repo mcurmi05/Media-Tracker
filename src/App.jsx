@@ -81,6 +81,10 @@ function App() {
                           element={<MediaDetails></MediaDetails>}
                         />
                         <Route
+                          path="/bookdetails/hardcover/:hardcoverId"
+                          element={<BookDetails />}
+                        />
+                        <Route
                           path="/bookdetails/*"
                           element={<BookDetails></BookDetails>}
                         />

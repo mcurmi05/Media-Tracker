@@ -16,6 +16,9 @@ export const useBookTbr = () => {
 
 export const isSameBook = (a, b) => {
   if (!a || !b) return false;
+  const aHardcoverId = String(a.hardcover_id || "").trim();
+  const bHardcoverId = String(b.hardcover_id || "").trim();
+  if (aHardcoverId && bHardcoverId) return aHardcoverId === bHardcoverId;
   const aLink = (a.goodreads_link || "").trim();
   const bLink = (b.goodreads_link || "").trim();
   if (aLink && bLink) return aLink === bLink;

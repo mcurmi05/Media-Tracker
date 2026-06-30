@@ -35,6 +35,18 @@ export function bookDetailsRoute(link) {
   return path ? `/bookdetails/${path}` : null;
 }
 
+//hardcover is the canonical route
+//goodreads remains as the legacy deep link fallback
+export function bookDetailsRouteForBook(book) {
+  const hardcoverId = book?.hardcover_id || book?.book_entries?.hardcover_id;
+  if (hardcoverId != null && String(hardcoverId).trim()) {
+    return `/bookdetails/hardcover/${encodeURIComponent(hardcoverId)}`;
+  }
+  return bookDetailsRoute(
+    book?.goodreads_link || book?.book_entries?.goodreads_link,
+  );
+}
+
 // Rebuild a full Goodreads URL from a route path (the splat param value).
 export function goodreadsUrlFromPath(path) {
   if (!path) return null;

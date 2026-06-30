@@ -13,7 +13,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import { getBookInfo } from "../utils/bookInfo.js";
 import { useNavigate } from "react-router-dom";
-import { bookDetailsRoute } from "../utils/goodreads.js";
+import { bookDetailsRouteForBook } from "../utils/goodreads.js";
 import GoodreadsInfo from "./GoodreadsInfo.jsx";
 
 const modalStyle = {
@@ -195,7 +195,7 @@ const BookLogCard = ({ bookLog }) => {
   };
 
   const openBookDetails = () => {
-    const route = bookDetailsRoute(book.goodreads_link);
+    const route = bookDetailsRouteForBook(book);
     if (route) {
       navigate(route, { state: { book: bookLog.book_entries || book } });
     }

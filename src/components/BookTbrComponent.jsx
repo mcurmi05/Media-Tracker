@@ -9,7 +9,7 @@ import AddBookLogButton from "./AddBookLogButton.jsx";
 import RatingModal from "./RatingModal.jsx";
 import { getBookInfo } from "../utils/bookInfo.js";
 import { useNavigate } from "react-router-dom";
-import { bookDetailsRoute } from "../utils/goodreads.js";
+import { bookDetailsRouteForBook } from "../utils/goodreads.js";
 import GoodreadsInfo from "./GoodreadsInfo.jsx";
 
 const queueBtnStyle = {
@@ -68,7 +68,7 @@ export default function BookTbrComponent({
   };
 
   const openBookDetails = () => {
-    const route = bookDetailsRoute(book.goodreads_link);
+    const route = bookDetailsRouteForBook(book);
     if (route) {
       navigate(route, { state: { book: tbrEntry.book_entries || book } });
     }

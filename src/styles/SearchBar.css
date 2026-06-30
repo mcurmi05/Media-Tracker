@@ -8,46 +8,21 @@
   z-index: 1001;
 }
 
-.search-mode-toggle {
-  padding: 0.75rem 0.75rem;
-  border: none;
+.search-mode-select {
+  align-self: center;
+  border: 1px solid #555;
   border-radius: var(--radius-sm);
   background-color: #333;
   color: white;
-  font-size: 0.9rem;
-  font-weight: bold;
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
-  outline: none;
-  white-space: nowrap;
-  transition: background-color 150ms ease, transform 160ms var(--ease-out);
+  padding: 0.7rem 1.8rem 0.7rem 0.65rem;
   -webkit-tap-highlight-color: transparent;
-  -webkit-user-select: none;
-  user-select: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.search-mode-toggle:hover {
+.search-mode-select:hover {
   background-color: #444;
-}
-
-.search-mode-toggle:active {
-  transform: scale(0.95);
-}
-
-.search-mode-icon {
-  width: 24px;
-  height: 24px;
-  display: block;
-}
-
-/* In Movies/TV mode the Add Book button is hidden but still reserves
-   space - drop it from layout on narrow screens to reclaim that gap */
-@media (max-width: 430px) {
-  .search-add-book.movies-mode {
-    display: none;
-  }
 }
 
 /* Drop the left padding so the search bar sits flush left */
@@ -57,11 +32,9 @@
   }
 }
 
-.search-mode-toggle:focus,
-.search-mode-toggle:focus-visible,
-.search-mode-toggle:active {
-  outline: none;
-  box-shadow: none;
+.search-mode-select:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 
 .search-input {
@@ -118,29 +91,6 @@
 .search-button-img{
   width:20px;
   height:20px;
-}
-
-.search-add-book {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0 6px;
-  display: inline-flex;
-  align-items: center;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.search-add-book img {
-  width: 24px;
-  height: 24px;
-}
-
-.search-add-book:focus,
-.search-add-book:focus-visible,
-.search-add-book:active {
-  outline: none;
-  box-shadow: none;
 }
 
 .search-button:hover {
@@ -228,8 +178,8 @@
   .search-input{
     width:30vw;
   }
-  .search-mode-toggle {
+  .search-mode-select {
     font-size: 0.75rem;
-    padding: 0.5rem 0.5rem;
+    padding: 0.55rem 1.4rem 0.55rem 0.4rem;
   }
 }

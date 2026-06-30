@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext.jsx";
-import { bookDetailsRoute } from "../utils/goodreads.js";
+import { bookDetailsRouteForBook } from "../utils/goodreads.js";
 import {
   getListWithItems,
   updateList,
@@ -20,7 +20,7 @@ function ListItemCard({ item, isOwner, onRemove, removing }) {
 
   const goTo = () => {
     if (item.media_type === "book") {
-      const route = bookDetailsRoute(d.goodreads_link);
+      const route = bookDetailsRouteForBook(d);
       if (route) navigate(route);
       else if (d.goodreads_link)
         window.open(d.goodreads_link, "_blank", "noopener,noreferrer");

@@ -7,7 +7,7 @@ import AddBookWatchlist from "./AddBookWatchlist.jsx";
 import BookRatingStar from "./BookRatingStar.jsx";
 import EditBookInfoModal from "./EditBookInfoModal.jsx";
 import GoodreadsInfo from "./GoodreadsInfo.jsx";
-import { bookDetailsRoute } from "../utils/goodreads.js";
+import { bookDetailsRouteForBook } from "../utils/goodreads.js";
 import { makeNavHandlers } from "../utils/navClick.js";
 
 function parseTitle(rawTitle) {
@@ -33,14 +33,12 @@ function BookCard({ book: bookProp, posterOnly = false }) {
     setBook(bookProp);
   }, [bookProp]);
 
-  const goodreadsLink = book?.goodreads_link || null;
   const { mainTitle, seriesName, seriesIndex } = parseTitle(book?.title);
 
-  const detailHandlers = makeNavHandlers(
-    navigate,
-    bookDetailsRoute(goodreadsLink),
-    { state: { book } },
-  );
+  const detailsRoute = bookDetailsRouteForBook(book);
+  const detailHandlers = makeNavHandlers(navigate, detailsRoute, {
+    state: { book },
+  });
 
   const handleUpdated = (updated) => {
     setBook((prev) => ({ ...(prev || {}), ...updated }));
@@ -64,7 +62,7 @@ function BookCard({ book: bookProp, posterOnly = false }) {
         <div
           className="movie-poster"
           {...detailHandlers}
-          style={{ cursor: goodreadsLink ? "pointer" : "default" }}
+          style={{ cursor: detailsRoute ? "pointer" : "default" }}
         >
           <img
             className="movie-poster-img"
@@ -85,7 +83,7 @@ function BookCard({ book: bookProp, posterOnly = false }) {
       <div
         className="movie-poster"
         {...detailHandlers}
-        style={{ cursor: goodreadsLink ? "pointer" : "default" }}
+        style={{ cursor: detailsRoute ? "pointer" : "default" }}
       >
         <img
           className="movie-poster-img"
@@ -103,7 +101,7 @@ function BookCard({ book: bookProp, posterOnly = false }) {
         <div className="title-and-addlog" style={{ marginTop: "4px" }}>
           <h3
             {...detailHandlers}
-            style={{ cursor: goodreadsLink ? "pointer" : "default" }}
+            style={{ cursor: detailsRoute ? "pointer" : "default" }}
           >
             {mainTitle}
           </h3>

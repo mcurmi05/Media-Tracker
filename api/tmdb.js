@@ -355,6 +355,52 @@ export default async function handler(req, res) {
       if (!query) return res.status(400).json({ error: "Missing query" });
 
       const common = { query, include_adult: "false" };
+      const requestedMediaType =
+        q.mediaType === "movie" || q.mediaType === "tv" ? q.mediaType : null;
+
+      //three way search requests one tmdb media type at a time
+      //legacy callers without a media type keep the merged search
+      if (requestedMediaType) {
+        const first = await tmdbFetch(
+          `/search/${requestedMediaType}`,
+          { ...common, page: "1" },
+          key,
+        );
+        const totalPages = Math.min(
+          first.total_pages || 1,
+          MAX_SEARCH_PAGES,
+        );
+        const remaining = [];
+        for (let page = 2; page <= totalPages; page++) {
+          remaining.push(
+            tmdbFetch(
+              `/search/${requestedMediaType}`,
+              { ...common, page: String(page) },
+              key,
+            )
+              .then((data) => data.results || [])
+              .catch(() => []),
+          );
+        }
+        const raw = [
+          ...(first.results || []),
+          ...(await Promise.all(remaining)).flat(),
+        ];
+        const seen = new Set();
+        const unique = raw.filter((item) => {
+          if (seen.has(item.id)) return false;
+          seen.add(item.id);
+          return true;
+        });
+        const qNorm = normalize(query);
+        unique.sort(
+          (a, b) => relevanceScore(b, qNorm) - relevanceScore(a, qNorm),
+        );
+        const items = unique
+          .map((item) => mapListItem(item, requestedMediaType))
+          .filter(Boolean);
+        return res.status(200).json({ results: items });
+      }
 
       // Kick off the first multi page (tells us total_pages) alongside the
       // per-type searches — /search/movie and /search/tv are more typo-

@@ -26,6 +26,8 @@ export function bookToListItem(book) {
   return {
     media_type: "book",
     item_data: {
+      hardcover_id: book.hardcover_id ?? null,
+      isbn13: book.isbn13 ?? null,
       goodreads_link: book.goodreads_link ?? null,
       title: book.title ?? null,
       author: book.author ?? null,
@@ -38,9 +40,14 @@ export function bookToListItem(book) {
 // The value that uniquely identifies a media item within a list, used for
 // dedupe and membership checks.
 export function mediaKey(snapshot) {
-  return snapshot.media_type === "book"
-    ? snapshot.item_data.goodreads_link
-    : String(snapshot.item_data.tmdb_id);
+  if (snapshot.media_type !== "book") {
+    return String(snapshot.item_data.tmdb_id);
+  }
+  return (
+    snapshot.item_data.hardcover_id ||
+    snapshot.item_data.goodreads_link ||
+    `${snapshot.item_data.title}:${snapshot.item_data.author}`
+  );
 }
 
 /* ---------- lists ---------- */
@@ -164,7 +171,17 @@ export async function listsContainingMedia(listIds, snapshot) {
     .in("list_id", listIds);
 
   if (snapshot.media_type === "book") {
-    query = query.eq("item_data->>goodreads_link", snapshot.item_data.goodreads_link);
+    if (snapshot.item_data.hardcover_id) {
+      query = query.eq(
+        "item_data->>hardcover_id",
+        String(snapshot.item_data.hardcover_id),
+      );
+    } else {
+      query = query.eq(
+        "item_data->>goodreads_link",
+        snapshot.item_data.goodreads_link,
+      );
+    }
   } else {
     query = query
       .eq("media_type", snapshot.media_type)

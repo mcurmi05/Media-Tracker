@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 /* eslint-disable react-refresh/only-export-components */
 
 const SearchContext = createContext();
@@ -16,12 +16,7 @@ export const SearchProvider = ({ children }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [searchError, setSearchError] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [searchMode, setSearchMode] = useState("movies");
-
-  // Always default the search mode to movies on a fresh page load
-  useEffect(() => {
-    setSearchMode("movies");
-  }, []);
+  const [searchMode, setSearchMode] = useState("all");
 
   const clearSearch = () => {
     setSearchQuery("");

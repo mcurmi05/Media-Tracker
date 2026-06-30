@@ -10,7 +10,7 @@ import { useBookTbr } from "../contexts/UserBookTbrContext";
 import { useCache } from "../contexts/PopularMoviesCacheContext";
 import { getPopularMovies, getPopularTV } from "../services/api.js";
 import { SignIn } from "./SignIn.jsx";
-import { bookDetailsRoute } from "../utils/goodreads.js";
+import { bookDetailsRouteForBook } from "../utils/goodreads.js";
 import { getListsActivity } from "../services/lists.js";
 import { PRESS_HANDLERS } from "../utils/pressHandlers.js";
 import { getDisplayName, getAvatarUrl } from "../utils/profile.js";
@@ -370,7 +370,7 @@ export default function Home() {
       rank,
       fit: "contain",
       onClick: () => {
-        const route = bookDetailsRoute(be?.goodreads_link);
+        const route = bookDetailsRouteForBook(be);
         if (route) navigate(route, { state: { book: be } });
       },
     }),
@@ -737,7 +737,7 @@ export default function Home() {
         line: `You finished this in ${dt.getFullYear()}`,
         fit: "contain",
         onClick: () => {
-          const route = bookDetailsRoute(l.book_entries?.goodreads_link);
+          const route = bookDetailsRouteForBook(l.book_entries);
           if (route) navigate(route, { state: { book: l.book_entries } });
         },
       })),

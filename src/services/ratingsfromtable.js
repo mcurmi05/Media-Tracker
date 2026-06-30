@@ -167,6 +167,17 @@ export const updateBookEntry = async (id, updates) => {
 // Look up an existing book_entries row by goodreads_link or title+author.
 // If none is found, insert a new row. Returns the entry.
 export const findOrCreateBookEntry = async (bookData) => {
+  const hardcoverId = String(bookData?.hardcover_id || "").trim();
+  if (hardcoverId) {
+    const { data: byHardcover, error: hardcoverError } = await supabase
+      .from("book_entries")
+      .select("*")
+      .eq("hardcover_id", hardcoverId)
+      .limit(1);
+    if (hardcoverError) throw hardcoverError;
+    if (byHardcover && byHardcover.length > 0) return byHardcover[0];
+  }
+
   const link = (bookData?.goodreads_link || "").trim();
   if (link) {
     const { data: byLink, error: linkErr } = await supabase
@@ -199,9 +210,24 @@ export const findOrCreateBookEntry = async (bookData) => {
       ? Number(bookData.release_year) || null
       : null,
     goodreads_link: bookData?.goodreads_link || null,
+    goodreads_id: bookData?.goodreads_id || null,
+    hardcover_id: hardcoverId || null,
+    isbn13: bookData?.isbn13 || null,
     book_description: bookData?.book_description || null,
   };
   return await createBookEntry(payload);
+};
+
+export const getBookEntryByHardcoverId = async (hardcoverId) => {
+  const id = String(hardcoverId || "").trim();
+  if (!id) return null;
+  const { data, error } = await supabase
+    .from("book_entries")
+    .select("*")
+    .eq("hardcover_id", id)
+    .limit(1);
+  if (error) throw error;
+  return (data && data[0]) || null;
 };
 
 // Search book_entries by title or author (case-insensitive substring match).

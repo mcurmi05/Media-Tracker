@@ -9,7 +9,7 @@ import GoodreadsInfo from "./GoodreadsInfo.jsx";
 import { getBookInfo } from "../utils/bookInfo.js";
 import { getRatingDateInfo } from "../utils/ratingDate.js";
 import { useNavigate } from "react-router-dom";
-import { bookDetailsRoute } from "../utils/goodreads.js";
+import { bookDetailsRouteForBook } from "../utils/goodreads.js";
 import { makeNavHandlers } from "../utils/navClick.js";
 
 // Borderless glyph buttons, matching the watchlist/TBR queue reorder controls.
@@ -42,7 +42,7 @@ function BookRating({
 
   const detailHandlers = makeNavHandlers(
     navigate,
-    bookDetailsRoute(book.goodreads_link),
+    bookDetailsRouteForBook(book),
     { state: { book: bookLog.book_entries || book } },
   );
 
