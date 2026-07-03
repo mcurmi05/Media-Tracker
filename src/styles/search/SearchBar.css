@@ -11,7 +11,7 @@
 .search-mode-select {
   align-self: center;
   border: 1px solid #555;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   background-color: #333;
   color: white;
   font-size: 0.82rem;
@@ -40,7 +40,7 @@
 .search-input {
   padding: 0.75rem 1rem;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   background-color: #333;
   color: white;
   font-size: 1rem;
@@ -62,9 +62,9 @@
 }
 
 .search-button {
-  background-color: var(--accent);
+  background-color: var(--app-accent);
   color: white;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   transition: background-color 150ms ease, transform 160ms var(--ease-out);
   white-space: nowrap;
   /* Square based on the button's own (smaller) width, not stretched to the
@@ -111,7 +111,7 @@
   right: 15px;
   background: #333;
   border: 1px solid #555;
-  border-radius: var(--radius-md);
+  border-radius: var(--app-radius-md);
   max-height: 300px;
   overflow-y: auto;
   z-index: 1000;

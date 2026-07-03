@@ -54,8 +54,8 @@
 
 .toolbar-input {
   padding: 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong);
+  border-radius: var(--app-radius-sm);
+  border: 1px solid var(--app-border-strong);
   width: min(180px, 40vw);
   text-align: center;
   background-color: var(--surface);
@@ -108,8 +108,8 @@
 .toolbar-select {
   height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-sm);
   background-color: var(--surface);
   color: var(--text);
   font-size: 0.8rem;
@@ -130,8 +130,8 @@
   height: 32px;
   box-sizing: border-box;
   padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-sm);
   background-color: var(--surface);
   color: var(--text);
   font-size: 0.8rem;
@@ -157,7 +157,7 @@
 /*active state keeps 1px border so nothing shifts, brightness does the talking*/
 .toolbar-btn--active,
 .toolbar-select--active {
-  background-color: var(--accent-soft);
+  background-color: var(--app-accent-soft);
   border-color: rgba(255, 255, 255, 0.85);
   font-weight: 600;
 }
@@ -188,7 +188,7 @@
   border: none;
   cursor: pointer;
   padding: 5px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   display: inline-flex;
   align-items: center;
   outline: none;
@@ -214,7 +214,7 @@
 /*---- count pill ----*/
 .toolbar-count {
   font-weight: 600;
-  background: var(--accent);
+  background: var(--app-accent);
   color: white;
   border-radius: 999px;
   padding: 2px 9px;
@@ -234,7 +234,7 @@
   min-width: 100%;
   background: var(--panel);
   border: 1px solid #444;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   z-index: 50;
   overflow: hidden;

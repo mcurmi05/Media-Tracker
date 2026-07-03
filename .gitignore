@@ -28,3 +28,5 @@ dist-ssr
 .claude/
 .agents/
 docs/
+.serena/
+CLAUDE.md

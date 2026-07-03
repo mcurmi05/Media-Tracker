@@ -1,42 +1,44 @@
-# Movie Library
+# Media Tracker
 
-A personal media tracker for movies, television, and books. Search TMDB and
-Hardcover from one interface, maintain watchlists and reading queues, log what
-you finish, rate and rank titles, and organize mixed media into shareable
-lists.
+Track everything you watch and read in one place: movies, TV shows, and books.
 
-The current deployment is available at
-[media-library-mcurmi05.vercel.app](https://media-library-mcurmi05.vercel.app/)
+**Live app:** [media-library-mcurmi05.vercel.app](https://media-library-mcurmi05.vercel.app/)
 
-## Features
+## What you can do
 
-- Combined Books, Movies, and TV search with source specific filtering
-- TMDB native movie and TV metadata
-- Hardcover native book metadata and stable book identity
-- IMDb and Letterboxd community ratings for movies and TV
-- Goodreads and StoryGraph community ratings for books
-- Personal ratings, ranked favourites, logs, watchlists, TBR queues, and lists
-- Responsive layouts and Supabase authentication
+- **Search everything at once**: movies, TV shows, and books from a single search bar, powered by TMDB and Hardcover.
+- **Keep a watchlist and a to-be-read queue**: save anything you want to get to later.
+- **Log what you finish**: build a history of everything you've watched and read, with dates.
+- **Rate and rank**: score titles your way and keep a ranked list of favourites.
+- **Make lists**: organize any mix of movies, shows, and books into custom lists.
+- **See ratings from around the web**: IMDb and Letterboxd scores on movies and TV, Goodreads and StoryGraph scores on books, all shown alongside your own.
 
-## Stack
+## Screenshots
 
-- React 19 and Vite
-- Supabase authentication and Postgres
-- Vercel functions for server-side API proxies
-- TMDB and Hardcover for metadata
-- GitHub Actions for external rating synchronization
-- Playwright for the Cloudflare-protected StoryGraph sync
+| | |
+|---|---|
+| ![Search](docs/images/searchbar.png) | ![Trending](docs/images/trending.png) |
+| ![Watchlist](docs/images/watchlist.png) | ![Log](docs/images/log.png) |
 
-## Local development
+---
 
-Install dependencies and create a local environment file:
+## For developers
+
+### Stack
+
+- React 19 + Vite + TypeScript
+- Supabase (auth + Postgres)
+- Vercel (hosting + serverless API proxies for TMDB and Hardcover)
+- GitHub Actions (daily sync of IMDb, Letterboxd, Goodreads, and StoryGraph ratings)
+
+### Local setup
 
 ```bash
 npm install
 cp envexample.txt .env
 ```
 
-Configure the required values:
+Fill in `.env`:
 
 ```env
 TMDB_API_KEY=
@@ -45,19 +47,15 @@ VITE_SUPABASE_PROJECT_URL=
 VITE_SUPABASE_API_KEY=
 ```
 
-The Hardcover token is server-only. Never prefix it with `VITE_` or expose it
-to browser code.
-
-Start the app:
+The Hardcover token is server-only — never prefix it with `VITE_` or use it in browser code.
 
 ```bash
 npm run dev
 ```
 
-Vite mounts the handlers in `api/` during development, so `/api/tmdb` and
-`/api/hardcover` behave like their Vercel counterparts.
+Vite mounts the handlers in `api/` during development, so `/api/tmdb` and `/api/hardcover` behave like their Vercel counterparts.
 
-## Checks
+### Checks
 
 ```bash
 npm run lint
@@ -65,63 +63,20 @@ npm run typecheck
 npm run build
 ```
 
-Application and API modules now use TypeScript extensions. Shared media
-contracts and the client API boundary are type-checked first while strict
-coverage expands across the remaining components.
+### Rating sync workflows
 
-## Rating synchronization
+Four GitHub Actions keep external community ratings fresh in Supabase:
 
-Four scheduled GitHub Actions refresh community ratings:
+| Source | Workflow | Schedule (UTC) |
+| ---------- | ----------------------------- | -------------- |
+| IMDb | `sync-imdb-ratings.yml` | 08:00 |
+| Letterboxd | `sync-letterboxd-ratings.yml` | 09:30 |
+| Goodreads | `sync-goodreads-ratings.yml` | 11:00 |
+| StoryGraph | `sync-storygraph-ratings.yml` | 12:30 |
 
-| Source     | Workflow                        | Schedule  |
-| ---------- | ------------------------------- | --------- |
-| IMDb       | `sync-imdb-ratings.yml`       | 08:00 UTC |
-| Letterboxd | `sync-letterboxd-ratings.yml` | 09:30 UTC |
-| Goodreads  | `sync-goodreads-ratings.yml`  | 11:00 UTC |
-| StoryGraph | `sync-storygraph-ratings.yml` | 12:30 UTC |
+They require the repo secrets `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `HARDCOVER_API_TOKEN`. StoryGraph is Cloudflare-protected, so its workflow runs a Playwright Chromium scraper in a virtual display.
 
-The workflows require these repository secrets:
+### Production environment
 
-```env
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-HARDCOVER_API_TOKEN=
-```
-
-StoryGraph blocks raw server side requests. Its workflow installs Chromium and
-runs the scraper in a virtual display. The Hardcover token lets the workflow
-backfill legacy books before looking them up on StoryGraph. To test only the
-extractor locally without writing to Supabase:
-
-```bash
-node scripts/sync-storygraph-ratings.mjs \
-  --spike-id 522146fd-c1c0-4f63-b0cb-8a5d4d97fa4d
-```
-
-## Data model
-
-`book_entries` retains its UUID primary key so existing watchlist, log, list,
-and rating relationships remain valid. Hardcover supplies the canonical
-external identity through `hardcover_id`; ISBN, Goodreads ID, and StoryGraph
-UUID fields support rating resolution.
-
-External search results are not inserted immediately. A cached `book_entries`
-row is created when a user saves, logs, rates, or adds a book to a list.
-
-## Production environment
-
-Set these server side variables in Vercel:
-
-```env
-TMDB_API_KEY=
-HARDCOVER_API_TOKEN=
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-```
-
-Set the public Supabase variables for the Vite client:
-
-```env
-VITE_SUPABASE_PROJECT_URL=
-VITE_SUPABASE_API_KEY=
-```
+Server-side (Vercel): `TMDB_API_KEY`, `HARDCOVER_API_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+Client-side: `VITE_SUPABASE_PROJECT_URL`, `VITE_SUPABASE_API_KEY`.

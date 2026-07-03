@@ -831,13 +831,13 @@
   .hp-stat {
     padding: 9px 3px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    border: 1px solid var(--app-border);
+    border-right: 1px solid var(--app-border);
+    border-radius: var(--app-radius-sm);
   }
   .hp-stat:last-child {
     /* override the desktop rule that drops the divider on the last item */
-    border-right: 1px solid var(--border);
+    border-right: 1px solid var(--app-border);
   }
   .hp-stat-num {
     font-size: 1rem;

@@ -83,8 +83,8 @@
 .mediatype-selector {
   height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-sm);
   font-weight: 400;
   text-align: center;
   background-color: var(--surface);
@@ -169,7 +169,7 @@
   height: 158px;
   background-size: cover;
   background-position: center 30%;
-  border-radius: var(--radius-lg);
+  border-radius: var(--app-radius-lg);
   overflow: hidden;
   cursor: pointer;
   flex-shrink: 0;
@@ -311,7 +311,7 @@
   align-items: center;
   gap: 12px;
   padding: 7px 8px 7px 2px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   cursor: pointer;
   transition: background-color 140ms ease,
     transform 160ms var(--ease-out);

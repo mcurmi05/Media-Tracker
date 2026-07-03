@@ -6,8 +6,8 @@
 .efp-trigger {
   height: 32px;
   padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-sm);
   background-color: var(--surface);
   color: var(--text);
   font-size: 0.8rem;
@@ -36,7 +36,7 @@
 }
 
 .efp-trigger--active {
-  background-color: var(--accent-soft);
+  background-color: var(--app-accent-soft);
   border-color: rgba(255, 255, 255, 0.85);
   font-weight: 600;
 }

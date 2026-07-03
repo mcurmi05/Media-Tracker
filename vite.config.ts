@@ -1,5 +1,7 @@
+import path from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 // Dev-only middleware that mounts the /api/* serverless functions so
 // `npm run dev` behaves like the Vercel deploy. Routes /api/<name> to
@@ -43,7 +45,12 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [react(), devApi()],
+    plugins: [react(), tailwindcss(), devApi()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
     // Bind to all interfaces so the dev server is reachable from other
     // devices on the LAN (e.g. testing on a phone at http://<your-ip>:5173).
     server: {

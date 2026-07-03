@@ -51,4 +51,12 @@ export default defineConfig([
       ...reactRefresh.configs.vite.rules,
     },
   },
+  {
+    // shadcn components export variants (e.g. buttonVariants) alongside the
+    // component, which trips react-refresh/only-export-components.
+    files: ['src/components/ui/**/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

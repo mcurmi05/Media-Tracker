@@ -27,8 +27,8 @@
 
 .acct-card {
   background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
   padding: 20px;
   margin-bottom: 20px;
 }
@@ -55,7 +55,7 @@
   border-radius: 50%;
   object-fit: cover;
   background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--app-border-strong);
   flex-shrink: 0;
 }
 .acct-avatar-actions {
@@ -87,8 +87,8 @@
   font-family: inherit;
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-sm);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .acct-input::placeholder {
@@ -96,7 +96,7 @@
 }
 .acct-input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--app-accent);
   box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
 }
 
@@ -112,15 +112,15 @@
   font-size: 0.9rem;
   font-weight: 600;
   color: #fff;
-  background: var(--accent);
+  background: var(--app-accent);
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   cursor: pointer;
   transition: background-color 160ms ease,
     transform 160ms var(--ease-out), opacity 160ms ease;
 }
 .acct-btn:hover {
-  background: var(--accent-soft);
+  background: var(--app-accent-soft);
   border-color: transparent;
 }
 .acct-btn:active {
@@ -139,24 +139,24 @@
 
 .acct-btn-secondary {
   background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--app-border-strong);
   color: var(--text);
   min-width: 0;
 }
 .acct-btn-secondary:hover {
   background: var(--surface-hover);
-  border-color: var(--border-strong);
+  border-color: var(--app-border-strong);
 }
 
 .acct-btn-ghost {
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid var(--app-border);
   color: var(--text-dim);
   min-width: 0;
 }
 .acct-btn-ghost:hover {
   background: var(--surface);
-  border-color: var(--border-strong);
+  border-color: var(--app-border-strong);
   color: var(--text);
 }
 
