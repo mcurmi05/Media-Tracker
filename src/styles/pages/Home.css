@@ -4,7 +4,7 @@
   width: 100%;
   max-width: 1123px;
   margin: 0 auto;
-  color: #e8e8e8;
+  color: var(--foreground);
   /* kill the mobile blue tap flash for everything on the page (this property
      inherits); interactive bits use the scale presses below instead */
   -webkit-tap-highlight-color: transparent;
@@ -84,15 +84,15 @@
   flex-wrap: wrap;
   gap: 8px 0;
   padding: 18px 0;
-  border-top: 1px solid #383838;
-  border-bottom: 1px solid #383838;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   margin-bottom: 36px;
 }
 .hp-stat {
   flex: 1 1 110px;
   text-align: center;
   padding: 0 10px;
-  border-right: 1px solid #383838;
+  border-right: 1px solid var(--border);
 }
 .hp-stat:last-child {
   border-right: none;
@@ -106,7 +106,7 @@
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #8c8c8c;
+  color: var(--muted-foreground);
   margin-top: 4px;
 }
 
@@ -185,8 +185,8 @@
   margin-bottom: 40px;
 }
 .hp-section-panel {
-  background: #2c2c2c;
-  border: 1px solid #363636;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 18px 18px 14px;
 }
@@ -201,12 +201,12 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #e8e8e8;
+  color: var(--foreground);
   margin: 0;
 }
 .hp-section-hint {
   font-size: 0.72rem;
-  color: #7a7a7a;
+  color: var(--muted-foreground);
 }
 /* right-aligned control in a section header (e.g. the activity toggle) */
 .hp-section-action {
@@ -231,12 +231,12 @@
   font-size: 0.64rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #8c8c8c;
+  color: var(--muted-foreground);
   transition: color 140ms ease,
     transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .hp-toggle:hover {
-  color: #d4d4d4;
+  color: color-mix(in srgb, var(--foreground) 85%, var(--background));
 }
 .hp-toggle:active {
   transform: scale(0.96);
@@ -247,13 +247,13 @@
   box-shadow: none;
 }
 .hp-toggle-on {
-  color: #d4d4d4;
+  color: color-mix(in srgb, var(--foreground) 85%, var(--background));
 }
 .hp-toggle-box {
   width: 13px;
   height: 13px;
   border-radius: 3px;
-  border: 1.5px solid #5a5a5a;
+  border: 1.5px solid color-mix(in srgb, var(--muted-foreground) 60%, var(--background));
   background: transparent;
   display: flex;
   align-items: center;
@@ -262,8 +262,8 @@
   transition: background 0.15s, border-color 0.15s;
 }
 .hp-toggle-on .hp-toggle-box {
-  background: #e50914;
-  border-color: #e50914;
+  background: var(--brand);
+  border-color: var(--brand);
 }
 .hp-toggle-tick {
   width: 11px;
@@ -274,12 +274,12 @@
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #7a7a7a;
+  color: var(--muted-foreground);
   margin: 14px 0 8px;
 }
 .hp-empty {
   font-size: 0.82rem;
-  color: #777;
+  color: var(--muted-foreground);
   padding: 6px 0 2px;
 }
 
@@ -293,8 +293,8 @@
   display: inline-block;
   width: 22px;
   height: 22px;
-  border: 2.5px solid rgba(232, 232, 232, 0.18);
-  border-top-color: #e50914;
+  border: 2.5px solid color-mix(in srgb, var(--foreground) 18%, transparent);
+  border-top-color: var(--brand);
   border-radius: 50%;
   animation: hp-spin 0.7s linear infinite;
 }
@@ -403,7 +403,7 @@
   aspect-ratio: 2 / 3;
   border-radius: 6px;
   overflow: hidden;
-  background: #1d1d1d;
+  background: var(--muted);
   transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1),
     box-shadow 220ms cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -496,8 +496,8 @@
 
 /* ---- ratings distribution chart ---- */
 .hp-chart {
-  background: #2a2a2a;
-  border: 1px solid #383838;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 18px 16px 12px;
 }
@@ -520,7 +520,7 @@
   width: 5px;
 }
 .hp-decades-body::-webkit-scrollbar-thumb {
-  background: #4a4a4a;
+  background: var(--border);
   border-radius: 3px;
 }
 .hp-chart-bars {
@@ -562,7 +562,7 @@
 .hp-bar-decade {
   width: 36%;
   max-width: 18px;
-  background: #e50914;
+  background: var(--brand);
   transition: background 160ms ease;
 }
 .hp-chart-col:hover .hp-bar-decade {
@@ -571,9 +571,9 @@
 .hp-avg-pill {
   margin-left: 8px;
   font-size: 0.66rem;
-  color: #c8c8c8;
-  background: rgba(229, 9, 20, 0.18);
-  border: 1px solid rgba(229, 9, 20, 0.5);
+  color: color-mix(in srgb, var(--foreground) 80%, var(--background));
+  background: color-mix(in srgb, var(--brand) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand) 50%, transparent);
   border-radius: 999px;
   padding: 1px 8px;
   letter-spacing: 0.04em;
@@ -582,11 +582,11 @@
 }
 .hp-chart-x {
   font-size: 0.6rem;
-  color: #8c8c8c;
+  color: var(--muted-foreground);
   margin-top: 6px;
 }
 .hp-chart-col:hover .hp-chart-x {
-  color: #e8e8e8;
+  color: var(--foreground);
 }
 /* hover tooltip */
 .hp-chart-tip {
@@ -594,8 +594,8 @@
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: #1c1c1c;
-  border: 1px solid #444;
+  background: var(--sidebar);
+  border: 1px solid var(--border);
   border-radius: 7px;
   padding: 8px 10px;
   width: 150px;
@@ -610,12 +610,12 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: #1c1c1c;
+  border-top-color: var(--sidebar);
 }
 .hp-chart-tip-head {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #e8e8e8;
+  color: var(--foreground);
   margin-bottom: 6px;
 }
 .hp-chart-tip-row {
@@ -623,17 +623,17 @@
   align-items: center;
   justify-content: space-between;
   font-size: 0.74rem;
-  color: #b0b0b0;
+  color: color-mix(in srgb, var(--foreground) 72%, var(--background));
   padding: 2px 0;
 }
 .hp-chart-tip-row b {
-  color: #e8e8e8;
+  color: var(--foreground);
 }
 .hp-chart-tip-total {
-  border-top: 1px solid #3a3a3a;
+  border-top: 1px solid var(--border);
   margin-top: 3px;
   padding-top: 5px;
-  color: #e8e8e8;
+  color: var(--foreground);
 }
 .hp-dot {
   display: inline-block;
@@ -683,13 +683,13 @@
   width: 5px;
 }
 .hp-feed::-webkit-scrollbar-thumb {
-  background: #4a4a4a;
+  background: var(--border);
   border-radius: 3px;
 }
 .hp-feed-empty {
   list-style: none;
   font-size: 0.82rem;
-  color: #777;
+  color: var(--muted-foreground);
   padding: 6px 2px 2px;
 }
 .hp-feed-item {
@@ -697,14 +697,14 @@
   align-items: center;
   gap: 12px;
   padding: 9px 2px;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--border);
   font-size: 0.85rem;
 }
 .hp-feed-item:last-child {
   border-bottom: none;
 }
 .hp-feed-item:hover .hp-feed-text {
-  color: #fff;
+  color: var(--foreground);
 }
 .hp-feed-dot {
   width: 8px;
@@ -746,19 +746,19 @@
 .hp-feed-text {
   flex: 0 1 auto;
   min-width: 0;
-  color: #d4d4d4;
+  color: color-mix(in srgb, var(--foreground) 85%, var(--background));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .hp-feed-rating {
   flex-shrink: 0;
-  color: #ffffff;
+  color: var(--foreground);
   font-weight: 700;
   font-size: 0.78rem;
 }
 .hp-feed-date {
-  color: #777;
+  color: var(--muted-foreground);
   font-size: 0.74rem;
   flex-shrink: 0;
   min-width: 64px;
@@ -770,8 +770,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  background: #2a2a2a;
-  border: 1px solid #383838;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 14px;
 }
@@ -780,7 +780,7 @@
   height: 96px;
   border-radius: 5px;
   overflow: hidden;
-  background: #1d1d1d;
+  background: var(--muted);
   flex-shrink: 0;
 }
 .hp-otd-poster img {
@@ -794,7 +794,7 @@
 }
 .hp-otd-line {
   font-size: 0.82rem;
-  color: #9a9a9a;
+  color: var(--muted-foreground);
   margin-top: 3px;
 }
 
@@ -830,14 +830,14 @@
   }
   .hp-stat {
     padding: 9px 3px;
-    background: var(--surface);
-    border: 1px solid var(--app-border);
-    border-right: 1px solid var(--app-border);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-right: 1px solid var(--border);
     border-radius: var(--app-radius-sm);
   }
   .hp-stat:last-child {
     /* override the desktop rule that drops the divider on the last item */
-    border-right: 1px solid var(--app-border);
+    border-right: 1px solid var(--border);
   }
   .hp-stat-num {
     font-size: 1rem;
@@ -862,7 +862,7 @@
     height: 5px;
   }
   .hp-chart-bars::-webkit-scrollbar-thumb {
-    background: #4a4a4a;
+    background: var(--border);
     border-radius: 3px;
   }
   .hp-chart-col {

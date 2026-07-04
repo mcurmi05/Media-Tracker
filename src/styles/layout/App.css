@@ -12,3 +12,10 @@
   display: flex;
   flex-direction: column;
 }
+
+/* clear the fixed mobile tab bar (breakpoint matches Tailwind md) */
+@media (max-width: 767px) {
+  .main-content {
+    padding-bottom: calc(2rem + 56px + env(safe-area-inset-bottom));
+  }
+}

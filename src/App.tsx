@@ -3,6 +3,7 @@ import Search from "./pages/Search";
 import Trending from "./pages/Trending";
 import AppSidebar from "./components/layout/AppSidebar";
 import SiteHeader from "./components/layout/SiteHeader";
+import MobileTabBar from "./components/layout/MobileTabBar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SearchProvider } from "./contexts/SearchContext";
 import { PopularMoviesCacheProvider } from "./contexts/PopularMoviesCacheContext";
@@ -110,6 +111,7 @@ function App() {
                           <Route path="/lists/:id" element={<ListView />} />
                           </Routes>
                         </main>
+                        <MobileTabBar />
                       </SidebarInset>
                     </SidebarProvider>
                       </UserBookRatingsProvider>

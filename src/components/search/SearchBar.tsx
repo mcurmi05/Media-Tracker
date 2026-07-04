@@ -161,13 +161,16 @@ export default function SearchBar() {
         <Input
           type="text"
           placeholder="Search movies, TV, books..."
-          className="h-9 rounded-lg bg-secondary/40 pl-9 focus-visible:bg-background"
+          className="h-9 rounded-lg bg-secondary/40 pl-9 pr-12 focus-visible:bg-background"
           value={searchQuery}
           onChange={handleInputChange}
           onFocus={() => {
             if (dropdownResults.length > 0) setShowDropdown(true);
           }}
         />
+        <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground sm:flex">
+          {navigator.platform.toUpperCase().includes("MAC") ? "⌘" : "Ctrl"}K
+        </kbd>
       </form>
 
       {showDropdown && (
