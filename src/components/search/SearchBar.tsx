@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Search } from "lucide-react";
 import {
   searchBooksHardcoverFIRSTFIVEONLY,
   searchMoviesFIRSTFIVEONLY,
@@ -7,7 +8,15 @@ import {
 } from "../../services/api";
 import { useSearch } from "../../contexts/SearchContext";
 import { useNavigate } from "react-router-dom";
-import "../../styles/search/SearchBar.css";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const SEARCH_MODES = [
+  { value: "all", label: "All" },
+  { value: "movies", label: "Movies" },
+  { value: "tv", label: "TV" },
+  { value: "books", label: "Books" },
+];
 
 export default function SearchBar() {
   const {
@@ -137,89 +146,112 @@ export default function SearchBar() {
     setSearchSubmitted(false);
   };
 
-  const selectMode = (event) => {
-    setSearchMode(event.target.value);
-    setShowDropdown(false);
+  // Switching mode keeps the dropdown open, clears stale results and lets the
+  // debounced effect refetch for the new mode.
+  const selectMode = (value: string) => {
+    setSearchMode(value);
     setDropdownResults([]);
     setSearchSubmitted(false);
   };
 
   return (
-    <div className="search-container" ref={dropdownRef}>
-      <form onSubmit={handleSearch} className="search-form">
-        <select
-          className="search-mode-select"
-          aria-label="Search category"
-          value={searchMode}
-          onChange={selectMode}
-        >
-          <option value="all">All</option>
-          <option value="books">Books</option>
-          <option value="movies">Movies</option>
-          <option value="tv">TV</option>
-        </select>
-        <input
+    <div className="relative w-full max-w-md" ref={dropdownRef}>
+      <form onSubmit={handleSearch}>
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
           type="text"
-          placeholder="Search..."
-          className="search-input"
+          placeholder="Search movies, TV, books..."
+          className="h-9 rounded-lg bg-secondary/40 pl-9 focus-visible:bg-background"
           value={searchQuery}
           onChange={handleInputChange}
+          onFocus={() => {
+            if (dropdownResults.length > 0) setShowDropdown(true);
+          }}
         />
-        <button type="submit" className="search-button">
-          <img src="/images/search.png" className="search-button-img"></img>
-        </button>
       </form>
 
       {showDropdown && (
-        <div className="search-dropdown">
+        <div className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg">
+          <div className="border-b border-border p-1.5">
+            <Tabs value={searchMode} onValueChange={selectMode}>
+              <TabsList className="grid h-8 w-full grid-cols-4">
+                {SEARCH_MODES.map((mode) => (
+                  <TabsTrigger
+                    key={mode.value}
+                    value={mode.value}
+                    className="h-6 text-xs"
+                  >
+                    {mode.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+
           {searchLoading ? (
-            <div className="dropdown-loading">Searching...</div>
+            <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+              Searching...
+            </div>
           ) : dropdownResults.length > 0 ? (
-            dropdownResults.map((item) =>
-              item.hardcover_id != null ? (
-                  <div
+            <div className="p-1">
+              {dropdownResults.map((item) =>
+                item.hardcover_id != null ? (
+                  <button
                     key={`book-${item.hardcover_id}`}
-                    className="dropdown-item"
+                    type="button"
+                    data-slot="search-result"
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-md bg-transparent p-2 text-left hover:bg-accent"
                     onClick={() => handleDropdownClick(item)}
                   >
                     <img
                       src={item.cover_image || "/images/placeholderimage.jpg"}
                       alt={item.title}
-                      className="dropdown-poster"
+                      className="h-14 w-9 shrink-0 rounded object-cover"
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.src = "/images/placeholderimage.jpg";
                       }}
                     />
-                    <div className="dropdown-info">
-                      <h4>{item.title}</h4>
-                      <p>{item.author} · Book</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {item.title}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {item.author} · Book
+                      </p>
                     </div>
-                  </div>
+                  </button>
                 ) : (
-                  <div
+                  <button
                     key={`${item.media_type}-${item.tmdb_id}`}
-                    className="dropdown-item"
+                    type="button"
+                    data-slot="search-result"
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-md bg-transparent p-2 text-left hover:bg-accent"
                     onClick={() => handleDropdownClick(item)}
                   >
                     <img
                       src={item.primaryImage || "/images/placeholderimage.jpg"}
                       alt={item.primaryTitle}
-                      className="dropdown-poster"
+                      className="h-14 w-9 shrink-0 rounded object-cover"
                     />
-                    <div className="dropdown-info">
-                      <h4>{item.primaryTitle}</h4>
-                      <p>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {item.primaryTitle}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
                         {item.startYear}
                         {item.startYear ? " · " : ""}
                         {item.media_type === "tv" ? "TV" : "Movie"}
                       </p>
                     </div>
-                  </div>
+                  </button>
                 ),
-            )
+              )}
+            </div>
           ) : (
-            <div className="dropdown-no-results">No results found</div>
+            <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+              No results found
+            </div>
           )}
         </div>
       )}

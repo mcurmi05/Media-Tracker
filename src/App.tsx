@@ -1,7 +1,9 @@
 import "./styles/layout/App.css";
 import Search from "./pages/Search";
 import Trending from "./pages/Trending";
-import NavBar from "./components/layout/NavBar";
+import AppSidebar from "./components/layout/AppSidebar";
+import SiteHeader from "./components/layout/SiteHeader";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SearchProvider } from "./contexts/SearchContext";
 import { PopularMoviesCacheProvider } from "./contexts/PopularMoviesCacheContext";
 import { ImdbRatingsProvider } from "./contexts/ImdbRatingsContext";
@@ -66,9 +68,12 @@ function App() {
                     <UserBookTbrProvider>
                       <UserBookRatingsProvider>
                     <ScrollToTop />
-                    <NavBar />
-                    <main className="main-content">
-                      <Routes>
+                    <SidebarProvider>
+                      <AppSidebar />
+                      <SidebarInset className="bg-transparent">
+                        <SiteHeader />
+                        <main className="main-content">
+                          <Routes>
                         <Route path="/" element={<Home></Home>}></Route>
                         <Route
                           path="/trending"
@@ -101,10 +106,12 @@ function App() {
                           path="/account"
                           element={<AccountSettings></AccountSettings>}
                         />
-                        <Route path="/lists" element={<Lists />} />
-                        <Route path="/lists/:id" element={<ListView />} />
-                      </Routes>
-                    </main>
+                          <Route path="/lists" element={<Lists />} />
+                          <Route path="/lists/:id" element={<ListView />} />
+                          </Routes>
+                        </main>
+                      </SidebarInset>
+                    </SidebarProvider>
                       </UserBookRatingsProvider>
                     </UserBookTbrProvider>
                   </UserBookLogsProvider>
