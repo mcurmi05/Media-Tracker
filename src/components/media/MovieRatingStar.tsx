@@ -78,16 +78,16 @@ function MovieRatingStar({movie}) {
 
         if (rated) {
           const result = await supabase
-            .from('ratings')
+            .from('user_ratings')
             .update({rating: newRating})
-            .eq('movie_entry_id', movieEntryId)
+            .eq('entry_id', movieEntryId)
             .eq('user_id', user.id);
           error = result.error;
         } else {
 
           const result = await supabase
-            .from('ratings')
-            .insert({user_id: user.id, rating: newRating, movie_entry_id: movieEntryId, accurate: true });
+            .from('user_ratings')
+            .insert({user_id: user.id, rating: newRating, entry_id: movieEntryId, accurate: true });
           error = result.error;
         }
 
@@ -118,9 +118,9 @@ function MovieRatingStar({movie}) {
       if (!entryId) return;
       try {
         const { error } = await supabase
-          .from('ratings')
+          .from('user_ratings')
           .delete()
-          .eq('movie_entry_id', entryId)
+          .eq('entry_id', entryId)
           .eq('user_id', user.id);
 
         if (error) {

@@ -96,8 +96,8 @@ export default function LogComponent({
     const isoDate = newDate.toISOString();
     setSaving(true);
     const { error } = await supabase
-      .from("logs")
-      .update({ created_at: isoDate })
+      .from("user_logs")
+      .update({ started_at: isoDate })
       .eq("id", log_id);
 
     if (!error) {
@@ -234,12 +234,20 @@ export default function LogComponent({
     });
   }
 
-  // Persist a partial update to this movie log, then sync local state.
+  // Persist a partial update to this movie log, then sync local state. Local
+  // state still uses the legacy field names; map them to the unified columns
+  // for the write (movie_end_date -> ended_at) while keeping the local patch
+  // in the old shape.
   async function persistLog(updates, failMsg) {
     setSaving(true);
+    const dbUpdates = { ...updates };
+    if ("movie_end_date" in dbUpdates) {
+      dbUpdates.ended_at = dbUpdates.movie_end_date;
+      delete dbUpdates.movie_end_date;
+    }
     const { error } = await supabase
-      .from("logs")
-      .update(updates)
+      .from("user_logs")
+      .update(dbUpdates)
       .eq("id", log_id);
 
     if (!error) {
@@ -298,7 +306,7 @@ export default function LogComponent({
   }
 
   async function confirmDeleteLog() {
-    const { error } = await supabase.from("logs").delete().eq("id", log_id);
+    const { error } = await supabase.from("user_logs").delete().eq("id", log_id);
     removeLog(log_id);
     if (error) {
       console.error("Error deleting log:", error);
@@ -314,7 +322,7 @@ export default function LogComponent({
     setSaving(true);
     debounceTimeout.current = setTimeout(async () => {
       const { error } = await supabase
-        .from("logs")
+        .from("user_logs")
         .update({ log: text })
         .eq("id", log_id);
       if (!error) {

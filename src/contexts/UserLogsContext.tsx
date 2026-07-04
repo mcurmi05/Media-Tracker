@@ -78,7 +78,7 @@ export const UserLogsProvider = ({ children }) => {
       const logRow = userLogs.find((x) => x.id === log_id);
       const newSeasonInfo = withNewSeason(logRow?.season_info || []);
       const { error } = await supabase
-        .from("logs")
+        .from("user_logs")
         .update({ season_info: newSeasonInfo })
         .eq("id", log_id);
       if (error) console.error("Failed to persist new season:", error);
@@ -124,7 +124,7 @@ export const UserLogsProvider = ({ children }) => {
         end_date: finished ? current[seasonIndex].end_date || now : null,
       };
       const { error } = await supabase
-        .from("logs")
+        .from("user_logs")
         .update({ season_info: current })
         .eq("id", log_id);
       if (error) console.error("Failed to persist setSeasonFinished:", error);
@@ -162,7 +162,7 @@ export const UserLogsProvider = ({ children }) => {
       if (!current[seasonIndex]) return;
       applyUpdate(current);
       const { error } = await supabase
-        .from("logs")
+        .from("user_logs")
         .update({ season_info: current })
         .eq("id", log_id);
       if (error) console.error("Failed to persist setSeasonDnf:", error);
@@ -195,7 +195,7 @@ export const UserLogsProvider = ({ children }) => {
         };
       current[seasonIndex] = { ...current[seasonIndex], [field]: isoDate };
       const { error } = await supabase
-        .from("logs")
+        .from("user_logs")
         .update({ season_info: current })
         .eq("id", log_id);
       if (error) console.error("Failed to persist season date update:", error);
@@ -221,7 +221,7 @@ export const UserLogsProvider = ({ children }) => {
       const current = logRow?.season_info ? [...logRow.season_info] : [];
       if (current.length > 0) current.pop();
       const { error } = await supabase
-        .from("logs")
+        .from("user_logs")
         .update({ season_info: current })
         .eq("id", log_id);
       if (error) console.error("Failed to persist remove season:", error);
@@ -250,7 +250,7 @@ export const UserLogsProvider = ({ children }) => {
       if (seasonIndex < 0 || seasonIndex >= current.length) return;
       current.splice(seasonIndex, 1);
       const { error } = await supabase
-        .from("logs")
+        .from("user_logs")
         .update({ season_info: current })
         .eq("id", log_id);
       if (error) console.error("Failed to persist removeSeasonAt:", error);

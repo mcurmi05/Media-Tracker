@@ -48,11 +48,11 @@ export default function AddWatchlist({movie}){
                 const movieEntryId = await upsertMovie(full);
 
                 const { data, error } = await supabase
-                .from("watchlist")
+                .from("user_saves")
                 .insert(
                     {
                         user_id: user.id,
-                        movie_entry_id: movieEntryId,
+                        entry_id: movieEntryId,
                     })
                     .select();
                 const newWatchlistEntry = data[0];
@@ -80,7 +80,7 @@ export default function AddWatchlist({movie}){
             if (queueEntry) await removeFromQueue(queueEntry.id);
 
             const { error } = await supabase
-                .from("watchlist")
+                .from("user_saves")
                 .delete()
                 .eq('id', entry.id)
                 .select();

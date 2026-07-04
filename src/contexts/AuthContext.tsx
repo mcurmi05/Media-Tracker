@@ -3,7 +3,9 @@ import { supabase } from "../services/supabase-client";
 /* eslint-disable react-refresh/only-export-components */
 
 
-const AuthContext = createContext();
+// Loosely typed while contexts are being replaced by typed query hooks; the
+// undefined default backs the useAuth provider guard below.
+const AuthContext = createContext<any>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

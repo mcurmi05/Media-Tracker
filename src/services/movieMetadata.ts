@@ -103,20 +103,82 @@ export async function resolveFullMovie(movie) {
   return full || movie;
 }
 
-// Upsert a title's metadata into `movies` (keyed by tmdb_id + media_type) and
-// return its uuid. Used when adding to a list/rating and when the details page
-// refreshes from TMDB. Returns null if the object lacks a tmdb_id to key on.
+// movie_object -> unified media_entries row (type-specific fields packed
+// into the details jsonb).
+export function movieObjectToEntryRow(mo) {
+  const row = movieObjectToMovieRow(mo);
+  return {
+    media_type: row.media_type,
+    tmdb_id: row.tmdb_id,
+    imdb_id: row.imdb_id,
+    title: row.title ?? "Untitled",
+    creator: row.directors?.[0] ?? row.creators?.[0] ?? null,
+    cover_url: row.poster_url,
+    backdrop_url: row.backdrop_url,
+    start_year: row.start_year,
+    end_year: row.end_year,
+    description: row.overview,
+    details: {
+      runtime_minutes: row.runtime_minutes,
+      trailer_url: row.trailer_url,
+      budget: row.budget,
+      tmdb_vote_average: row.tmdb_vote_average,
+      tmdb_vote_count: row.tmdb_vote_count,
+      genres: row.genres,
+      cast_members: row.cast_members,
+      directors: row.directors,
+      writers: row.writers,
+      creators: row.creators,
+      season_info: row.season_info,
+    },
+    updated_at: row.updated_at,
+  };
+}
+
+// Insert-or-update a title's metadata into media_entries (keyed by
+// media_type + tmdb_id) and return its uuid. Used when adding to a list/rating
+// and when the details page refreshes from TMDB. Returns null if the object
+// lacks a tmdb_id to key on.
+//
+// Done as select-then-write rather than a PostgREST upsert: on_conflict can't
+// target a partial unique index, and this keeps working regardless of how the
+// media_entries indexes are defined.
 export async function upsertMovie(movieObject) {
-  const row = movieObjectToMovieRow(movieObject);
+  const row = movieObjectToEntryRow(movieObject);
   if (row.tmdb_id == null) return null;
-  const { data, error } = await supabase
-    .from("movies_and_tv_entries")
-    .upsert(row, { onConflict: "tmdb_id,media_type" })
+
+  const { data: existing, error: findErr } = await supabase
+    .from("media_entries")
     .select("id")
-    .single();
-  if (error) {
-    console.error("upsertMovie failed", error);
+    .eq("media_type", row.media_type)
+    .eq("tmdb_id", row.tmdb_id)
+    .limit(1);
+  if (findErr) {
+    console.error("upsertMovie lookup failed", findErr);
     return null;
   }
-  return data?.id ?? null;
+
+  if (existing && existing.length > 0) {
+    const id = existing[0].id;
+    const { error: updErr } = await supabase
+      .from("media_entries")
+      .update(row)
+      .eq("id", id);
+    if (updErr) {
+      console.error("upsertMovie update failed", updErr);
+      return null;
+    }
+    return id;
+  }
+
+  const { data: inserted, error: insErr } = await supabase
+    .from("media_entries")
+    .insert(row)
+    .select("id")
+    .single();
+  if (insErr) {
+    console.error("upsertMovie insert failed", insErr);
+    return null;
+  }
+  return inserted?.id ?? null;
 }

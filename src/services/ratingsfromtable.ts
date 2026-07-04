@@ -1,7 +1,57 @@
-// Update a user's rating in Supabase. `previousRating` records the value the
-// rating had before this change, so the UI can show what it was changed from.
-// Ratings reference shared metadata by movie_entry_id (the movies_and_tv_entries
-// uuid), which is the per-(user, title) identity for a rating.
+// Data access for user activity (logs / ratings / saves) on the unified
+// schema. Exported signatures and returned row shapes are unchanged from the
+// per-media-type era: rows come back looking like the old logs/ratings/
+// watchlist/book_* tables via mediaEntryAdapters, so consumers are untouched.
+import { supabase } from "./supabase-client";
+import { movieRowToMovieObject } from "./movieMetadata";
+import {
+  entryToMovieRow,
+  entryToBookObject,
+  bookPayloadToEntry,
+  toMovieLogRow,
+  toBookLogRow,
+  bookLogUpdatesToLog,
+  toMovieRatingRow,
+  toBookRatingRow,
+  bookRatingUpdatesToRating,
+  toWatchlistRow,
+  toBookTbrRow,
+  toQueueRow,
+} from "./mediaEntryAdapters";
+
+const ENTRY_JOIN = "*, entry:media_entries!inner(*)";
+
+const movieObjectOf = (row) =>
+  row?.entry ? movieRowToMovieObject(entryToMovieRow(row.entry)) : null;
+
+// Movie/TV rows for a user from one of the unified activity tables.
+const getScreenRows = async (table, userId) => {
+  const { data, error } = await supabase
+    .from(table)
+    .select(ENTRY_JOIN)
+    .eq("user_id", userId)
+    .in("entry.media_type", ["movie", "tv"])
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Book rows for a user from one of the unified activity tables.
+const getBookRows = async (table, userId) => {
+  const { data, error } = await supabase
+    .from(table)
+    .select(ENTRY_JOIN)
+    .eq("user_id", userId)
+    .eq("entry.media_type", "book")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+};
+
+/* ---------- ratings (movies / tv) ---------- */
+
+// Update a user's rating. `previousRating` records the value the rating had
+// before this change, so the UI can show what it was changed from.
 export const updateUserRating = async (
   userId,
   movieEntryId,
@@ -9,48 +59,33 @@ export const updateUserRating = async (
   previousRating = null,
 ) => {
   const { data, error } = await supabase
-    .from("ratings")
+    .from("user_ratings")
     .update({
       rating: newRating,
       previous_rating: previousRating,
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId)
-    .eq("movie_entry_id", movieEntryId);
+    .eq("entry_id", movieEntryId);
   if (error) throw error;
   return data;
 };
-import { supabase } from "./supabase-client";
-import { movieRowToMovieObject } from "./movieMetadata";
 
-// Rows in logs/watchlist/ratings reference shared metadata in `movies` via
-// movie_entry_id. Reconstruct each row's `movie_object` from the joined movies
-// row, falling back to the legacy inline blob for rows not yet backfilled.
-const withMovieObject = (rows) =>
-  (rows || []).map((r) => ({
-    ...r,
-    movie_object: r.movies_and_tv_entries ? movieRowToMovieObject(r.movies_and_tv_entries) : r.movie_object,
-  }));
-
-// Update a user's ranking (nullable) in Supabase
+// Update a user's ranking (nullable).
 export const updateUserRanking = async (userId, movieEntryId, ranking) => {
   const { data, error } = await supabase
-    .from("ratings")
+    .from("user_ratings")
     .update({ ranking })
     .eq("user_id", userId)
-    .eq("movie_entry_id", movieEntryId);
+    .eq("entry_id", movieEntryId);
   if (error) throw error;
   return data;
 };
 
 export const getUserRatings = async (user) => {
   if (!user) throw new Error("User must be authenticated to view ratings");
-  const { data, error } = await supabase
-    .from("ratings")
-    .select("*, movies_and_tv_entries(*)")
-    .eq("user_id", user.id);
-  if (error) throw error;
-  return withMovieObject(data);
+  const rows = await getScreenRows("user_ratings", user.id);
+  return rows.map((r) => toMovieRatingRow(r, movieObjectOf(r)));
 };
 
 // Match a rating row to a movie object the same way the watchlist/log matchers
@@ -66,80 +101,77 @@ export const ratingMatchesMovie = (row, movie) =>
 export const getRatingForMovie = (ratingsArray, movie) =>
   (ratingsArray || []).find((r) => ratingMatchesMovie(r, movie)) || null;
 
+/* ---------- logs (movies / tv) ---------- */
+
 export const getUserLogs = async (user) => {
   if (!user) throw new Error("User must be authenticated to view logs");
-  const { data, error } = await supabase
-    .from("logs")
-    .select("*, movies_and_tv_entries(*)")
-    .order("created_at", { ascending: false })
-    .eq("user_id", user.id);
-  if (error) throw error;
-  return withMovieObject(data);
+  const rows = await getScreenRows("user_logs", user.id);
+  const mapped = rows.map((r) => toMovieLogRow(r, movieObjectOf(r)));
+  // Old rows were ordered by watch date, which now lives in started_at.
+  return mapped.sort(
+    (a, b) => new Date(b.created_at) - new Date(a.created_at),
+  );
 };
+
+/* ---------- watchlist (movies / tv) ---------- */
 
 export const getUserWatchlist = async (user) => {
   if (!user) throw new Error("User must be authenticated to view watchlist");
-  const { data, error } = await supabase
-    .from("watchlist")
-    .select("*, movies_and_tv_entries(*)")
-    .order("created_at", { ascending: false })
-    .eq("user_id", user.id);
-  if (error) throw error;
-  return withMovieObject(data);
+  const rows = await getScreenRows("user_saves", user.id);
+  return rows.map((r) => toWatchlistRow(r, movieObjectOf(r)));
 };
 
-// Watchlist queue: the user's ordered "watch next" list, referencing watchlist
-// rows by watchlist_id. queue_rank determines the display order (1 = next up).
+/* ---------- watch-next queue ---------- */
+// Queue position lives on user_saves.queue_rank; the save row id doubles as
+// the legacy queue id / watchlist_id / book_tbr_id (ids were preserved).
+
 export const getUserWatchlistQueue = async (user) => {
   if (!user)
     throw new Error("User must be authenticated to view watchlist queue");
   const { data, error } = await supabase
-    .from("watchlist-queue")
-    .select("*")
-    .order("queue_rank", { ascending: true })
-    .eq("user_id", user.id);
+    .from("user_saves")
+    .select(ENTRY_JOIN)
+    .eq("user_id", user.id)
+    .not("queue_rank", "is", null)
+    .order("queue_rank", { ascending: true });
   if (error) throw error;
-  return data || [];
+  return (data ?? []).map(toQueueRow);
 };
 
-// `refs` references either a watchlist row ({ watchlistId }) for movies/TV or a
-// book_tbr row ({ bookTbrId }) for books. Exactly one should be provided.
+// `refs` references the save row via { watchlistId } (movies/tv) or
+// { bookTbrId } (books). Exactly one should be provided.
 export const addToWatchlistQueue = async (userId, refs, queueRank) => {
-  const { watchlistId = null, bookTbrId = null } = refs;
+  const saveId = refs.watchlistId ?? refs.bookTbrId;
   const { data, error } = await supabase
-    .from("watchlist-queue")
-    .insert({
-      user_id: userId,
-      watchlist_id: watchlistId,
-      book_tbr_id: bookTbrId,
-      queue_rank: queueRank,
-    })
-    .select();
+    .from("user_saves")
+    .update({ queue_rank: queueRank })
+    .eq("id", saveId)
+    .select(ENTRY_JOIN)
+    .single();
   if (error) throw error;
-  return data[0];
+  return toQueueRow(data);
 };
 
 export const removeFromWatchlistQueue = async (queueId) => {
   const { error } = await supabase
-    .from("watchlist-queue")
-    .delete()
+    .from("user_saves")
+    .update({ queue_rank: null })
     .eq("id", queueId);
   if (error) throw error;
 };
 
 export const updateWatchlistQueueRank = async (queueId, queueRank) => {
   const { data, error } = await supabase
-    .from("watchlist-queue")
+    .from("user_saves")
     .update({ queue_rank: queueRank })
     .eq("id", queueId);
   if (error) throw error;
   return data;
 };
 
-// Book entries (per-user book metadata, referenced by that user's book child tables)
+/* ---------- book entries (shared metadata) ---------- */
+
 export const createBookEntry = async (payload) => {
-  // Resolve the signed-in user so the row is stamped with its owner. This is
-  // required by the book_entries INSERT policy (with check: auth.uid() = user_id).
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -147,62 +179,67 @@ export const createBookEntry = async (payload) => {
     throw new Error("User must be authenticated to create a book entry");
   }
   const { data, error } = await supabase
-    .from("book_entries")
-    .insert({ ...payload, user_id: user.id })
+    .from("media_entries")
+    .insert(bookPayloadToEntry(payload))
     .select();
   if (error) throw error;
-  return data[0];
+  return entryToBookObject(data[0]);
 };
 
 export const updateBookEntry = async (id, updates) => {
+  const row = bookPayloadToEntry(updates);
+  delete row.media_type;
   const { data, error } = await supabase
-    .from("book_entries")
-    .update(updates)
+    .from("media_entries")
+    .update({ ...row, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select();
   if (error) throw error;
-  return data[0];
+  return entryToBookObject(data[0]);
 };
 
-// Look up an existing book_entries row by goodreads_link or title+author.
-// If none is found, insert a new row. Returns the entry.
+// Look up an existing book entry by hardcover id, goodreads link or
+// title+author. If none is found, insert a new row. Returns the entry in the
+// legacy book_entries shape.
 export const findOrCreateBookEntry = async (bookData) => {
   const hardcoverId = String(bookData?.hardcover_id || "").trim();
   if (hardcoverId) {
-    const { data: byHardcover, error: hardcoverError } = await supabase
-      .from("book_entries")
+    const { data, error } = await supabase
+      .from("media_entries")
       .select("*")
       .eq("hardcover_id", hardcoverId)
       .limit(1);
-    if (hardcoverError) throw hardcoverError;
-    if (byHardcover && byHardcover.length > 0) return byHardcover[0];
+    if (error) throw error;
+    if (data && data.length > 0) return entryToBookObject(data[0]);
   }
 
   const link = (bookData?.goodreads_link || "").trim();
   if (link) {
-    const { data: byLink, error: linkErr } = await supabase
-      .from("book_entries")
+    const { data, error } = await supabase
+      .from("media_entries")
       .select("*")
+      .eq("media_type", "book")
       .eq("goodreads_link", link)
       .limit(1);
-    if (linkErr) throw linkErr;
-    if (byLink && byLink.length > 0) return byLink[0];
+    if (error) throw error;
+    if (data && data.length > 0) return entryToBookObject(data[0]);
   }
 
   const title = (bookData?.title || "").trim();
   const author = (bookData?.author || "").trim();
   if (title && author) {
-    const { data: byPair, error: pairErr } = await supabase
-      .from("book_entries")
+    const { data, error } = await supabase
+      .from("media_entries")
       .select("*")
+      .eq("media_type", "book")
       .ilike("title", title)
-      .ilike("author", author)
+      .ilike("creator", author)
       .limit(1);
-    if (pairErr) throw pairErr;
-    if (byPair && byPair.length > 0) return byPair[0];
+    if (error) throw error;
+    if (data && data.length > 0) return entryToBookObject(data[0]);
   }
 
-  const payload = {
+  return await createBookEntry({
     title,
     author,
     cover_image: bookData?.cover_image || null,
@@ -214,166 +251,160 @@ export const findOrCreateBookEntry = async (bookData) => {
     hardcover_id: hardcoverId || null,
     isbn13: bookData?.isbn13 || null,
     book_description: bookData?.book_description || null,
-  };
-  return await createBookEntry(payload);
+  });
 };
 
 export const getBookEntryByHardcoverId = async (hardcoverId) => {
   const id = String(hardcoverId || "").trim();
   if (!id) return null;
   const { data, error } = await supabase
-    .from("book_entries")
+    .from("media_entries")
     .select("*")
     .eq("hardcover_id", id)
     .limit(1);
   if (error) throw error;
-  return (data && data[0]) || null;
+  return entryToBookObject((data && data[0]) || null);
 };
 
-// Search book_entries by title or author (case-insensitive substring match).
+// Search book entries by title or author (case-insensitive substring match).
 export const searchBookEntries = async (query, limit = 100) => {
   const term = (query || "").trim();
   if (!term) return [];
   const pattern = `%${term}%`;
   const { data, error } = await supabase
-    .from("book_entries")
+    .from("media_entries")
     .select("*")
-    .or(`title.ilike.${pattern},author.ilike.${pattern}`)
+    .eq("media_type", "book")
+    .or(`title.ilike.${pattern},creator.ilike.${pattern}`)
     .order("title", { ascending: true })
     .limit(limit);
   if (error) throw error;
-  return data || [];
+  return (data ?? []).map(entryToBookObject);
 };
 
-// Look up a single book_entries row by the path portion of its Goodreads
-// link (everything after "goodreads.com/"). Used by the book details page,
-// where that path is the route identifier.
+// Look up a single book entry by the path portion of its Goodreads link
+// (everything after "goodreads.com/"). Used by the book details page, where
+// that path is the route identifier.
 export const getBookEntryByGoodreadsPath = async (path) => {
   const term = (path || "").trim();
   if (!term) return null;
   const { data, error } = await supabase
-    .from("book_entries")
+    .from("media_entries")
     .select("*")
+    .eq("media_type", "book")
     .ilike("goodreads_link", `%${term}%`)
     .limit(1);
   if (error) throw error;
-  return (data && data[0]) || null;
+  return entryToBookObject((data && data[0]) || null);
 };
 
-// Return every row in book_entries.
+// Return every book entry.
 export const getAllBookEntries = async () => {
   const { data, error } = await supabase
-    .from("book_entries")
+    .from("media_entries")
     .select("*")
+    .eq("media_type", "book")
     .order("title", { ascending: true });
   if (error) throw error;
-  return data || [];
+  return (data ?? []).map(entryToBookObject);
 };
 
-// Book logs functions
+/* ---------- book logs ---------- */
+
 export const getUserBookLogs = async (user) => {
   if (!user) throw new Error("User must be authenticated to view book logs");
-  const { data, error } = await supabase
-    .from("book_logs")
-    .select("*, book_entries(*)")
-    .order("created_at", { ascending: false })
-    .eq("user_id", user.id);
-  if (error) throw error;
-  return data || [];
+  const rows = await getBookRows("user_logs", user.id);
+  return rows.map(toBookLogRow);
 };
 
 export const createBookLog = async (bookLog) => {
+  const row = bookLogUpdatesToLog(bookLog);
   const { data, error } = await supabase
-    .from("book_logs")
-    .insert(bookLog)
-    .select("*, book_entries(*)");
+    .from("user_logs")
+    .insert({ ...row, user_id: bookLog.user_id })
+    .select("*, entry:media_entries(*)");
   if (error) throw error;
-  return data[0];
+  return toBookLogRow(data[0]);
 };
 
 export const updateBookLog = async (logId, updates) => {
   const { data, error } = await supabase
-    .from("book_logs")
-    .update(updates)
+    .from("user_logs")
+    .update(bookLogUpdatesToLog(updates))
     .eq("id", logId)
-    .select("*, book_entries(*)");
+    .select("*, entry:media_entries(*)");
   if (error) throw error;
-  return data[0];
+  return toBookLogRow(data[0]);
 };
 
 export const deleteBookLog = async (logId) => {
-  const { error } = await supabase.from("book_logs").delete().eq("id", logId);
+  const { error } = await supabase.from("user_logs").delete().eq("id", logId);
   if (error) throw error;
 };
 
-// Book TBR (to-be-read watchlist) functions
+/* ---------- book TBR (to-be-read watchlist) ---------- */
+
 export const getUserBookTbr = async (user) => {
   if (!user) throw new Error("User must be authenticated to view TBR books");
-  const { data, error } = await supabase
-    .from("book_tbr")
-    .select("*, book_entries(*)")
-    .order("created_at", { ascending: false })
-    .eq("user_id", user.id);
-  if (error) throw error;
-  return data || [];
+  const rows = await getBookRows("user_saves", user.id);
+  return rows.map(toBookTbrRow);
 };
 
 export const createBookTbr = async (bookTbr) => {
   const { data, error } = await supabase
-    .from("book_tbr")
-    .insert(bookTbr)
-    .select("*, book_entries(*)");
+    .from("user_saves")
+    .insert({ user_id: bookTbr.user_id, entry_id: bookTbr.book_id })
+    .select("*, entry:media_entries(*)");
   if (error) throw error;
-  return data[0];
+  return toBookTbrRow(data[0]);
 };
 
 export const deleteBookTbr = async (tbrId) => {
-  const { error } = await supabase.from("book_tbr").delete().eq("id", tbrId);
+  const { error } = await supabase.from("user_saves").delete().eq("id", tbrId);
   if (error) throw error;
 };
 
 export const updateBookTbr = async (tbrId, updates) => {
+  const row = {};
+  if ("book_id" in updates) row.entry_id = updates.book_id;
   const { data, error } = await supabase
-    .from("book_tbr")
-    .update(updates)
+    .from("user_saves")
+    .update(row)
     .eq("id", tbrId)
-    .select("*, book_entries(*)");
+    .select("*, entry:media_entries(*)");
   if (error) throw error;
-  return data[0];
+  return toBookTbrRow(data[0]);
 };
 
-// Book ratings (independent of book_logs / book_tbr)
+/* ---------- book ratings ---------- */
+
 export const getUserBookRatings = async (user) => {
   if (!user) throw new Error("User must be authenticated to view book ratings");
-  const { data, error } = await supabase
-    .from("book_ratings")
-    .select("*, book_entries(*)")
-    .order("created_at", { ascending: false })
-    .eq("user_id", user.id);
-  if (error) throw error;
-  return data || [];
+  const rows = await getBookRows("user_ratings", user.id);
+  return rows.map(toBookRatingRow);
 };
 
 export const createBookRating = async (payload) => {
+  const row = bookRatingUpdatesToRating(payload);
   const { data, error } = await supabase
-    .from("book_ratings")
-    .insert(payload)
-    .select("*, book_entries(*)");
+    .from("user_ratings")
+    .insert({ ...row, user_id: payload.user_id })
+    .select("*, entry:media_entries(*)");
   if (error) throw error;
-  return data[0];
+  return toBookRatingRow(data[0]);
 };
 
 export const updateBookRating = async (id, updates) => {
   const { data, error } = await supabase
-    .from("book_ratings")
-    .update(updates)
+    .from("user_ratings")
+    .update(bookRatingUpdatesToRating(updates))
     .eq("id", id)
-    .select("*, book_entries(*)");
+    .select("*, entry:media_entries(*)");
   if (error) throw error;
-  return data[0];
+  return toBookRatingRow(data[0]);
 };
 
 export const deleteBookRating = async (id) => {
-  const { error } = await supabase.from("book_ratings").delete().eq("id", id);
+  const { error } = await supabase.from("user_ratings").delete().eq("id", id);
   if (error) throw error;
 };

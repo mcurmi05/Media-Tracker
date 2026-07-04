@@ -36,8 +36,8 @@ export default function WatchlistComponent({
     setNewSeason(newValue);
     updateNewSeason(watchlist_id, newValue);
     const { error } = await supabase
-      .from("watchlist")
-      .update({ new_season_to_watch: newValue ? true : null })
+      .from("user_saves")
+      .update({ new_season_to_watch: newValue })
       .eq("id", watchlist_id);
     if (error) {
       console.error("Error updating new_season_to_watch:", error);

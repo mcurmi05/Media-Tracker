@@ -38,11 +38,13 @@ export default function AddLog({movie}){
         const movieEntryId = await upsertMovie(full);
 
         const { data, error } = await supabase
-        .from("logs")
+        .from("user_logs")
         .insert(
             {
                 user_id: user.id,
-                movie_entry_id: movieEntryId,
+                entry_id: movieEntryId,
+                // watch date; the old schema used created_at for this
+                started_at: new Date().toISOString().slice(0, 10),
             })
             .select();
 
