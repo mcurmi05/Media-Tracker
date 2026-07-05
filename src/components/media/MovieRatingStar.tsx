@@ -87,7 +87,7 @@ function MovieRatingStar({movie}) {
 
           const result = await supabase
             .from('user_ratings')
-            .insert({user_id: user.id, rating: newRating, entry_id: movieEntryId, accurate: true });
+            .insert({user_id: user.id, rating: newRating, entry_id: movieEntryId });
           error = result.error;
         }
 

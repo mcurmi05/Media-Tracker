@@ -74,7 +74,7 @@ export interface UserRating {
   rating: number | null;
   previous_rating: number | null;
   ranking: number | null;
-  accurate: boolean | null;
+  date_unknown: boolean;
   created_at: string;
   updated_at: string | null;
   entry: MediaEntry;

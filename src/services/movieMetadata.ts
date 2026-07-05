@@ -160,9 +160,12 @@ export async function upsertMovie(movieObject) {
 
   if (existing && existing.length > 0) {
     const id = existing[0].id;
+    // Don't clobber a user-chosen "everywhere" poster on a metadata refresh.
+    // cover_url is only seeded on first insert; global overrides survive.
+    const { cover_url: _ignored, ...updateRow } = row;
     const { error: updErr } = await supabase
       .from("media_entries")
-      .update(row)
+      .update(updateRow)
       .eq("id", id);
     if (updErr) {
       console.error("upsertMovie update failed", updErr);

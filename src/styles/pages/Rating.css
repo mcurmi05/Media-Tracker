@@ -26,6 +26,34 @@
   align-self: center;
 }
 
+/* Hover-to-edit poster (log page): dim + pencil, click to change poster. */
+.poster-wrapper.poster-editable {
+  position: relative;
+}
+.poster-edit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border: none;
+  padding: 0;
+  margin: 0;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.poster-wrapper.poster-editable:hover .poster-edit-overlay {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.5);
+}
+
 .top {
   padding: 1rem;
   padding-left: 0;

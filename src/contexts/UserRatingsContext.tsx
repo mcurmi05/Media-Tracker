@@ -34,8 +34,6 @@ export const UserRatingsProvider = ({ children }) => {
       rating: rating,
       movie_object: movie,
       created_at: new Date().toISOString(),
-      // Ratings created from now on have a trustworthy created_at.
-      accurate: true,
     };
     setUserRatings((prev) => [...prev, newRating]);
   };

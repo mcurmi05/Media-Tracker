@@ -67,6 +67,12 @@ function Log() {
   const [mediaTypeFilter, setMediaTypeFilter] = useState(
     location.state?.mediaTypeFilter || "all",
   );
+  // Filter by whether a note/review was written. all | has | none.
+  const [noteFilter, setNoteFilter] = useState(
+    location.state?.noteFilter || "all",
+  );
+  // Paging cap - number or "all". Keeps the DOM small on big logs.
+  const [pageSize, setPageSize] = useState(50);
   const [sortKey, setSortKey] = useState(location.state?.sortKey || "date");
   const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
   const [yearFrom, setYearFrom] = useState(location.state?.yearFrom || "");
@@ -79,6 +85,7 @@ function Log() {
     return (
       (s.ratingFilter && s.ratingFilter !== "all") ||
       (s.genreFilter && s.genreFilter !== "all") ||
+      (s.noteFilter && s.noteFilter !== "all") ||
       s.yearFrom ||
       s.yearTo ||
       s.addedFrom ||
@@ -91,9 +98,18 @@ function Log() {
   const activeFilterCount =
     (ratingFilter !== "all" ? 1 : 0) +
     (genreFilter !== "all" ? 1 : 0) +
+    (noteFilter !== "all" ? 1 : 0) +
     (yearFrom || yearTo ? 1 : 0) +
     (addedFrom || addedTo ? 1 : 0) +
     (sortKey !== "date" || sortDir !== "desc" ? 1 : 0);
+
+  // A log has a note if its text is non-blank.
+  const hasNote = (t) => !!(t && String(t).trim());
+  const noteMatchesFilter = (t) => {
+    if (noteFilter === "all") return true;
+    return noteFilter === "has" ? hasNote(t) : !hasNote(t);
+  };
+  const pageLimit = pageSize === "all" ? Infinity : pageSize;
 
   const goToRatings = () => {
     navigate("/ratings", {
@@ -175,9 +191,22 @@ function Log() {
 
   const compareNumeric = (a, b) => compareNums(a, b, sortDir);
 
+  // Land at the top normally, but when arriving from an "Add log" action jump
+  // to the freshly created log instead so the user sees what they just added.
+  const scrollToLogId = location.state?.scrollToLogId;
   useEffect(() => {
+    if (scrollToLogId) return;
     window.scrollTo({ top: 0 });
-  }, []);
+  }, [scrollToLogId]);
+
+  useEffect(() => {
+    if (!scrollToLogId) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById(`log-row-${scrollToLogId}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [scrollToLogId, userLogs]);
 
   const needsMovieData =
     mediaTypeFilter === "all" ||
@@ -253,6 +282,7 @@ function Log() {
             if (rating == null) return false;
             if (Number(rating) !== Number(ratingFilter)) return false;
           }
+          if (!noteMatchesFilter(bookLog.log)) return false;
           if (!yearMatchesFilter(bookYear(bookLog))) return false;
           if (!addedMatchesFilter(bookLog.created_at)) return false;
           return true;
@@ -302,6 +332,7 @@ function Log() {
             const genres = log.movie_object?.interests || [];
             if (!genres.includes(genreFilter)) return false;
           }
+          if (!noteMatchesFilter(log.log)) return false;
           if (!yearMatchesFilter(movieYear(log))) return false;
           if (!addedMatchesFilter(log.created_at)) return false;
           return true;
@@ -416,6 +447,30 @@ function Log() {
         ? filteredBookLogs.length
         : filteredLogs.length;
 
+  // Rendered above and below the list so the count + page-size selector are
+  // reachable without scrolling on long logs.
+  const pageSizeControl = displayCount > 0 && (
+    <div className="log-page-size">
+      <span>
+        Showing {Math.min(pageLimit, displayCount)} of {displayCount}
+      </span>
+      <select
+        value={pageSize}
+        onChange={(e) =>
+          setPageSize(
+            e.target.value === "all" ? "all" : Number(e.target.value),
+          )
+        }
+      >
+        <option value={20}>20</option>
+        <option value={50}>50</option>
+        <option value={75}>75</option>
+        <option value={100}>100</option>
+        <option value="all">All</option>
+      </select>
+    </div>
+  );
+
   return (
     <div className="page-stack">
       <h1 className="page-title">Your Log</h1>
@@ -457,6 +512,7 @@ function Log() {
           onClear={() => {
             setRatingFilter("all");
             setGenreFilter("all");
+            setNoteFilter("all");
             setYearFrom("");
             setYearTo("");
             setAddedFrom("");
@@ -475,6 +531,14 @@ function Log() {
                 {10 - i}
               </option>
             ))}
+          </select>
+          <select
+            value={noteFilter}
+            onChange={(e) => setNoteFilter(e.target.value)}
+          >
+            <option value="all">All Notes</option>
+            <option value="has">Has note</option>
+            <option value="none">No note</option>
           </select>
           <select
             value={genreFilter}
@@ -538,10 +602,11 @@ function Log() {
             </div>
           )}
           <div className="list-col">
-            {combinedAllItems.map((item) =>
+            {combinedAllItems.slice(0, pageLimit).map((item) =>
               item.kind === "log" ? (
                 <div
                   key={item.id}
+                  id={`log-row-${item.data.id}`}
                   className="list-row"
                 >
                   <LogComponent
@@ -574,7 +639,7 @@ function Log() {
             </div>
           )}
           <div className="list-col" style={{ gap: "1rem" }}>
-            {filteredBookLogs.map((bookLog) => (
+            {filteredBookLogs.slice(0, pageLimit).map((bookLog) => (
               <BookLogCard key={bookLog.id} bookLog={bookLog} />
             ))}
           </div>
@@ -588,10 +653,11 @@ function Log() {
             </div>
           )}
           <div className="list-col">
-            {filteredLogs.map((log) =>
+            {filteredLogs.slice(0, pageLimit).map((log) =>
               log.id ? (
                 <div
                   key={log.id}
+                  id={`log-row-${log.id}`}
                   className="list-row"
                 >
                   <LogComponent
@@ -608,6 +674,7 @@ function Log() {
         </>
       )}
 
+      {pageSizeControl}
     </div>
   );
 }

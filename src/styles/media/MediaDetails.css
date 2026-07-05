@@ -113,6 +113,33 @@
     margin-bottom: 34px;
 }
 
+.hero-poster-wrap {
+    grid-area: poster;
+    align-self: end;
+    position: relative;
+    width: 200px;
+    line-height: 0;
+}
+
+.hero-poster-edit {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.hero-poster-wrap:hover .hero-poster-edit {
+    opacity: 1;
+}
+
 .hero-poster {
     grid-area: poster;
     align-self: end;
@@ -254,7 +281,8 @@
         margin-bottom: 26px;
     }
 
-    .hero-poster {
+    .hero-poster,
+    .hero-poster-wrap {
         width: 128px;
     }
 
@@ -323,7 +351,8 @@
 }
 
 @media (max-width: 500px) {
-    .hero-poster {
+    .hero-poster,
+    .hero-poster-wrap {
         width: 104px;
     }
 

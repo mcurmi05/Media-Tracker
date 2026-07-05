@@ -175,6 +175,25 @@ export const getMovieById = async (
   }
 };
 
+// Poster options for a title, for the log poster picker. Returns [{ thumb, full }].
+export const getTitleImages = async (
+  mediaType: MediaType,
+  tmdbId: string | number,
+) => {
+  try {
+    const response = await fetch(
+      `${API}?action=images&mediaType=${encodeURIComponent(
+        mediaType,
+      )}&tmdbId=${encodeURIComponent(tmdbId)}`,
+    );
+    if (!response.ok) return [];
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
 // Resolve { tmdb_id, media_type } from an IMDb tconst (legacy/back-compat
 // paths and the backfill). Returns null if TMDB has no match.
 export const findByImdbId = async (imdbId: string) => {

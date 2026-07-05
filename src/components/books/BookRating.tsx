@@ -76,7 +76,7 @@ function BookRating({
     bookLog.created_at,
     bookLog.updated_at,
     bookLog.previous_rating,
-    bookLog.accurate,
+    { dateUnknown: bookLog.date_unknown },
   );
 
   // The gold/silver/bronze rank pill. Rendered in two slots (title row on
@@ -210,7 +210,7 @@ function BookRating({
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {ratingDateInfo.dateInaccurate ? (
+                  {ratingDateInfo.unknown ? (
                     <span style={{ fontWeight: 600 }}>
                       Updated: {ratingDateInfo.lastUpdatedFormatted}
                       {ratingDateInfo.previousRating != null

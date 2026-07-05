@@ -15,7 +15,7 @@ function ListComponent({
   ratingDate,
   ratingUpdatedDate,
   ratingPreviousValue = null,
-  ratingAccurate = null,
+  ratingDateUnknown = false,
   addedToWatchlistDate,
   rankNumber = null,
   showRankControls = false,
@@ -28,6 +28,8 @@ function ListComponent({
   betweenSlot = null,
   actionSlot = null,
   belowRank = null,
+  posterEditable = false,
+  onEditPoster = null,
 }) {
   const navigate = useNavigate();
 
@@ -40,7 +42,7 @@ function ListComponent({
     ratingDate,
     ratingUpdatedDate,
     ratingPreviousValue,
-    ratingAccurate,
+    { dateUnknown: ratingDateUnknown },
   );
 
   // The four reorder controls, shared between the inline (ratings) layout and
@@ -107,7 +109,9 @@ function ListComponent({
             {belowRank}
           </div>
         )}
-        <div className="poster-wrapper">
+        <div
+          className={`poster-wrapper${posterEditable ? " poster-editable" : ""}`}
+        >
           {/* Rank badge sitting in the poster (mobile), like the home top-4. */}
           {showRankBadge && rankNumber != null && (
             <span className={`poster-rank poster-rank-${rankNumber}`}>
@@ -127,6 +131,32 @@ function ListComponent({
             className="rating-poster"
             {...detailHandlers}
           />
+          {posterEditable && (
+            <button
+              type="button"
+              className="poster-edit-overlay"
+              title="Change poster"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditPoster?.();
+              }}
+            >
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+              </svg>
+            </button>
+          )}
         </div>
         <div className="right-stuff">
           <div className="title-and-star">
@@ -194,7 +224,7 @@ function ListComponent({
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {ratingDateInfo.dateInaccurate ? (
+                  {ratingDateInfo.unknown ? (
                     <span style={{ fontWeight: 600 }}>
                       Updated: {ratingDateInfo.lastUpdatedFormatted}
                       {ratingDateInfo.previousRating != null

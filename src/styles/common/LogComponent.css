@@ -192,3 +192,44 @@
 .dnf-badge:hover {
   background: #e23030;
 }
+
+/* Optional note: pencil-to-add shown only when no note written yet */
+.log-note-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.log-note-add:hover {
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Rating star inside the log modal: cancel the card's -40px pull so it sits
+   centered next to the date. */
+.logmodal-rating .user-rating-movie-card {
+  margin-top: 0;
+}
+
+/* "Date unknown" chip shown on a log whose watch/read date is unset. Click to
+   set a real date. */
+.log-date-unknown {
+  background: transparent;
+  border: 1px dashed #666;
+  color: #bbb;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.log-date-unknown:hover {
+  border-color: #888;
+  color: #ddd;
+}

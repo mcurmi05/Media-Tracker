@@ -78,6 +78,12 @@ export function bookPayloadToEntry(payload) {
 // user_logs row (movie/tv, entry joined) -> legacy logs row.
 // Old rows used created_at as the watch date; that now lives in started_at.
 export function toMovieLogRow(row, movieObject) {
+  // A log can carry its own poster (user_logs.poster_url) that overrides the
+  // shared entry cover for just this log's card.
+  const mo =
+    row.poster_url && movieObject
+      ? { ...movieObject, primaryImage: row.poster_url, poster_url: row.poster_url }
+      : movieObject;
   return {
     id: row.id,
     user_id: row.user_id,
@@ -88,12 +94,19 @@ export function toMovieLogRow(row, movieObject) {
     multi_day: row.multi_day ?? row.ended_at != null,
     dnf: row.dnf,
     season_info: row.season_info,
-    movie_object: movieObject,
+    poster_url: row.poster_url ?? null,
+    // A null watch date (started_at) means the date is unknown. created_at
+    // still falls back to the insert time above so sorting stays stable.
+    date_unknown: row.started_at == null,
+    movie_object: mo,
   };
 }
 
 // user_logs row (book) -> legacy book_logs row.
 export function toBookLogRow(row) {
+  const entry = entryToBookObject(row.entry);
+  // Per-log poster overrides the shared entry cover for this log's card.
+  if (entry && row.poster_url) entry.cover_image = row.poster_url;
   return {
     id: row.id,
     user_id: row.user_id,
@@ -103,7 +116,8 @@ export function toBookLogRow(row) {
     end_date: row.ended_at,
     dnf: row.dnf,
     created_at: row.created_at,
-    book_entries: entryToBookObject(row.entry),
+    poster_url: row.poster_url ?? null,
+    book_entries: entry,
   };
 }
 
@@ -127,7 +141,7 @@ export function toMovieRatingRow(row, movieObject) {
     rating: row.rating,
     previous_rating: row.previous_rating,
     ranking: row.ranking,
-    accurate: row.accurate,
+    date_unknown: row.date_unknown,
     created_at: row.created_at,
     updated_at: row.updated_at,
     movie_object: movieObject,
@@ -142,7 +156,7 @@ export function toBookRatingRow(row) {
     book_rating: row.rating,
     previous_rating: row.previous_rating,
     ranking: row.ranking,
-    accurate: row.accurate,
+    date_unknown: row.date_unknown,
     created_at: row.created_at,
     updated_at: row.updated_at,
     book_entries: entryToBookObject(row.entry),
@@ -155,7 +169,7 @@ export function bookRatingUpdatesToRating(updates) {
   if ("book_rating" in updates) out.rating = updates.book_rating;
   if ("previous_rating" in updates) out.previous_rating = updates.previous_rating;
   if ("ranking" in updates) out.ranking = updates.ranking;
-  if ("accurate" in updates) out.accurate = updates.accurate;
+  if ("date_unknown" in updates) out.date_unknown = updates.date_unknown;
   if ("book_id" in updates) out.entry_id = updates.book_id;
   return out;
 }

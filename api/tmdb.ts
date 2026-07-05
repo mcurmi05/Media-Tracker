@@ -7,6 +7,7 @@
 //   ?action=trending-tv
 //   ?action=search&query=<text>
 //   ?action=title&mediaType=<movie|tv>&tmdbId=<id>
+//   ?action=images&mediaType=<movie|tv>&tmdbId=<id> -> [{ thumb, full }]
 //   ?action=find&imdbId=<tconst>      -> { tmdb_id, media_type } (or null)
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
@@ -491,6 +492,33 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json(mapDetail(data, mediaType, seasonDetails));
+    }
+
+    if (action === "images") {
+      const mediaType = q.mediaType === "tv" ? "tv" : "movie";
+      const tmdbId = String(q.tmdbId || "").trim();
+      if (!/^\d+$/.test(tmdbId)) {
+        return res.status(400).json({ error: "Invalid tmdbId" });
+      }
+      // include_image_language keeps English + textless posters first; TMDB
+      // otherwise floats every localized variant to the top.
+      const data = await tmdbFetch(
+        `/${mediaType}/${tmdbId}/images`,
+        { include_image_language: "en,null" },
+        key,
+      );
+      const posters = (data.posters || [])
+        .slice(0, 30)
+        .map((p) => ({
+          thumb: posterUrl(p.file_path, "w342"),
+          full: posterUrl(p.file_path, "w500"),
+        }))
+        .filter((p) => p.full);
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=86400, stale-while-revalidate=604800",
+      );
+      return res.status(200).json(posters);
     }
 
     if (action === "find") {

@@ -18,6 +18,7 @@ import BookRatingStar from "../components/books/BookRatingStar";
 import AddBookWatchlist from "../components/books/AddBookWatchlist";
 import AddBookLogButton from "../components/books/AddBookLogButton";
 import AddToList from "../components/common/AddToList";
+import WatchedTick from "../components/media/WatchedTick";
 import EditBookInfoModal from "../components/books/EditBookInfoModal";
 import StorygraphInfo from "../features/ratings/storygraph/StorygraphInfo";
 import GoodreadsInfo from "../components/books/GoodreadsInfo";
@@ -323,6 +324,7 @@ export default function BookDetails() {
       <div className="bd-action-buttons">
         <AddBookWatchlist book={bookObj} />
         <AddBookLogButton book={bookObj} />
+        <WatchedTick book={bookObj} />
         <AddToList book={bookObj} />
         {dbEntry ? (
           <div

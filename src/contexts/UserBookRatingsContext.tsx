@@ -113,8 +113,6 @@ export const UserBookRatingsProvider = ({ children }) => {
           book_id: bookId,
           book_rating: newRating,
           ranking: maxRanking + 1,
-          // Ratings created from now on have a trustworthy created_at.
-          accurate: true,
         });
         setBookRatings((prev) => [newRow, ...prev]);
       } catch (err) {

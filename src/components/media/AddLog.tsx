@@ -1,149 +1,98 @@
-import "../../styles/media/AddLog.css"
-import { useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { supabase } from "../../services/supabase-client";
+import "../../styles/media/AddLog.css";
+import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useLogs } from "../../contexts/UserLogsContext";
+import { supabase } from "../../services/supabase-client";
 import { upsertMovie, resolveFullMovie } from "../../services/movieMetadata";
+import LogModal from "./LogModal";
 
-export default function AddLog({movie}){
+export default function AddLog({ movie }) {
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { addLog, removeLog } = useLogs();
 
-    const {user, isAuthenticated} = useAuth();
-    const navigate = useNavigate();
-    const {addLog, userLogs} = useLogs();
+  const [creating, setCreating] = useState(false);
+  // The freshly created log being edited in the modal: { logId, entryId, full }.
+  const [editing, setEditing] = useState(null);
 
-    const iconRef = useRef(null);
-    const [menuPos, setMenuPos] = useState(null);
+  // Create a fresh log row for this title, then open the editor modal on it.
+  // Rewatches just stack another log.
+  async function createLog() {
+    setCreating(true);
 
-    const alreadyLogged = userLogs?.some(
-        (log) =>
-            log.user_id === user?.id &&
-            ((movie?.tmdb_id != null &&
-                log.movie_object?.tmdb_id === movie.tmdb_id &&
-                log.movie_object?.media_type === movie.media_type) ||
-                (movie?.id && log.imdb_movie_id === movie.id)),
-    );
+    // Ensure full metadata (browse cards only carry tmdb_id), cache it in the
+    // shared media table, and reference it by uuid.
+    const full =
+      movie.tmdb_id != null && movie.id ? movie : await resolveFullMovie(movie);
+    const movieEntryId = await upsertMovie(full);
 
-    // Insert a fresh log for this title and jump to the Log page.
-    async function createLog(){
-        navigate("/log")
+    const { data, error } = await supabase
+      .from("user_logs")
+      .insert({
+        user_id: user.id,
+        entry_id: movieEntryId,
+        // watch date; the old schema used created_at for this
+        started_at: new Date().toISOString().slice(0, 10),
+      })
+      .select();
 
-        // Ensure we have full metadata (browse cards only carry tmdb_id),
-        // cache it in the shared movies table, and reference it by uuid.
-        const full =
-            movie.tmdb_id != null && movie.id
-                ? movie
-                : await resolveFullMovie(movie);
-        const movieEntryId = await upsertMovie(full);
-
-        const { data, error } = await supabase
-        .from("user_logs")
-        .insert(
-            {
-                user_id: user.id,
-                entry_id: movieEntryId,
-                // watch date; the old schema used created_at for this
-                started_at: new Date().toISOString().slice(0, 10),
-            })
-            .select();
-
-        if (error) {
-            console.error(error);
-            return;
-        }
-        const newLog = data[0];
-        addLog(full.id, "", full, newLog.id)
+    setCreating(false);
+    if (error) {
+      console.error(error);
+      return;
     }
+    addLog(full.id, "", full, data[0].id);
+    setEditing({ logId: data[0].id, entryId: movieEntryId, full });
+  }
 
-    function onClick(e){
-        e?.stopPropagation();
-        if (!isAuthenticated) {
-            navigate("/signin");
-            return;
-        }
-        // If this title is already logged, offer a choice rather than silently
-        // stacking another log. Otherwise just create the first log.
-        if (alreadyLogged) {
-            if (menuPos) {
-                setMenuPos(null);
-                return;
-            }
-            const rect = iconRef.current?.getBoundingClientRect();
-            if (rect) {
-                // Fixed-position so the menu escapes any overflow:hidden card.
-                // Sit above the icon (flipping below if there's no room) and
-                // centered on it, so it never runs off the right edge.
-                const placeAbove = rect.top > 120;
-                setMenuPos({
-                    left: rect.left + rect.width / 2,
-                    top: placeAbove ? rect.top - 8 : rect.bottom + 8,
-                    placeAbove,
-                });
-            }
-            return;
-        }
-        createLog();
+  function onClick(e) {
+    e?.stopPropagation();
+    if (!isAuthenticated) {
+      navigate("/signin");
+      return;
     }
+    if (creating) return;
+    createLog();
+  }
 
-    function goToLog(e){
-        e?.stopPropagation();
-        setMenuPos(null);
-        navigate("/log", { state: { searchTerm: movie?.primaryTitle || "" } });
-    }
+  // Confirm: keep the log, jump to the Log page scrolled to it.
+  function onConfirm() {
+    const logId = editing?.logId;
+    setEditing(null);
+    navigate("/log", { state: { scrollToLogId: logId } });
+  }
 
-    function createRewatch(e){
-        e?.stopPropagation();
-        setMenuPos(null);
-        createLog();
-    }
+  // Cancel / click away: discard the log that was created up-front.
+  async function onCancel() {
+    const logId = editing?.logId;
+    setEditing(null);
+    if (!logId) return;
+    removeLog(logId);
+    const { error } = await supabase.from("user_logs").delete().eq("id", logId);
+    if (error) console.error(error);
+  }
 
-    return(
+  return (
+    <>
+      <div className="white-highlight">
+        <img
+          src="/images/addlog.png"
+          className="addlog-icon addlog-log-icon"
+          onClick={onClick}
+          title="Add to log"
+        ></img>
+      </div>
 
-        <div className="white-highlight">
-            <img
-                ref={iconRef}
-                src="/images/addlog.png"
-                className="addlog-icon addlog-log-icon"
-                onClick={onClick}
-                title={alreadyLogged ? "Logged - options" : "Add to log"}
-            ></img>
-            {menuPos &&
-                createPortal(
-                    <>
-                        <div
-                            className="addlog-menu-backdrop"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setMenuPos(null);
-                            }}
-                        />
-                        <div
-                            className="addlog-menu"
-                            style={{
-                                top: menuPos.top,
-                                left: menuPos.left,
-                                transform: menuPos.placeAbove
-                                    ? "translate(-50%, -100%)"
-                                    : "translate(-50%, 0)",
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <button className="addlog-menu-item" onClick={goToLog}>
-                                Go to log
-                            </button>
-                            <button
-                                className="addlog-menu-item"
-                                onClick={createRewatch}
-                            >
-                                Create rewatch log
-                            </button>
-                        </div>
-                    </>,
-                    document.body,
-                )}
-        </div>
-
-    );
-
-};
+      {editing && (
+        <LogModal
+          open={!!editing}
+          movie={editing.full}
+          logId={editing.logId}
+          onConfirm={onConfirm}
+          onCancel={onCancel}
+        />
+      )}
+    </>
+  );
+}

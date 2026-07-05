@@ -2,6 +2,8 @@ import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getMovieById } from "../services/api";
 import { upsertMovie } from "../services/movieMetadata";
+import { supabase } from "../services/supabase-client";
+import PosterEditModal from "../components/media/PosterEditModal";
 import { useImdbRating } from "../contexts/ImdbRatingsContext";
 import "../styles/media/MediaDetails.css";
 import ReleaseAndRunTime from "../components/media/ReleaseAndRunTime";
@@ -13,6 +15,7 @@ import CastList from "../components/media/CastList";
 import ScrollStrip from "../components/layout/ScrollStrip";
 import EpisodeModal from "../components/media/EpisodeModal";
 import AddLog from "../components/media/AddLog";
+import WatchedTick from "../components/media/WatchedTick";
 import AddWatchlist from "../components/media/AddWatchlist";
 import AddToList from "../components/common/AddToList";
 import { useRatings } from "../contexts/UserRatingsContext";
@@ -40,6 +43,7 @@ function MediaDetails() {
   const [backdropLoaded, setBackdropLoaded] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState(null);
   const [movieEntryId, setMovieEntryId] = useState(null);
+  const [showPosterEdit, setShowPosterEdit] = useState(false);
   const [watchStatus, setWatchStatus] = useState({});
   const { userRatings } = useRatings();
   const { user } = useAuth();
@@ -70,6 +74,28 @@ function MediaDetails() {
 
     fetchMovieDetails();
   }, [mediaType, tmdbId]);
+
+  // Prefer a user-chosen "everywhere" poster over the TMDB one, if one is set.
+  useEffect(() => {
+    if (!movieEntryId) return;
+    let active = true;
+    supabase
+      .from("media_entries")
+      .select("cover_url")
+      .eq("id", movieEntryId)
+      .single()
+      .then(({ data }) => {
+        if (!active || !data?.cover_url) return;
+        setMovie((m) =>
+          m && m.primaryImage !== data.cover_url
+            ? { ...m, primaryImage: data.cover_url }
+            : m,
+        );
+      });
+    return () => {
+      active = false;
+    };
+  }, [movieEntryId]);
 
   // Load this user's watch status for the title once we have its movies row id.
   useEffect(() => {
@@ -196,6 +222,17 @@ function MediaDetails() {
 
   return (
     <div className="page-container">
+      {showPosterEdit && (
+        <PosterEditModal
+          open
+          movie={movie}
+          entryId={movieEntryId}
+          onClose={() => setShowPosterEdit(false)}
+          onApplied={(url) =>
+            setMovie((m) => (m ? { ...m, primaryImage: url } : m))
+          }
+        />
+      )}
       {movie.backdropImageHD && (
         <div className="media-backdrop-hero">
           <img
@@ -210,15 +247,40 @@ function MediaDetails() {
       <div className="media-details">
         {/* Hero: poster overlapping the banner's bottom edge, with title + meta */}
         <div className="hero-row">
-          <img
-            className="hero-poster"
-            src={movie.primaryImage || "/images/placeholderimage.jpg"}
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "/images/placeholderimage.jpg";
-            }}
-            alt={movie.primaryTitle}
-          />
+          <div className="hero-poster-wrap">
+            <img
+              className="hero-poster"
+              src={movie.primaryImage || "/images/placeholderimage.jpg"}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "/images/placeholderimage.jpg";
+              }}
+              alt={movie.primaryTitle}
+            />
+            {movie.tmdb_id != null && (
+              <button
+                type="button"
+                className="hero-poster-edit"
+                title="Change poster"
+                onClick={() => setShowPosterEdit(true)}
+              >
+                <svg
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
+              </button>
+            )}
+          </div>
           <div className="hero-info">
             <div className="title-row">
               <h1 className="title">{movie.primaryTitle}</h1>
@@ -238,6 +300,7 @@ function MediaDetails() {
                   <AddWatchlist movie={movie} needMoreDetail={false}></AddWatchlist>
                   <AddLog movie={movie} needMoreDetail={false}></AddLog>
                   <AddToList movie={movie} />
+                  <WatchedTick movie={movie} />
                 </div>
                 {/* Rank badge only if rated 10; no controls here */}
                 {(() => {

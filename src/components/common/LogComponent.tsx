@@ -1,5 +1,7 @@
+import { Pencil } from "lucide-react";
 import ListComponent from "./ListComponent";
 import AddToList from "./AddToList";
+import PosterEditModal from "../media/PosterEditModal";
 import "../../styles/pages/Rating.css";
 import "../../styles/common/LogComponent.css";
 import { supabase } from "../../services/supabase-client";
@@ -55,8 +57,11 @@ export default function LogComponent({
   const [showUndoSeasonModal, setShowUndoSeasonModal] = useState(false);
   const [undoSeasonIndex, setUndoSeasonIndex] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPosterEdit, setShowPosterEdit] = useState(false);
 
   const [text, setText] = useState(logtext);
+  // Note is optional. Collapsed by default; pencil opens the editor.
+  const [editingNote, setEditingNote] = useState(false);
   const debounceTimeout = useRef(null);
 
   const [saving, setSaving] = useState(false);
@@ -102,6 +107,8 @@ export default function LogComponent({
 
     if (!error) {
       updateDate(log_id, isoDate);
+      // Setting a real date clears the unknown flag.
+      patchLog(log_id, { date_unknown: false });
       setTimeout(() => setSaving(false), 1200);
     } else {
       setSaving(false);
@@ -110,9 +117,27 @@ export default function LogComponent({
     }
   }
 
+  // Mark the watch date as unknown (null started_at). The card then shows a
+  // "Date unknown" chip instead of a date; clicking it sets a real date.
+  async function handleDateUnknown() {
+    setSaving(true);
+    const { error } = await supabase
+      .from("user_logs")
+      .update({ started_at: null })
+      .eq("id", log_id);
+    if (!error) {
+      patchLog(log_id, { date_unknown: true });
+      setTimeout(() => setSaving(false), 1200);
+    } else {
+      setSaving(false);
+      console.error("Error setting date unknown:", error);
+    }
+  }
+
   const liveLog = userLogs.find((l) => l.id === log_id);
   const movieEndDate = liveLog?.movie_end_date ?? movie_end_date;
   const isMultiDay = !!liveLog?.multi_day;
+  const dateUnknown = !!liveLog?.date_unknown;
   // Log-level DNF flag: marks a multi-day movie or a whole TV series as
   // abandoned. Shared `dnf` column on the logs table.
   const logDnf = !!liveLog?.dnf;
@@ -363,6 +388,7 @@ export default function LogComponent({
         : "Set to multi-day movie log",
       onClick: () => handleMultiDayChange(!isMultiDay),
     },
+    { label: "Date unknown", onClick: handleDateUnknown },
   ];
   if (isMultiDay) {
     movieActions.push({
@@ -381,6 +407,20 @@ export default function LogComponent({
 
   const dateLabelStyle = { fontSize: "0.9rem", color: "#ccc" };
 
+  // Inline "add note" shown next to the date when no note exists yet, so an
+  // empty note takes no vertical space.
+  const noteEmpty = !editingNote && !(text && text.trim());
+  const addNoteBtn = noteEmpty ? (
+    <button
+      type="button"
+      className="log-note-add"
+      onClick={() => setEditingNote(true)}
+    >
+      <Pencil className="size-4" />
+      Add note
+    </button>
+  ) : null;
+
   return (
     //i am fully aware of how lazy this is
     <div className="log-rating-wrapper">
@@ -389,7 +429,18 @@ export default function LogComponent({
         movie_object={movie}
         ratingDate="today"
         betweenSlot={<AddToList movie={movie} />}
+        posterEditable={movie?.tmdb_id != null}
+        onEditPoster={() => setShowPosterEdit(true)}
       ></ListComponent>
+      {showPosterEdit && (
+        <PosterEditModal
+          open={showPosterEdit}
+          movie={movie}
+          logId={log_id}
+          entryId={movieEntryId}
+          onClose={() => setShowPosterEdit(false)}
+        />
+      )}
       {!isTV && (
         <div
           style={{
@@ -405,16 +456,28 @@ export default function LogComponent({
             style={{ display: "flex", alignItems: "center", gap: "8px" }}
           >
             {isMultiDay && <span style={dateLabelStyle}>Started:</span>}
-            <Dialog
-              initialDate={created_at ? new Date(created_at) : new Date()}
-              onDateChange={handleDateChange}
-              showWeekday={true}
-              dateColor="#fff"
-              iconGap="10px"
-              minWidth="auto"
-              extraActions={movieActions}
-            />
+            {dateUnknown ? (
+              <button
+                type="button"
+                className="log-date-unknown"
+                onClick={() => handleDateChange(new Date())}
+                title="Set a date"
+              >
+                Date unknown
+              </button>
+            ) : (
+              <Dialog
+                initialDate={created_at ? new Date(created_at) : new Date()}
+                onDateChange={handleDateChange}
+                showWeekday={true}
+                dateColor="#fff"
+                iconGap="10px"
+                minWidth="auto"
+                extraActions={movieActions}
+              />
+            )}
           </div>
+          {addNoteBtn}
 
           {isMultiDay &&
             (logDnf ? (
@@ -516,6 +579,7 @@ export default function LogComponent({
                   style={{ width: 16, height: 16 }}
                 />
               </button>
+              {addNoteBtn}
             </div>
             <div
               style={{ display: "flex", flexDirection: "column", gap: "8px" }}
@@ -796,18 +860,24 @@ export default function LogComponent({
             </div>
           </div>
         )}
-      <textarea
-        ref={textareaRef}
-        className="log-input"
-        value={text}
-        onInput={(e) => {
-          e.target.style.height = "100px";
-          e.target.style.height = e.target.scrollHeight + "px";
-          setText(e.target.value);
-          //open to suggestions on a better way to do this lol
-          setTextEdited(true);
-        }}
-      ></textarea>
+      {(editingNote || (text && text.trim())) && (
+        <textarea
+          ref={textareaRef}
+          className="log-input"
+          value={text}
+          autoFocus={editingNote}
+          onBlur={() => {
+            if (!text || !text.trim()) setEditingNote(false);
+          }}
+          onInput={(e) => {
+            e.target.style.height = "100px";
+            e.target.style.height = e.target.scrollHeight + "px";
+            setText(e.target.value);
+            //open to suggestions on a better way to do this lol
+            setTextEdited(true);
+          }}
+        ></textarea>
+      )}
       <img
         src="/images/logdelete.png"
         className="log-delete-icon"
@@ -1080,15 +1150,11 @@ export default function LogComponent({
           )}
         </Box>
       </Modal>
-      {
+      {saving && (
         <div style={{ fontSize: "0.9rem", color: "#888", marginTop: "4px" }}>
-          {saving ? (
-            <p>Saving, please don't refresh or click away...</p>
-          ) : (
-            <br></br>
-          )}
+          <p>Saving, please don't refresh or click away...</p>
         </div>
-      }
+      )}
     </div>
   );
 }

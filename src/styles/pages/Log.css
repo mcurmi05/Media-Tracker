@@ -61,3 +61,23 @@
     padding: 0 5px;
   }
 }
+
+/* Paging control at the bottom of the log list */
+.log-page-size {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.log-page-size select {
+  background: #1a1a1a;
+  color: #eee;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}

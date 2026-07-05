@@ -1,3 +1,4 @@
+import { Pencil } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useBookLogs } from "../../contexts/UserBookLogsContext";
 import { useBookRatings } from "../../contexts/UserBookRatingsContext";
@@ -44,6 +45,8 @@ const BookLogCard = ({ bookLog }) => {
   const [buttonSaving, setButtonSaving] = useState(false);
   const [ratingSaving, setRatingSaving] = useState(false);
   const [textEdited, setTextEdited] = useState(false);
+  // Note is optional. Collapsed by default; pencil opens the editor.
+  const [editingNote, setEditingNote] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const debounceTimeout = useRef(null);
@@ -93,6 +96,18 @@ const BookLogCard = ({ bookLog }) => {
       setButtonSaving(false);
       console.error("Error updating start date:", error);
       alert("Failed to save start date. Please try again.");
+    }
+  };
+
+  // Mark the read/start date as unknown (null). Shows a chip; click to set one.
+  const handleStartDateUnknown = async () => {
+    try {
+      setButtonSaving(true);
+      await updateBookLog(bookLog.id, { start_date: null });
+      setTimeout(() => setButtonSaving(false), 1200);
+    } catch (error) {
+      setButtonSaving(false);
+      console.error("Error setting date unknown:", error);
     }
   };
 
@@ -216,6 +231,19 @@ const BookLogCard = ({ bookLog }) => {
       return null;
     }
   };
+
+  // Inline "add note" next to the dates when no note exists yet.
+  const noteEmpty = !editingNote && !(text && text.trim());
+  const addNoteBtn = noteEmpty ? (
+    <button
+      type="button"
+      className="log-note-add"
+      onClick={() => setEditingNote(true)}
+    >
+      <Pencil className="size-4" />
+      Add note
+    </button>
+  ) : null;
 
   return (
     <div className="book-log-card">
@@ -375,26 +403,36 @@ const BookLogCard = ({ bookLog }) => {
               >
                 Started:
               </span>
-              <Dialog
-                initialDate={
-                  bookLog.start_date ? new Date(bookLog.start_date) : null
-                }
-                onDateChange={handleStartDateChange}
-                showWeekday={false}
-                dateColor="#ffffff"
-                minWidth="120px"
-                extraActions={
-                  !bookLog.end_date && !bookLog.dnf
-                    ? [
-                        {
-                          label: "DNF",
-                          onClick: () => handleDnf(true),
-                          danger: true,
-                        },
-                      ]
-                    : []
-                }
-              />
+              {bookLog.start_date ? (
+                <Dialog
+                  initialDate={new Date(bookLog.start_date)}
+                  onDateChange={handleStartDateChange}
+                  showWeekday={false}
+                  dateColor="#ffffff"
+                  minWidth="120px"
+                  extraActions={[
+                    { label: "Date unknown", onClick: handleStartDateUnknown },
+                    ...(!bookLog.end_date && !bookLog.dnf
+                      ? [
+                          {
+                            label: "DNF",
+                            onClick: () => handleDnf(true),
+                            danger: true,
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="log-date-unknown"
+                  onClick={() => handleStartDateChange(new Date())}
+                  title="Set a date"
+                >
+                  Date unknown
+                </button>
+              )}
             </div>
 
             {bookLog.end_date ? (
@@ -473,14 +511,20 @@ const BookLogCard = ({ bookLog }) => {
                 />
               </button>
             )}
+            {addNoteBtn}
           </div>
         </div>
 
+        {(editingNote || (text && text.trim())) && (
         <div className="book-log-text" style={{ position: "relative" }}>
           <textarea
             ref={textareaRef}
             className="log-input"
             value={text}
+            autoFocus={editingNote}
+            onBlur={() => {
+              if (!text || !text.trim()) setEditingNote(false);
+            }}
             onChange={(e) => {
               setText(e.target.value);
               setTextEdited(true);
@@ -505,6 +549,7 @@ const BookLogCard = ({ bookLog }) => {
             </div>
           )}
         </div>
+        )}
       </div>
 
       <RatingModal
