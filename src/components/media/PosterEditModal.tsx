@@ -2,12 +2,8 @@ import { useEffect, useState } from "react";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import { supabase } from "../../services/supabase-client";
-import { getTitleImages } from "../../services/api";
-import { useAuth } from "../../contexts/AuthContext";
-import { useLogs } from "../../contexts/UserLogsContext";
-import { useRatings } from "../../contexts/UserRatingsContext";
-import { useWatchlist } from "../../contexts/UserWatchlistContext";
+import { getTitleImages, getBookCovers } from "../../services/api";
+import { useCovers } from "../../contexts/UserCoversContext";
 
 const modalStyle = {
   position: "absolute",
@@ -25,111 +21,66 @@ const modalStyle = {
   borderRadius: 2,
 };
 
-// Change the poster shown for a movie/tv log. The user picks a poster, then
-// chooses how widely to apply it: this one log, every log they have of this
-// title, or everywhere (the title's shared default cover).
+// Change the cover a user sees for a title. The picked poster is stored as a
+// per-user override (user_media_covers) and shows everywhere that user sees the
+// title - logs, ratings, watchlist, details - without changing what anyone else
+// sees. Works for movies/tv (TMDB posters) and books (Hardcover editions).
 export default function PosterEditModal({
   open,
-  movie,
-  logId,
   entryId,
+  mediaType,
+  tmdbId,
+  hardcoverId,
+  title,
+  currentImage,
   onClose,
-  onApplied,
 }) {
-  const { user } = useAuth();
-  const { patchLog, setUserLogs } = useLogs();
-  const { setUserRatings } = useRatings();
-  const { setUserWatchlist } = useWatchlist();
+  const { coverFor, setCover } = useCovers();
+  const isBook = mediaType === "book";
 
   const [posters, setPosters] = useState([]);
-  const [selected, setSelected] = useState(movie?.primaryImage || null);
+  const [selected, setSelected] = useState(
+    coverFor(entryId) ?? currentImage ?? null,
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!open || movie?.tmdb_id == null) return;
+    if (!open) return;
+    setSelected(coverFor(entryId) ?? currentImage ?? null);
     let live = true;
-    setSelected(movie?.primaryImage || null);
-    getTitleImages(movie.media_type, movie.tmdb_id).then((list) => {
+    const fetcher = isBook
+      ? hardcoverId != null
+        ? getBookCovers(hardcoverId)
+        : Promise.resolve([])
+      : tmdbId != null
+        ? getTitleImages(mediaType, tmdbId)
+        : Promise.resolve([]);
+    fetcher.then((list) => {
       if (live) setPosters(Array.isArray(list) ? list : []);
     });
     return () => {
       live = false;
     };
-  }, [open, movie?.tmdb_id, movie?.media_type, movie?.primaryImage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isBook, tmdbId, hardcoverId, mediaType]);
 
-  const overrideObject = (mo) =>
-    mo ? { ...mo, primaryImage: selected, poster_url: selected } : mo;
+  const hasOverride = coverFor(entryId) != null;
 
-  async function applyThisLog() {
+  async function apply() {
     setSaving(true);
-    const { error } = await supabase
-      .from("user_logs")
-      .update({ poster_url: selected })
-      .eq("id", logId);
+    await setCover(entryId, selected);
     setSaving(false);
-    if (!error) {
-      patchLog(logId, {
-        poster_url: selected,
-        movie_object: overrideObject(movie),
-      });
-      onClose();
-    }
+    onClose();
   }
 
-  async function applyAllMyLogs() {
+  async function resetToDefault() {
     setSaving(true);
-    const { error } = await supabase
-      .from("user_logs")
-      .update({ poster_url: selected })
-      .eq("user_id", user.id)
-      .eq("entry_id", entryId);
+    await setCover(entryId, null);
     setSaving(false);
-    if (!error) {
-      setUserLogs((prev) =>
-        prev.map((l) =>
-          l.movie_entry_id === entryId && l.user_id === user.id
-            ? {
-                ...l,
-                poster_url: selected,
-                movie_object: overrideObject(l.movie_object),
-              }
-            : l,
-        ),
-      );
-      onClose();
-    }
+    onClose();
   }
 
-  async function applyEverywhere() {
-    setSaving(true);
-    const { error } = await supabase
-      .from("media_entries")
-      .update({ cover_url: selected })
-      .eq("id", entryId);
-    setSaving(false);
-    if (!error) {
-      // Reflect the new default cover everywhere it's cached in state, so the
-      // change shows without a reload. Logs that carry their own poster_url
-      // keep their per-log override.
-      const patchMatching = (row) =>
-        row.movie_entry_id === entryId
-          ? { ...row, movie_object: overrideObject(row.movie_object) }
-          : row;
-      setUserLogs((prev) =>
-        prev.map((l) =>
-          l.movie_entry_id === entryId && !l.poster_url
-            ? { ...l, movie_object: overrideObject(l.movie_object) }
-            : l,
-        ),
-      );
-      setUserRatings((prev) => prev.map(patchMatching));
-      setUserWatchlist((prev) => prev.map(patchMatching));
-      onApplied?.(selected);
-      onClose();
-    }
-  }
-
-  const scopeBtn = {
+  const btn = {
     color: "white",
     borderColor: "#666",
     "&:hover": { borderColor: "#888" },
@@ -141,15 +92,16 @@ export default function PosterEditModal({
     <Modal open={open} onClose={onClose}>
       <Box sx={modalStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ fontWeight: "bold", fontSize: "1.1rem", marginBottom: 6 }}>
-          Change poster{movie?.primaryTitle ? `: ${movie.primaryTitle}` : ""}
+          Change cover{title ? `: ${title}` : ""}
         </div>
         <div style={{ color: "#aaa", fontSize: "0.9rem", marginBottom: 16 }}>
-          Pick a poster, then choose where it applies.
+          Pick a cover. Only you will see it - it applies everywhere you see this
+          title.
         </div>
 
         {posters.length === 0 ? (
           <div style={{ color: "#888", padding: "12px 0" }}>
-            No poster options found for this title.
+            No cover options found for this title.
           </div>
         ) : (
           <div
@@ -165,19 +117,9 @@ export default function PosterEditModal({
               <img
                 key={p.full}
                 src={p.thumb}
-                alt="Poster option"
+                alt="Cover option"
                 onClick={() => setSelected(p.full)}
-                style={{
-                  width: "100%",
-                  aspectRatio: "2 / 3",
-                  objectFit: "cover",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                  border:
-                    selected === p.full
-                      ? "2px solid #e23030"
-                      : "2px solid transparent",
-                }}
+                className={`poster-option${selected === p.full ? " is-selected" : ""}`}
               />
             ))}
           </div>
@@ -188,36 +130,27 @@ export default function PosterEditModal({
             display: "flex",
             gap: 10,
             flexWrap: "wrap",
+            alignItems: "center",
             justifyContent: "flex-end",
             marginTop: 20,
           }}
         >
-          <Button variant="outlined" onClick={onClose} disabled={saving} sx={scopeBtn}>
+          <Button variant="outlined" onClick={onClose} disabled={saving} sx={btn}>
             Cancel
           </Button>
-          {logId != null && (
-            <>
-              <Button
-                variant="outlined"
-                onClick={applyThisLog}
-                disabled={saving || !selected}
-                sx={scopeBtn}
-              >
-                Only this log
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={applyAllMyLogs}
-                disabled={saving || !selected}
-                sx={scopeBtn}
-              >
-                Every log of this title
-              </Button>
-            </>
+          {hasOverride && (
+            <Button
+              variant="outlined"
+              onClick={resetToDefault}
+              disabled={saving}
+              sx={btn}
+            >
+              Reset to default
+            </Button>
           )}
           <Button
             variant="contained"
-            onClick={applyEverywhere}
+            onClick={apply}
             disabled={saving || !selected || !entryId}
             sx={{
               fontWeight: "bold",
@@ -227,7 +160,7 @@ export default function PosterEditModal({
               "&:hover": { backgroundColor: "#e23030" },
             }}
           >
-            Everywhere
+            Change cover
           </Button>
         </div>
       </Box>

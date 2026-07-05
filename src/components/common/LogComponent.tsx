@@ -1,7 +1,6 @@
 import { Pencil } from "lucide-react";
 import ListComponent from "./ListComponent";
 import AddToList from "./AddToList";
-import PosterEditModal from "../media/PosterEditModal";
 import "../../styles/pages/Rating.css";
 import "../../styles/common/LogComponent.css";
 import { supabase } from "../../services/supabase-client";
@@ -57,7 +56,6 @@ export default function LogComponent({
   const [showUndoSeasonModal, setShowUndoSeasonModal] = useState(false);
   const [undoSeasonIndex, setUndoSeasonIndex] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showPosterEdit, setShowPosterEdit] = useState(false);
 
   const [text, setText] = useState(logtext);
   // Note is optional. Collapsed by default; pencil opens the editor.
@@ -430,17 +428,8 @@ export default function LogComponent({
         ratingDate="today"
         betweenSlot={<AddToList movie={movie} />}
         posterEditable={movie?.tmdb_id != null}
-        onEditPoster={() => setShowPosterEdit(true)}
+        posterEntryId={movieEntryId}
       ></ListComponent>
-      {showPosterEdit && (
-        <PosterEditModal
-          open={showPosterEdit}
-          movie={movie}
-          logId={log_id}
-          entryId={movieEntryId}
-          onClose={() => setShowPosterEdit(false)}
-        />
-      )}
       {!isTV && (
         <div
           style={{

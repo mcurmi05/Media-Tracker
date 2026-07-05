@@ -14,6 +14,8 @@ import {
   parseBookTitle,
 } from "../utils/goodreads";
 import { useBookRatings } from "../contexts/UserBookRatingsContext";
+import { useCovers } from "../contexts/UserCoversContext";
+import PosterEditModal from "../components/media/PosterEditModal";
 import BookRatingStar from "../components/books/BookRatingStar";
 import AddBookWatchlist from "../components/books/AddBookWatchlist";
 import AddBookLogButton from "../components/books/AddBookLogButton";
@@ -94,6 +96,8 @@ export default function BookDetails() {
   const [scrapeLoading, setScrapeLoading] = useState(!isHardcover);
   const [scrapeError, setScrapeError] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCoverEdit, setShowCoverEdit] = useState(false);
+  const { coverFor } = useCovers();
   const [coverHeight, setCoverHeight] = useState(null);
   const [titleInline, setTitleInline] = useState(false);
   const persistedRef = useRef(false);
@@ -365,16 +369,56 @@ export default function BookDetails() {
     <div className="bd-page">
       <div className="bd-card">
         <div className="bd-main">
-          <img
-            className="bd-cover"
-            ref={coverRef}
-            src={cover}
-            alt={mainTitle}
-            onError={(event) => {
-              event.target.onerror = null;
-              event.target.src = "/images/placeholderimage.jpg";
-            }}
-          />
+          <div
+            className={`bd-cover-wrap${
+              dbEntry?.id && resolvedHardcoverId ? " poster-editable" : ""
+            }`}
+          >
+            <img
+              className="bd-cover"
+              ref={coverRef}
+              src={coverFor(dbEntry?.id) || cover}
+              alt={mainTitle}
+              onError={(event) => {
+                event.target.onerror = null;
+                event.target.src = "/images/placeholderimage.jpg";
+              }}
+            />
+            {dbEntry?.id && resolvedHardcoverId && (
+              <button
+                type="button"
+                className="poster-edit-overlay"
+                title="Change cover"
+                onClick={() => setShowCoverEdit(true)}
+              >
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {showCoverEdit && (
+            <PosterEditModal
+              open
+              entryId={dbEntry?.id}
+              mediaType="book"
+              hardcoverId={resolvedHardcoverId}
+              title={mainTitle}
+              currentImage={cover}
+              onClose={() => setShowCoverEdit(false)}
+            />
+          )}
 
           <div
             className="bd-right"

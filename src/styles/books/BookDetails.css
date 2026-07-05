@@ -17,13 +17,21 @@
   align-items: stretch;
 }
 
-.bd-cover {
+/* Wrapper carries the flex sizing so the cover can host a hover edit overlay. */
+.bd-cover-wrap {
   width: 30%;
+  flex-shrink: 0;
+  align-self: flex-start;
+  position: relative;
+  line-height: 0;
+}
+
+.bd-cover {
+  width: 100%;
   border-radius: 8px;
   object-fit: contain;
   background: #1d1d1d;
-  flex-shrink: 0;
-  align-self: flex-start;
+  display: block;
 }
 
 .bd-right {
@@ -157,7 +165,7 @@
     align-items: center;
   }
 
-  .bd-cover {
+  .bd-cover-wrap {
     width: 55%;
     max-width: 240px;
   }

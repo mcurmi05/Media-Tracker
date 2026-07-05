@@ -8,6 +8,7 @@ import AddBookWatchlist from "./AddBookWatchlist";
 import AddBookLogButton from "./AddBookLogButton";
 import AddToList from "../common/AddToList";
 import RatingModal from "../common/RatingModal";
+import EditableBookCover from "./EditableBookCover";
 import { getBookInfo } from "../../utils/bookInfo";
 import { useNavigate } from "react-router-dom";
 import { bookDetailsRouteForBook } from "../../utils/goodreads";
@@ -120,21 +121,17 @@ export default function BookTbrComponent({
               </button>
             </div>
           )}
-          <div className="poster-wrapper">
-            <img
-              src={book.cover_image || "/images/placeholderimage.jpg"}
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "/images/placeholderimage.jpg";
-              }}
-              className="rating-poster"
-              onClick={openBookDetails}
-              style={{
-                cursor: book.goodreads_link ? "pointer" : "default",
-              }}
-              alt={`${book.title} cover`}
-            />
-          </div>
+          <EditableBookCover
+            entryId={tbrEntry.book_id ?? tbrEntry.book_entries?.id}
+            hardcoverId={book.hardcover_id}
+            title={book.title}
+            coverImage={book.cover_image}
+            alt={`${book.title} cover`}
+            imgProps={{
+              onClick: openBookDetails,
+              style: { cursor: book.goodreads_link ? "pointer" : "default" },
+            }}
+          />
           <div className="right-stuff book-right-stuff">
             <div className="title-and-star">
               <p

@@ -73,6 +73,8 @@ function Log() {
   );
   // Paging cap - number or "all". Keeps the DOM small on big logs.
   const [pageSize, setPageSize] = useState(50);
+  // Current page (0-based) within the paged list.
+  const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState(location.state?.sortKey || "date");
   const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
   const [yearFrom, setYearFrom] = useState(location.state?.yearFrom || "");
@@ -109,7 +111,6 @@ function Log() {
     if (noteFilter === "all") return true;
     return noteFilter === "has" ? hasNote(t) : !hasNote(t);
   };
-  const pageLimit = pageSize === "all" ? Infinity : pageSize;
 
   const goToRatings = () => {
     navigate("/ratings", {
@@ -207,6 +208,24 @@ function Log() {
     }, 300);
     return () => clearTimeout(t);
   }, [scrollToLogId, userLogs]);
+
+  // Any change that resizes/reorders the list sends the user back to page 1.
+  useEffect(() => {
+    setPage(0);
+  }, [
+    debouncedSearch,
+    ratingFilter,
+    genreFilter,
+    noteFilter,
+    mediaTypeFilter,
+    yearFrom,
+    yearTo,
+    addedFrom,
+    addedTo,
+    sortKey,
+    sortDir,
+    pageSize,
+  ]);
 
   const needsMovieData =
     mediaTypeFilter === "all" ||
@@ -447,13 +466,58 @@ function Log() {
         ? filteredBookLogs.length
         : filteredLogs.length;
 
-  // Rendered above and below the list so the count + page-size selector are
+  // Total pages and a clamped current page, guarding against a page that fell
+  // out of range after the list shrank.
+  const totalPages =
+    pageSize === "all" ? 1 : Math.max(1, Math.ceil(displayCount / pageSize));
+  const safePage = Math.min(page, totalPages - 1);
+  // Slice bounds for the current page. "all" collapses to a single page.
+  const pageStart = pageSize === "all" ? 0 : safePage * pageSize;
+  const pageEnd = pageSize === "all" ? Infinity : pageStart + pageSize;
+  const shownFrom = displayCount === 0 ? 0 : pageStart + 1;
+  const shownTo = Math.min(
+    pageSize === "all" ? displayCount : pageStart + pageSize,
+    displayCount,
+  );
+
+  // Rendered above and below the list so the count + page controls are
   // reachable without scrolling on long logs.
   const pageSizeControl = displayCount > 0 && (
     <div className="log-page-size">
       <span>
-        Showing {Math.min(pageLimit, displayCount)} of {displayCount}
+        Showing {shownFrom}–{shownTo} of {displayCount}
       </span>
+      {totalPages > 1 && (
+        <div className="log-page-nav">
+          <button
+            type="button"
+            className="log-page-arrow"
+            onClick={() => {
+              setPage((p) => Math.max(0, p - 1));
+              window.scrollTo({ top: 0 });
+            }}
+            disabled={safePage === 0}
+            aria-label="Previous page"
+          >
+            ‹
+          </button>
+          <span className="log-page-indicator">
+            {safePage + 1} / {totalPages}
+          </span>
+          <button
+            type="button"
+            className="log-page-arrow"
+            onClick={() => {
+              setPage((p) => Math.min(totalPages - 1, p + 1));
+              window.scrollTo({ top: 0 });
+            }}
+            disabled={safePage >= totalPages - 1}
+            aria-label="Next page"
+          >
+            ›
+          </button>
+        </div>
+      )}
       <select
         value={pageSize}
         onChange={(e) =>
@@ -602,7 +666,7 @@ function Log() {
             </div>
           )}
           <div className="list-col">
-            {combinedAllItems.slice(0, pageLimit).map((item) =>
+            {combinedAllItems.slice(pageStart, pageEnd).map((item) =>
               item.kind === "log" ? (
                 <div
                   key={item.id}
@@ -639,7 +703,7 @@ function Log() {
             </div>
           )}
           <div className="list-col" style={{ gap: "1rem" }}>
-            {filteredBookLogs.slice(0, pageLimit).map((bookLog) => (
+            {filteredBookLogs.slice(pageStart, pageEnd).map((bookLog) => (
               <BookLogCard key={bookLog.id} bookLog={bookLog} />
             ))}
           </div>
@@ -653,7 +717,7 @@ function Log() {
             </div>
           )}
           <div className="list-col">
-            {filteredLogs.slice(0, pageLimit).map((log) =>
+            {filteredLogs.slice(pageStart, pageEnd).map((log) =>
               log.id ? (
                 <div
                   key={log.id}

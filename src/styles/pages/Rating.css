@@ -14,6 +14,13 @@
   margin-right:30px;
   height:auto;
   object-fit: contain;
+  /* block kills the inline descender gap so the hover overlay's rounded
+     bottom sits flush with the image instead of leaking below it */
+  display: block;
+}
+.rating-poster:focus,
+.rating-poster:focus-visible {
+  outline: none;
 }
 
 .poster-wrapper {
@@ -26,7 +33,15 @@
   align-self: center;
 }
 
-/* Hover-to-edit poster (log page): dim + pencil, click to change poster. */
+/* Hover-to-edit poster: dim + pencil, click to change cover. Works on any
+   wrapper carrying .poster-editable (movie rows + book covers). */
+.poster-editable {
+  position: relative;
+}
+.poster-editable:hover .poster-edit-overlay {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.5);
+}
 .poster-wrapper.poster-editable {
   position: relative;
 }
@@ -34,7 +49,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 6rem;
+  width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
@@ -52,6 +67,10 @@
 .poster-wrapper.poster-editable:hover .poster-edit-overlay {
   opacity: 1;
   background: rgba(0, 0, 0, 0.5);
+}
+.poster-edit-overlay:focus,
+.poster-edit-overlay:focus-visible {
+  outline: none;
 }
 
 .top {
@@ -157,6 +176,17 @@
 .container button:active,
 .container .press-icon:active {
   transform: scale(0.88);
+}
+/* On the poster edit overlay, keep the dark box full-size and shrink only the
+   pencil icon on press. */
+.container .poster-edit-overlay:active {
+  transform: none;
+}
+.poster-edit-overlay svg {
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.poster-edit-overlay:active svg {
+  transform: scale(0.85);
 }
 
 /* ---- mobile: compact Letterboxd-style rows ---- */

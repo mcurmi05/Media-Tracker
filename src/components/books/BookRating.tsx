@@ -6,6 +6,7 @@ import RatingModal from "../common/RatingModal";
 import AddToList from "../common/AddToList";
 import AddBookWatchlist from "./AddBookWatchlist";
 import AddBookLogButton from "./AddBookLogButton";
+import EditableBookCover from "./EditableBookCover";
 import GoodreadsInfo from "./GoodreadsInfo";
 import StorygraphInfo from "../../features/ratings/storygraph/StorygraphInfo";
 import { getBookInfo } from "../../utils/bookInfo";
@@ -105,19 +106,17 @@ function BookRating({
   return (
     <div className="container">
       <div className="top-stuff">
-        <div className="poster-wrapper">
-          <img
-            src={book.cover_image || "/images/placeholderimage.jpg"}
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "/images/placeholderimage.jpg";
-            }}
-            className="rating-poster"
-            {...detailHandlers}
-            style={{ cursor: book.goodreads_link ? "pointer" : "default" }}
-            alt={`${book.title} cover`}
-          />
-        </div>
+        <EditableBookCover
+          entryId={bookLog.book_id ?? bookLog.book_entries?.id}
+          hardcoverId={book.hardcover_id}
+          title={book.title}
+          coverImage={book.cover_image}
+          alt={`${book.title} cover`}
+          imgProps={{
+            ...detailHandlers,
+            style: { cursor: book.goodreads_link ? "pointer" : "default" },
+          }}
+        />
         <div className="right-stuff book-right-stuff">
           <div className="title-and-star">
             <p className="movie-title" {...detailHandlers} style={{ cursor: book.goodreads_link ? "pointer" : "default" }}>

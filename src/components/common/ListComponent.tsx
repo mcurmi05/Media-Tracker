@@ -1,6 +1,9 @@
 import "../../styles/pages/Rating.css";
 import "../../styles/media/MovieCard.css";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PosterEditModal from "../media/PosterEditModal";
+import { useCovers } from "../../contexts/UserCoversContext";
 import MovieRatingStar from "../media/MovieRatingStar";
 import ReleaseAndRunTime from "../media/ReleaseAndRunTime";
 import AddLog from "../media/AddLog";
@@ -29,9 +32,15 @@ function ListComponent({
   actionSlot = null,
   belowRank = null,
   posterEditable = false,
-  onEditPoster = null,
+  posterEntryId = null,
 }) {
   const navigate = useNavigate();
+  const { coverFor } = useCovers();
+  // Self-managed cover edit modal, so any page (log, ratings, watchlist, ...)
+  // gets it for free just by passing posterEditable + posterEntryId.
+  const [showPosterEdit, setShowPosterEdit] = useState(false);
+  // A user's per-title override wins over the shared/entry poster everywhere.
+  const displayImage = coverFor(posterEntryId) ?? movie_object.primaryImage;
 
   const detailHandlers = makeNavHandlers(
     navigate,
@@ -119,11 +128,7 @@ function ListComponent({
             </span>
           )}
           <img
-            src={
-              movie_object.primaryImage
-                ? `${movie_object.primaryImage}`
-                : "/images/placeholderimage.jpg"
-            }
+            src={displayImage ? `${displayImage}` : "/images/placeholderimage.jpg"}
             onError={(e) => {
               e.target.onerror = null;
               e.target.src = "/images/placeholderimage.jpg";
@@ -138,7 +143,7 @@ function ListComponent({
               title="Change poster"
               onClick={(e) => {
                 e.stopPropagation();
-                onEditPoster?.();
+                setShowPosterEdit(true);
               }}
             >
               <svg
@@ -295,6 +300,17 @@ function ListComponent({
           <div className="rank-controls-stack">{rankButtons}</div>
         )}
       </div>
+      {posterEditable && showPosterEdit && (
+        <PosterEditModal
+          open={showPosterEdit}
+          entryId={posterEntryId}
+          mediaType={movie_object.media_type}
+          tmdbId={movie_object.tmdb_id}
+          title={movie_object.primaryTitle}
+          currentImage={movie_object.primaryImage}
+          onClose={() => setShowPosterEdit(false)}
+        />
+      )}
     </div>
   );
 }

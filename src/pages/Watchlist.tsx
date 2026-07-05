@@ -290,6 +290,7 @@ function Watchlist() {
             queue_id: q.id,
             queue_rank: q.queue_rank,
             watchlist_id: q.watchlist_id,
+            movie_entry_id: entry.movie_entry_id,
             movie: mo,
           });
         }
@@ -817,6 +818,8 @@ function Watchlist() {
                           <ListComponent
                             movie_object={item.movie}
                             ratingDate={null}
+                            posterEditable={item.movie?.tmdb_id != null}
+                            posterEntryId={item.movie_entry_id}
                             betweenSlot={<AddToList movie={item.movie} />}
                             rankNumber={index + 1}
                             showRankControls={true}
@@ -880,6 +883,7 @@ function Watchlist() {
                 >
                   <WatchlistComponent
                     watchlist_id={item.data.id}
+                    movieEntryId={item.data.movie_entry_id}
                     movie={item.data.movie_object}
                     addedDate={item.data.created_at}
                     newSeasonToWatch={item.data.new_season_to_watch}
@@ -911,6 +915,7 @@ function Watchlist() {
                   >
                     <WatchlistComponent
                       watchlist_id={watchlist_entry.id}
+                      movieEntryId={watchlist_entry.movie_entry_id}
                       movie={watchlist_entry.movie_object}
                       addedDate={watchlist_entry.created_at}
                       newSeasonToWatch={watchlist_entry.new_season_to_watch}

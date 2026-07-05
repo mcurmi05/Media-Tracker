@@ -8,6 +8,7 @@ import { useWatchlist } from "../../contexts/UserWatchlistContext";
 
 export default function WatchlistComponent({
   watchlist_id,
+  movieEntryId,
   movie,
   addedDate,
   newSeasonToWatch,
@@ -62,6 +63,8 @@ export default function WatchlistComponent({
         addedToWatchlistDate={
           formattedDate !== "Invalid Date" ? formattedDate : null
         }
+        posterEditable={movie?.tmdb_id != null}
+        posterEntryId={movieEntryId}
         betweenSlot={<AddToList movie={movie} />}
         actionSlot={
           <>

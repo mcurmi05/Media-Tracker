@@ -142,3 +142,39 @@
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
 }
+
+/* Poster picker options (PosterEditModal + LogModal grids). White border on
+   hover, red when selected; border-box keeps the border tight to the image. */
+.poster-option {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  display: block;
+  box-sizing: border-box;
+  border: 2px solid transparent;
+}
+.poster-option:hover {
+  border-color: #fff;
+}
+.poster-option.is-selected {
+  border-color: #e23030;
+}
+
+/* Kill the browser default blue focus outline on interactive elements. Project
+   convention: no default blue focus/hover borders on selections (buttons, ticks,
+   posters, links). Intentional focus rings use box-shadow/ring utilities and are
+   unaffected. */
+button:focus,
+button:focus-visible,
+a:focus,
+a:focus-visible,
+[role="button"]:focus,
+[role="button"]:focus-visible,
+img:focus,
+img:focus-visible,
+[tabindex]:focus,
+[tabindex]:focus-visible {
+  outline: none;
+}

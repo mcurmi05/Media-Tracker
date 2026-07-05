@@ -9,6 +9,7 @@ import "../../styles/media/MovieRatingStar.css";
 import RatingModal from "../common/RatingModal";
 import AddBookWatchlist from "./AddBookWatchlist";
 import AddBookLogButton from "./AddBookLogButton";
+import EditableBookCover from "./EditableBookCover";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -256,26 +257,19 @@ const BookLogCard = ({ bookLog }) => {
       />
       <div className="book-log-content">
         <div className="book-info-section" style={{ position: "relative" }}>
-          <div className="book-cover-section">
-            {book.cover_image ? (
-              <img
-                src={book.cover_image}
-                alt={`${book.title} cover`}
-                className="book-cover"
-                onClick={openBookDetails}
-                style={{ cursor: book.goodreads_link ? "pointer" : "default" }}
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.nextSibling.style.display = "flex";
-                }}
-              />
-            ) : null}
-            <div
-              className={`book-cover-placeholder ${!book.cover_image ? "show" : ""}`}
-            >
-              📚
-            </div>
-          </div>
+          <EditableBookCover
+            entryId={bookLog.book_id ?? bookLog.book_entries?.id}
+            hardcoverId={book.hardcover_id}
+            title={book.title}
+            coverImage={book.cover_image}
+            imgClassName="book-cover"
+            wrapperClassName="book-cover-section"
+            alt={`${book.title} cover`}
+            imgProps={{
+              onClick: openBookDetails,
+              style: { cursor: book.goodreads_link ? "pointer" : "default" },
+            }}
+          />
 
           <div className="book-details">
             <div className="book-info">

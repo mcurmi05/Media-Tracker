@@ -194,6 +194,21 @@ export const getTitleImages = async (
   }
 };
 
+// Cover options for a book (Hardcover editions). Returns [{ thumb, full }].
+export const getBookCovers = async (hardcoverId: string | number) => {
+  try {
+    const response = await fetch(
+      `${HARDCOVER_API}?action=covers&id=${encodeURIComponent(hardcoverId)}`,
+    );
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data?.results) ? data.results : [];
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
 // Resolve { tmdb_id, media_type } from an IMDb tconst (legacy/back-compat
 // paths and the backfill). Returns null if TMDB has no match.
 export const findByImdbId = async (imdbId: string) => {

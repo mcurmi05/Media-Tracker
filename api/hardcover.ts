@@ -51,6 +51,19 @@ const BOOK_QUERY = `
   }
 `;
 
+const COVERS_QUERY = `
+  query BookCovers($id: Int!) {
+    book: books_by_pk(id: $id) {
+      id
+      cached_image
+      editions(limit: 50) {
+        id
+        cached_image
+      }
+    }
+  }
+`;
+
 function imageUrl(value) {
   if (!value) return null;
   if (typeof value === "string") return value;
@@ -283,6 +296,32 @@ export async function runHardcoverAction(
     return book
       ? { status: 200, body: book }
       : { status: 404, body: { error: "Book not found" } };
+  }
+
+  if (action === "covers") {
+    const id = String(query?.id || "").trim();
+    if (!/^\d+$/.test(id)) {
+      return { status: 400, body: { error: "Missing or invalid id" } };
+    }
+    const data = await cachedRequest(
+      `covers:${id}`,
+      BOOK_TTL_MS,
+      () => hardcoverGraphql(COVERS_QUERY, { id: Number(id) }, token, fetchImpl),
+    );
+    const book = data.book;
+    const seen = new Set();
+    const results = [];
+    const push = (img) => {
+      const url = imageUrl(img);
+      if (url && !seen.has(url)) {
+        seen.add(url);
+        results.push({ full: url, thumb: url });
+      }
+    };
+    // The book's own cover first (the default), then each edition's.
+    push(book?.cached_image);
+    (book?.editions || []).forEach((edition) => push(edition?.cached_image));
+    return { status: 200, body: { results } };
   }
 
   return { status: 400, body: { error: "Unsupported action" } };

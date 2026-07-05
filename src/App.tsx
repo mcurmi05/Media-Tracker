@@ -27,6 +27,7 @@ import { UserWatchlistProvider } from "./contexts/UserWatchlistContext";
 import { UserBookLogsProvider } from "./contexts/UserBookLogsContext";
 import { UserBookTbrProvider } from "./contexts/UserBookTbrContext";
 import { UserBookRatingsProvider } from "./contexts/UserBookRatingsContext";
+import { UserCoversProvider } from "./contexts/UserCoversContext";
 import Watchlist from "./pages/Watchlist";
 import AccountSettings from "./pages/AccountSettings";
 import Lists from "./pages/Lists";
@@ -68,6 +69,7 @@ function App() {
                   <UserBookLogsProvider>
                     <UserBookTbrProvider>
                       <UserBookRatingsProvider>
+                    <UserCoversProvider>
                     <ScrollToTop />
                     <SidebarProvider>
                       <AppSidebar />
@@ -114,6 +116,7 @@ function App() {
                         <MobileTabBar />
                       </SidebarInset>
                     </SidebarProvider>
+                    </UserCoversProvider>
                       </UserBookRatingsProvider>
                     </UserBookTbrProvider>
                   </UserBookLogsProvider>

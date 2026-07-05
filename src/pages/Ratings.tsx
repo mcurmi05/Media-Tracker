@@ -650,6 +650,8 @@ function Ratings() {
                       ratingUpdatedDate={item.data.updated_at}
                       ratingPreviousValue={item.data.previous_rating}
                       ratingDateUnknown={item.data.date_unknown}
+                      posterEditable={item.data.movie_object?.tmdb_id != null}
+                      posterEntryId={item.data.movie_entry_id}
                       rankNumber={
                         Number(item.data.rating) === 10
                           ? item.data.ranking
@@ -704,6 +706,8 @@ function Ratings() {
                     ratingUpdatedDate={rating.updated_at}
                     ratingPreviousValue={rating.previous_rating}
                     ratingDateUnknown={rating.date_unknown}
+                    posterEditable={rating.movie_object?.tmdb_id != null}
+                    posterEntryId={rating.movie_entry_id}
                     rankNumber={
                       Number(rating.rating) === 10 ? rating.ranking : null
                     }

@@ -19,6 +19,7 @@ import WatchedTick from "../components/media/WatchedTick";
 import AddWatchlist from "../components/media/AddWatchlist";
 import AddToList from "../components/common/AddToList";
 import { useRatings } from "../contexts/UserRatingsContext";
+import { useCovers } from "../contexts/UserCoversContext";
 import { getRatingForMovie } from "../services/ratingsfromtable";
 import { useAuth } from "../contexts/AuthContext";
 import { getWatchStatus, saveWatchStatus } from "../services/watchStatus";
@@ -46,6 +47,7 @@ function MediaDetails() {
   const [showPosterEdit, setShowPosterEdit] = useState(false);
   const [watchStatus, setWatchStatus] = useState({});
   const { userRatings } = useRatings();
+  const { coverFor } = useCovers();
   const { user } = useAuth();
 
   // Hold the loader until the live IMDb rating resolves (undefined = pending).
@@ -57,13 +59,27 @@ function MediaDetails() {
     const fetchMovieDetails = async () => {
       try {
         const movie = await getMovieById(mediaType, tmdbId);
-        setMovie(movie);
-        // Refresh the cached metadata in the shared movies table on open and
-        // keep the returned id to key per-user watch status against. Don't block
-        // render on the upsert; capture the id once it resolves.
+        // Look up the shared entry once before first paint: it gives us the id
+        // to key watch status / "everywhere" poster edits against, plus any
+        // user-chosen everywhere poster. Applying the cover here (rather than in
+        // a follow-up effect) avoids a flash of the TMDB poster before the
+        // override loads.
         if (movie) {
-          upsertMovie(movie).then((entryId) => setMovieEntryId(entryId));
+          const { data: entry } = await supabase
+            .from("media_entries")
+            .select("id, cover_url")
+            .eq("media_type", movie.media_type)
+            .eq("tmdb_id", movie.tmdb_id)
+            .limit(1)
+            .maybeSingle();
+          if (entry?.cover_url) movie.primaryImage = entry.cover_url;
+          if (entry?.id) setMovieEntryId(entry.id);
+          // Refresh the cached metadata in the background; keep the resolved id.
+          upsertMovie(movie).then((entryId) => {
+            if (entryId) setMovieEntryId(entryId);
+          });
         }
+        setMovie(movie);
       } catch (err) {
         setError("Failed to load movie details");
         console.log(err);
@@ -74,28 +90,6 @@ function MediaDetails() {
 
     fetchMovieDetails();
   }, [mediaType, tmdbId]);
-
-  // Prefer a user-chosen "everywhere" poster over the TMDB one, if one is set.
-  useEffect(() => {
-    if (!movieEntryId) return;
-    let active = true;
-    supabase
-      .from("media_entries")
-      .select("cover_url")
-      .eq("id", movieEntryId)
-      .single()
-      .then(({ data }) => {
-        if (!active || !data?.cover_url) return;
-        setMovie((m) =>
-          m && m.primaryImage !== data.cover_url
-            ? { ...m, primaryImage: data.cover_url }
-            : m,
-        );
-      });
-    return () => {
-      active = false;
-    };
-  }, [movieEntryId]);
 
   // Load this user's watch status for the title once we have its movies row id.
   useEffect(() => {
@@ -225,12 +219,12 @@ function MediaDetails() {
       {showPosterEdit && (
         <PosterEditModal
           open
-          movie={movie}
           entryId={movieEntryId}
+          mediaType={movie.media_type}
+          tmdbId={movie.tmdb_id}
+          title={movie.primaryTitle}
+          currentImage={movie.primaryImage}
           onClose={() => setShowPosterEdit(false)}
-          onApplied={(url) =>
-            setMovie((m) => (m ? { ...m, primaryImage: url } : m))
-          }
         />
       )}
       {movie.backdropImageHD && (
@@ -250,7 +244,11 @@ function MediaDetails() {
           <div className="hero-poster-wrap">
             <img
               className="hero-poster"
-              src={movie.primaryImage || "/images/placeholderimage.jpg"}
+              src={
+                coverFor(movieEntryId) ||
+                movie.primaryImage ||
+                "/images/placeholderimage.jpg"
+              }
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = "/images/placeholderimage.jpg";

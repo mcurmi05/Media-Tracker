@@ -140,6 +140,11 @@
     opacity: 1;
 }
 
+.hero-poster-edit:focus,
+.hero-poster-edit:focus-visible {
+    outline: none;
+}
+
 .hero-poster {
     grid-area: poster;
     align-self: end;

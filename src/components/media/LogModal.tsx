@@ -232,17 +232,7 @@ export default function LogModal({ open, movie, book, logId, onConfirm, onCancel
                   src={p.thumb}
                   alt="Poster option"
                   onClick={() => choosePoster(p.full)}
-                  style={{
-                    width: "100%",
-                    aspectRatio: "2 / 3",
-                    objectFit: "cover",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    border:
-                      selectedPoster === p.full
-                        ? "2px solid #e23030"
-                        : "2px solid transparent",
-                  }}
+                  className={`poster-option${selectedPoster === p.full ? " is-selected" : ""}`}
                 />
               ))}
             </div>

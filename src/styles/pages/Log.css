@@ -81,3 +81,38 @@
   padding: 4px 8px;
   cursor: pointer;
 }
+
+.log-page-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-page-arrow {
+  background: #1a1a1a;
+  color: #eee;
+  border: 1px solid #444;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.log-page-arrow:hover:not(:disabled) {
+  border-color: #888;
+}
+
+.log-page-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.log-page-indicator {
+  min-width: 48px;
+  text-align: center;
+}
