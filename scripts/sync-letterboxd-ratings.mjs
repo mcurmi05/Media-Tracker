@@ -107,7 +107,7 @@ async function moviesTmdbIds() {
   const PAGE = 1000;
   for (let offset = 0; ; offset += PAGE) {
     const url =
-      `${REST}/movies_and_tv_entries?select=tmdb_id&media_type=eq.movie` +
+      `${REST}/media_entries?select=tmdb_id&media_type=eq.movie` +
       `&tmdb_id=not.is.null&limit=${PAGE}&offset=${offset}`;
     const res = await fetch(url, {
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },

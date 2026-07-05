@@ -25,8 +25,9 @@ async function catalogue() {
   const rows = [];
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const url =
-      `${REST}/book_entries` +
-      "?select=id,hardcover_id,isbn13,title,author,release_year,goodreads_id,storygraph_slug" +
+      `${REST}/media_entries` +
+      "?select=id,hardcover_id,isbn13,title,author:creator,release_year:start_year,goodreads_id,storygraph_slug" +
+      "&media_type=eq.book" +
       `&limit=${PAGE_SIZE}&offset=${offset}`;
     const response = await fetch(url, { headers: supabaseHeaders });
     if (!response.ok) {
@@ -156,7 +157,7 @@ async function hardcoverSearch(query) {
 
 async function persistHardcoverMatch(entryId, match) {
   const response = await fetch(
-    `${REST}/book_entries?id=eq.${encodeURIComponent(entryId)}`,
+    `${REST}/media_entries?id=eq.${encodeURIComponent(entryId)}`,
     {
       method: "PATCH",
       headers: { ...supabaseHeaders, Prefer: "return=minimal" },
@@ -214,7 +215,7 @@ async function resolveHardcoverBook(book) {
 
 async function persistSlug(entryId, slug) {
   const response = await fetch(
-    `${REST}/book_entries?id=eq.${encodeURIComponent(entryId)}`,
+    `${REST}/media_entries?id=eq.${encodeURIComponent(entryId)}`,
     {
       method: "PATCH",
       headers: { ...supabaseHeaders, Prefer: "return=minimal" },
@@ -238,7 +239,7 @@ async function resolveGoodreadsId(book) {
   if (!/^\d+$/.test(String(value || ""))) return null;
   const goodreadsId = Number(value);
   const update = await fetch(
-    `${REST}/book_entries?id=eq.${encodeURIComponent(book.id)}`,
+    `${REST}/media_entries?id=eq.${encodeURIComponent(book.id)}`,
     {
       method: "PATCH",
       headers: { ...supabaseHeaders, Prefer: "return=minimal" },

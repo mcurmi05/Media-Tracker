@@ -3,7 +3,7 @@
 //
 // Goodreads has no bulk dataset (like Letterboxd, unlike IMDb), so we scrape
 // one page per book. The set of books we refresh is every book already in our
-// `book_entries` table that has a parseable Goodreads id. There is no
+// `media_entries` table (media_type=book) that has a parseable Goodreads id. There is no
 // "trending" concept for books, so - unlike the Letterboxd sync - we only
 // cover the catalogue.
 //
@@ -171,12 +171,12 @@ async function catalogueIds() {
   const PAGE = 1000;
   for (let offset = 0; ; offset += PAGE) {
     const url =
-      `${REST}/book_entries?select=goodreads_link` +
+      `${REST}/media_entries?select=goodreads_link&media_type=eq.book` +
       `&goodreads_link=not.is.null&limit=${PAGE}&offset=${offset}`;
     const res = await fetch(url, {
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
     });
-    if (!res.ok) throw new Error(`book_entries fetch failed: ${res.status}`);
+    if (!res.ok) throw new Error(`media_entries fetch failed: ${res.status}`);
     const rows = await res.json();
     rows.forEach((r) => {
       const id = goodreadsId(r.goodreads_link);
