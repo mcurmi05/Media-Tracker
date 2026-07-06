@@ -24,6 +24,27 @@ import { getRatingForMovie } from "../services/ratingsfromtable";
 import { useAuth } from "../contexts/AuthContext";
 import { getWatchStatus, saveWatchStatus } from "../services/watchStatus";
 import Loader from "../components/layout/Loader";
+import { makeNavHandlers } from "../utils/navClick";
+
+// Render a comma-separated people list where anyone with a person_id links to
+// their person page.
+function PeopleLinks({ people, navigate }) {
+  return people.map((p, i) => (
+    <span key={`${p.fullName}-${i}`}>
+      {i > 0 ? ", " : ""}
+      {p.person_id != null ? (
+        <span
+          className="person-inline-link"
+          {...makeNavHandlers(navigate, `/person/${p.person_id}`)}
+        >
+          {p.fullName}
+        </span>
+      ) : (
+        p.fullName
+      )}
+    </span>
+  ));
+}
 
 function formatEpisodeDate(d) {
   if (!d) return null;
@@ -371,13 +392,13 @@ function MediaDetails() {
               {movie.directors?.length > 0 && (
                 <p>
                   <span className="bold-span">Directed by</span>{" "}
-                  {movie.directors.map((d) => d.fullName).join(", ")}
+                  <PeopleLinks people={movie.directors} navigate={navigate} />
                 </p>
               )}
               {movie.writers?.length > 0 && (
                 <p>
                   <span className="bold-span">Written by</span>{" "}
-                  {movie.writers.map((w) => w.fullName).join(", ")}
+                  <PeopleLinks people={movie.writers} navigate={navigate} />
                 </p>
               )}
               {movie.budget ? (
@@ -392,7 +413,7 @@ function MediaDetails() {
               {movie.creators?.length > 0 && (
                 <p>
                   <span className="bold-span">Created by</span>{" "}
-                  {movie.creators.map((c) => c.fullName).join(", ")}
+                  <PeopleLinks people={movie.creators} navigate={navigate} />
                 </p>
               )}
             </div>

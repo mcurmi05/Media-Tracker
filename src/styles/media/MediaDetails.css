@@ -262,6 +262,14 @@
     font-size: 1rem;
 }
 
+.person-inline-link {
+    cursor: pointer;
+}
+
+.person-inline-link:hover {
+    text-decoration: underline;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
     .media-details {

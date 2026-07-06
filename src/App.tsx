@@ -13,6 +13,7 @@ import { GoodreadsRatingsProvider } from "./contexts/GoodreadsRatingsContext";
 import { StorygraphRatingsProvider } from "./features/ratings/storygraph/StorygraphRatingsContext";
 import { Routes, Route, useLocation } from "react-router-dom";
 import MediaDetails from "./pages/MediaDetails";
+import Person from "./pages/Person";
 import BookDetails from "./pages/BookDetails";
 import { SignIn } from "./pages/SignIn";
 import { supabase } from "./services/supabase-client";
@@ -90,6 +91,10 @@ function App() {
                         <Route
                           path="/mediadetails/:mediaType/:tmdbId"
                           element={<MediaDetails></MediaDetails>}
+                        />
+                        <Route
+                          path="/person/:personId"
+                          element={<Person />}
                         />
                         <Route
                           path="/bookdetails/hardcover/:hardcoverId"

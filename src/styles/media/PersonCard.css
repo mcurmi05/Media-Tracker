@@ -1,0 +1,32 @@
+.person-card {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.person-card-photo {
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+  background-color: var(--secondary);
+}
+
+.person-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.person-card-name {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.person-card-dept {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}

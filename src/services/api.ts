@@ -90,6 +90,34 @@ export const searchMoviesFIRSTFIVEONLY = async (
   }
 };
 
+// People (directors/actors/writers) search. Person hits carry a `person_id`
+// so callers can tell them apart from title results.
+export const searchPeople = async (query: string) => {
+  try {
+    const results = await requestJson<{ results: unknown[] }>(
+      `${API}?action=search&query=${encodeURIComponent(query)}&mediaType=person`,
+    );
+    return results.results || [];
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
+export const searchPeopleFIRSTFIVEONLY = async (query: string) => {
+  const results = await searchPeople(query);
+  return results.slice(0, 5);
+};
+
+// Full person page: bio + credits grouped as knownFor / acting / crewByDept.
+export const getPersonById = async (personId: string | number) => {
+  const response = await fetch(
+    `${API}?action=person&personId=${encodeURIComponent(personId)}`,
+  );
+  if (!response.ok) throw new Error(`Request failed (${response.status})`);
+  return response.json();
+};
+
 export const searchBooksHardcover = async (
   query: string,
 ): Promise<NormalizedBook[]> => {

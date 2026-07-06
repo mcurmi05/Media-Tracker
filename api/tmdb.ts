@@ -164,6 +164,39 @@ function mapListItem(item, mediaType, genreMap) {
   };
 }
 
+// A person search hit -> compact person shape. known_for lists a few of their
+// notable titles so the search row can hint at who they are.
+function mapPersonListItem(p) {
+  return {
+    person_id: p.id,
+    name: p.name,
+    title: p.name, // lets the shared relevance ranker score people by name
+    profile: posterUrl(p.profile_path, "w185"),
+    department: p.known_for_department || null,
+    known_for: (p.known_for || [])
+      .map((k) => k.title || k.name)
+      .filter(Boolean)
+      .slice(0, 3),
+  };
+}
+
+// One entry from a person's combined_credits -> minimal title card, tagged
+// with the role that connects the person to the title (character or crew job).
+function mapCredit(c) {
+  const mt = c.media_type;
+  if (mt !== "movie" && mt !== "tv") return null;
+  const isTV = mt === "tv";
+  return {
+    tmdb_id: c.id,
+    media_type: mt,
+    primaryTitle: c.title || c.name,
+    primaryImage: posterUrl(c.poster_path),
+    startYear: yearOf(c.release_date || c.first_air_date),
+    role: c.character || c.job || null,
+    popularity: c.popularity || 0,
+  };
+}
+
 // A full detail response -> complete movie_object shape.
 // TV shows use aggregate_credits (all roles across all seasons) for a richer
 // cast list; movies use credits as before.
@@ -176,12 +209,14 @@ function mapDetail(d, mediaType, seasonDetails) {
   // Each entry has .roles[] with .character; we pick the primary role.
   const cast = isTV
     ? (d.aggregate_credits?.cast || []).slice(0, 50).map((c) => ({
+        person_id: c.id,
         fullName: c.name,
         job: "actor",
         primaryImage: posterUrl(c.profile_path, "w185"),
         characters: c.roles?.[0]?.character ? [c.roles[0].character] : [],
       }))
     : (d.credits?.cast || []).map((c) => ({
+        person_id: c.id,
         fullName: c.name,
         job: "actor",
         primaryImage: posterUrl(c.profile_path, "w185"),
@@ -190,7 +225,7 @@ function mapDetail(d, mediaType, seasonDetails) {
 
   // TV: creators from created_by array
   const creators = isTV
-    ? (d.created_by || []).map((c) => ({ fullName: c.name }))
+    ? (d.created_by || []).map((c) => ({ person_id: c.id, fullName: c.name }))
     : [];
 
   return {
@@ -222,10 +257,10 @@ function mapDetail(d, mediaType, seasonDetails) {
     creators,
     directors: crew
       .filter((c) => c.job === "Director")
-      .map((c) => ({ fullName: c.name })),
+      .map((c) => ({ person_id: c.id, fullName: c.name })),
     writers: crew
       .filter((c) => c.department === "Writing")
-      .map((c) => ({ fullName: c.name })),
+      .map((c) => ({ person_id: c.id, fullName: c.name })),
     // Seasons only present for TV; seasonDetails is an array of mapSeasonDetail results.
     seasons: isTV ? (seasonDetails || []).filter(Boolean) : [],
   };
@@ -356,6 +391,29 @@ export default async function handler(req, res) {
       if (!query) return res.status(400).json({ error: "Missing query" });
 
       const common = { query, include_adult: "false" };
+
+      // People search: /search/person, re-ranked by name similarity so the
+      // intended person surfaces even when misspelled.
+      if (q.mediaType === "person") {
+        const data = await tmdbFetch(
+          "/search/person",
+          { ...common, page: "1" },
+          key,
+        );
+        const qNorm = normalize(query);
+        const people = (data.results || [])
+          .map((p) => ({ p, name: normalize(p.name) }))
+          .sort(
+            (a, b) =>
+              simRatio(qNorm, b.name) +
+              Math.log10((b.p.popularity || 0) + 1) / 12 -
+              (simRatio(qNorm, a.name) +
+                Math.log10((a.p.popularity || 0) + 1) / 12),
+          )
+          .map(({ p }) => mapPersonListItem(p));
+        return res.status(200).json({ results: people });
+      }
+
       const requestedMediaType =
         q.mediaType === "movie" || q.mediaType === "tv" ? q.mediaType : null;
 
@@ -514,6 +572,77 @@ export default async function handler(req, res) {
         "public, s-maxage=86400, stale-while-revalidate=604800",
       );
       return res.status(200).json(items);
+    }
+
+    if (action === "person") {
+      const personId = String(q.personId || "").trim();
+      if (!/^\d+$/.test(personId)) {
+        return res.status(400).json({ error: "Invalid personId" });
+      }
+      const data = await tmdbFetch(
+        `/person/${personId}`,
+        { append_to_response: "combined_credits,external_ids" },
+        key,
+      );
+
+      // Cast credits = "starred/appeared in"; dedupe by title (a person can be
+      // credited on the same show across seasons) keeping the first (highest
+      // popularity after the sort below).
+      const dedupe = (items) => {
+        const seen = new Set();
+        return items.filter((it) => {
+          if (!it) return false;
+          const k = `${it.media_type}:${it.tmdb_id}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+      };
+      const byYearDesc = (a, b) => (b.startYear || 0) - (a.startYear || 0);
+
+      const acting = dedupe(
+        (data.combined_credits?.cast || []).map(mapCredit),
+      ).sort(byYearDesc);
+
+      // Crew credits grouped by department (Directing, Writing, Production...).
+      const crewByDept = {};
+      for (const c of data.combined_credits?.crew || []) {
+        const mapped = mapCredit(c);
+        if (!mapped) continue;
+        const dept = c.department || "Other";
+        (crewByDept[dept] ||= []).push(mapped);
+      }
+      for (const dept of Object.keys(crewByDept)) {
+        crewByDept[dept] = dedupe(crewByDept[dept]).sort(byYearDesc);
+      }
+
+      // "Known For" = most popular titles across every role, deduped.
+      const knownFor = dedupe(
+        [
+          ...(data.combined_credits?.cast || []),
+          ...(data.combined_credits?.crew || []),
+        ]
+          .map(mapCredit)
+          .filter(Boolean)
+          .sort((a, b) => (b.popularity || 0) - (a.popularity || 0)),
+      ).slice(0, 12);
+
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=86400, stale-while-revalidate=604800",
+      );
+      return res.status(200).json({
+        person_id: data.id,
+        name: data.name,
+        profile: posterUrl(data.profile_path, "w342"),
+        department: data.known_for_department || null,
+        biography: data.biography || "",
+        birthday: data.birthday || null,
+        place_of_birth: data.place_of_birth || null,
+        knownFor,
+        acting,
+        crewByDept,
+      });
     }
 
     if (action === "images") {

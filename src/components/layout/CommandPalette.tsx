@@ -12,10 +12,12 @@ import {
   LogOut,
   LogIn,
   CircleCheck,
+  User,
 } from "lucide-react";
 import {
   searchBooksHardcoverFIRSTFIVEONLY,
   searchMoviesFIRSTFIVEONLY,
+  searchPeopleFIRSTFIVEONLY,
   combineSearchResults,
 } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
@@ -39,6 +41,7 @@ const SEARCH_MODES = [
   { value: "movies", label: "Movies" },
   { value: "tv", label: "TV" },
   { value: "books", label: "Books" },
+  { value: "people", label: "People" },
 ];
 
 const discoverItems = [
@@ -102,12 +105,21 @@ export default function CommandPalette() {
       try {
         let fetched;
         if (mode === "all") {
-          const [books, movies, tv] = await Promise.all([
+          const [books, movies, tv, people] = await Promise.all([
             searchBooksHardcoverFIRSTFIVEONLY(query),
             searchMoviesFIRSTFIVEONLY(query, "movie"),
             searchMoviesFIRSTFIVEONLY(query, "tv"),
+            searchPeopleFIRSTFIVEONLY(query),
           ]);
-          fetched = combineSearchResults(query, books, movies, tv);
+          fetched = combineSearchResults(
+            query,
+            books,
+            movies,
+            tv,
+            (people || []).slice(0, 3),
+          );
+        } else if (mode === "people") {
+          fetched = await searchPeopleFIRSTFIVEONLY(query);
         } else {
           fetched =
             mode === "books"
@@ -167,6 +179,10 @@ export default function CommandPalette() {
 
   const openResult = (item) => {
     runCommand(() => {
+      if (item.person_id != null) {
+        navigate(`/person/${item.person_id}`);
+        return;
+      }
       if (item.hardcover_id != null) {
         navigate(`/bookdetails/hardcover/${item.hardcover_id}`, {
           state: { book: item },
@@ -221,7 +237,33 @@ export default function CommandPalette() {
         {results.length > 0 && (
           <CommandGroup heading="Results">
             {results.map((item) =>
-              item.hardcover_id != null ?
+              item.person_id != null ?
+                <CommandItem
+                  key={`person-${item.person_id}`}
+                  value={`person-${item.person_id}`}
+                  onSelect={() => openResult(item)}
+                >
+                  {item.profile ?
+                    <img
+                      src={item.profile}
+                      alt=""
+                      className="h-10 w-7 shrink-0 rounded object-cover"
+                    />
+                  : <span className="flex h-10 w-7 shrink-0 items-center justify-center rounded bg-muted">
+                      <User className="size-4 text-muted-foreground" />
+                    </span>
+                  }
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{item.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {item.department || "Person"}
+                      {item.known_for?.length
+                        ? ` · ${item.known_for.join(", ")}`
+                        : ""}
+                    </p>
+                  </div>
+                </CommandItem>
+              : item.hardcover_id != null ?
                 <CommandItem
                   key={`book-${item.hardcover_id}`}
                   value={`book-${item.hardcover_id}`}

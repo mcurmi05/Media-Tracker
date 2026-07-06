@@ -10,7 +10,9 @@ import {
   combineSearchResults,
   searchBooksHardcover,
   searchMovies,
+  searchPeople,
 } from "../services/api";
+import PersonCard from "../components/media/PersonCard";
 
 function Search() {
   const {
@@ -32,7 +34,9 @@ function Search() {
     const params = new URLSearchParams(location.search);
     const query = params.get("q") || "";
     const requestedMode = params.get("mode");
-    const mode = ["all", "books", "movies", "tv"].includes(requestedMode)
+    const mode = ["all", "books", "movies", "tv", "people"].includes(
+      requestedMode,
+    )
       ? requestedMode
       : "all";
     setSearchQuery(query);
@@ -57,15 +61,22 @@ function Search() {
               searchBooksHardcover(term),
               searchMovies(term, "movie"),
               searchMovies(term, "tv"),
-            ]).then(([books, movies, tv]) =>
-              combineSearchResults(term, books, movies, tv),
+              searchPeople(term),
+            ]).then(([books, movies, tv, people]) =>
+              combineSearchResults(term, books, movies, tv, people),
             )
-          : mode === "books"
-            ? searchBooksHardcover(term)
-            : searchMovies(term, mode);
+          : mode === "people"
+            ? searchPeople(term)
+            : mode === "books"
+              ? searchBooksHardcover(term)
+              : searchMovies(term, mode);
       Promise.resolve(fetcher)
         .then((results) => {
-          setSearchResults((results || []).filter(matchesYear));
+          setSearchResults(
+            (results || []).filter(
+              (it) => it.person_id != null || matchesYear(it),
+            ),
+          );
           setResultsMode(mode);
           setSearchError(null);
         })
@@ -104,7 +115,9 @@ function Search() {
       ) : searchResults && searchResults.length > 0 ? (
         <div className="movies-grid movies-grid--posters">
           {searchResults.map((item) =>
-            item.hardcover_id != null ? (
+            item.person_id != null ? (
+                <PersonCard person={item} key={`person-${item.person_id}`} />
+              ) : item.hardcover_id != null ? (
                 <BookCard
                   book={item}
                   posterOnly

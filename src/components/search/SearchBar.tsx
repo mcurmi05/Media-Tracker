@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, CircleCheck } from "lucide-react";
+import { Search, CircleCheck, User } from "lucide-react";
 import {
   searchBooksHardcoverFIRSTFIVEONLY,
   searchMoviesFIRSTFIVEONLY,
+  searchPeopleFIRSTFIVEONLY,
   combineSearchResults,
   findByImdbId,
 } from "../../services/api";
@@ -19,6 +20,7 @@ const SEARCH_MODES = [
   { value: "movies", label: "Movies" },
   { value: "tv", label: "TV" },
   { value: "books", label: "Books" },
+  { value: "people", label: "People" },
 ];
 
 export default function SearchBar() {
@@ -36,6 +38,8 @@ export default function SearchBar() {
   const [dropdownLoading, setDropdownLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchSubmitted, setSearchSubmitted] = useState(false);
+  // Index of the arrow-key-highlighted result (-1 = none highlighted).
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   const navigate = useNavigate();
   const searchTimeoutRef = useRef(null);
@@ -51,7 +55,8 @@ export default function SearchBar() {
       // so the dropdown never flashes an empty "no results" first.
       setDropdownLoading(true);
       setShowDropdown(true);
-      const delay = searchMode === "books" ? 300 : 1000;
+      const delay =
+        searchMode === "books" ? 300 : searchMode === "people" ? 500 : 1000;
       searchTimeoutRef.current = setTimeout(async () => {
         try {
           // Trailing 4-digit year filters to just that year; it's stripped from
@@ -68,14 +73,25 @@ export default function SearchBar() {
           };
           let results;
           if (searchMode === "all") {
-            const [books, movies, tv] = await Promise.all([
+            const [books, movies, tv, people] = await Promise.all([
               searchBooksHardcoverFIRSTFIVEONLY(term),
               searchMoviesFIRSTFIVEONLY(term, "movie"),
               searchMoviesFIRSTFIVEONLY(term, "tv"),
+              searchPeopleFIRSTFIVEONLY(term),
             ]);
-            results = combineSearchResults(term, books, movies, tv)
-              .filter(matchesYear)
-              .slice(0, 5);
+            // People (top 3) join the merged ranking; person items carry a
+            // `title` field so the shared ranker can score them by name.
+            results = combineSearchResults(
+              term,
+              books,
+              movies,
+              tv,
+              (people || []).slice(0, 3),
+            )
+              .filter((it) => it.person_id != null || matchesYear(it))
+              .slice(0, 6);
+          } else if (searchMode === "people") {
+            results = (await searchPeopleFIRSTFIVEONLY(term)) || [];
           } else {
             const raw =
               searchMode === "books"
@@ -85,6 +101,7 @@ export default function SearchBar() {
           }
           if (cancelled) return;
           setDropdownResults(results || []);
+          setActiveIndex(-1);
           setShowDropdown(true);
         } catch (err) {
           if (cancelled) return;
@@ -108,6 +125,13 @@ export default function SearchBar() {
       }
     };
   }, [searchQuery, searchSubmitted, searchMode, setSearchLoading]);
+
+  // Keep the arrow-highlighted row visible as it moves past the dropdown edge.
+  useEffect(() => {
+    if (activeIndex < 0 || !dropdownRef.current) return;
+    const el = dropdownRef.current.querySelector('[data-search-active="true"]');
+    if (el) el.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -151,6 +175,10 @@ export default function SearchBar() {
 
   const handleDropdownClick = (item) => {
     setShowDropdown(false);
+    if (item.person_id != null) {
+      navigate(`/person/${item.person_id}`);
+      return;
+    }
     if (item.hardcover_id != null) {
       navigate(`/bookdetails/hardcover/${item.hardcover_id}`, {
         state: { book: item },
@@ -190,6 +218,26 @@ export default function SearchBar() {
     if (e.key === "Tab") {
       e.preventDefault();
       cycleMode(e.shiftKey ? -1 : 1);
+      return;
+    }
+    if (e.key === "Escape") {
+      setShowDropdown(false);
+      setActiveIndex(-1);
+      return;
+    }
+    if (!showDropdown || dropdownResults.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => (i + 1) % dropdownResults.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) =>
+        i <= 0 ? dropdownResults.length - 1 : i - 1,
+      );
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      // Highlighted a result: open it instead of running the full search.
+      e.preventDefault();
+      handleDropdownClick(dropdownResults[activeIndex]);
     }
   };
 
@@ -219,7 +267,7 @@ export default function SearchBar() {
               onValueChange={selectMode}
               className="flex-1"
             >
-              <TabsList className="grid h-8 w-full grid-cols-4">
+              <TabsList className="grid h-8 w-full grid-cols-5">
                 {SEARCH_MODES.map((mode) => (
                   <TabsTrigger
                     key={mode.value}
@@ -242,46 +290,90 @@ export default function SearchBar() {
             </div>
           ) : dropdownResults.length > 0 ? (
             <div className="p-1">
-              {dropdownResults.map((item) =>
-                item.hardcover_id != null ? (
-                  <button
-                    key={`book-${item.hardcover_id}`}
-                    type="button"
-                    data-slot="search-result"
-                    className="flex w-full cursor-pointer items-center gap-3 rounded-md bg-transparent p-2 text-left hover:bg-accent"
-                    onClick={() => handleDropdownClick(item)}
-                  >
-                    <img
-                      src={
-                        coverForHardcover(item.hardcover_id) ||
-                        item.cover_image ||
-                        "/images/placeholderimage.jpg"
-                      }
-                      alt={item.title}
-                      className="h-14 w-9 shrink-0 rounded object-cover"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "/images/placeholderimage.jpg";
-                      }}
-                    />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {item.title}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {item.author} · Book
-                      </p>
-                    </div>
-                    {isLogged(item) && (
-                      <CircleCheck className="ml-auto size-4 shrink-0 text-green-500" />
-                    )}
-                  </button>
-                ) : (
+              {dropdownResults.map((item, idx) => {
+                const active = idx === activeIndex;
+                const rowClass = `flex w-full cursor-pointer items-center gap-3 rounded-md p-2 text-left hover:bg-accent${
+                  active ? " bg-accent" : " bg-transparent"
+                }`;
+                if (item.person_id != null) {
+                  return (
+                    <button
+                      key={`person-${item.person_id}`}
+                      type="button"
+                      data-slot="search-result"
+                      data-search-active={active}
+                      className={rowClass}
+                      onClick={() => handleDropdownClick(item)}
+                    >
+                      {item.profile ? (
+                        <img
+                          src={item.profile}
+                          alt={item.name}
+                          className="h-14 w-9 shrink-0 rounded object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-14 w-9 shrink-0 items-center justify-center rounded bg-muted">
+                          <User className="size-4 text-muted-foreground" />
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {item.name}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {item.department || "Person"}
+                          {item.known_for?.length
+                            ? ` · ${item.known_for.join(", ")}`
+                            : ""}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                }
+                if (item.hardcover_id != null) {
+                  return (
+                    <button
+                      key={`book-${item.hardcover_id}`}
+                      type="button"
+                      data-slot="search-result"
+                      data-search-active={active}
+                      className={rowClass}
+                      onClick={() => handleDropdownClick(item)}
+                    >
+                      <img
+                        src={
+                          coverForHardcover(item.hardcover_id) ||
+                          item.cover_image ||
+                          "/images/placeholderimage.jpg"
+                        }
+                        alt={item.title}
+                        className="h-14 w-9 shrink-0 rounded object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "/images/placeholderimage.jpg";
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {item.title}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {item.author} · Book
+                        </p>
+                      </div>
+                      {isLogged(item) && (
+                        <CircleCheck className="ml-auto size-4 shrink-0 text-green-500" />
+                      )}
+                    </button>
+                  );
+                }
+                return (
                   <button
                     key={`${item.media_type}-${item.tmdb_id}`}
                     type="button"
                     data-slot="search-result"
-                    className="flex w-full cursor-pointer items-center gap-3 rounded-md bg-transparent p-2 text-left hover:bg-accent"
+                    data-search-active={active}
+                    className={rowClass}
                     onClick={() => handleDropdownClick(item)}
                   >
                     <img
@@ -307,8 +399,8 @@ export default function SearchBar() {
                       <CircleCheck className="ml-auto size-4 shrink-0 text-green-500" />
                     )}
                   </button>
-                ),
-              )}
+                );
+              })}
             </div>
           ) : searchQuery.trim().length > 1 ? (
             <div className="px-3 py-4 text-center text-sm text-muted-foreground">
