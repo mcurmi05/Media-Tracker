@@ -9,7 +9,9 @@ import { useBookRatings } from "../contexts/UserBookRatingsContext";
 import { useBookLogs } from "../contexts/UserBookLogsContext";
 import { useBookTbr } from "../contexts/UserBookTbrContext";
 import { useCache } from "../contexts/PopularMoviesCacheContext";
-import { getPopularMovies, getPopularTV, getRecommendations } from "../services/api";
+import { getPopularMovies, getPopularTV, getRecommendations, getMovieById } from "../services/api";
+import IMDBInfo from "../components/media/IMDBInfo";
+import LetterboxdInfo from "../components/media/LetterboxdInfo";
 import { SignIn } from "./SignIn";
 import { bookDetailsRouteForBook } from "../utils/goodreads";
 import { getListsActivity } from "../services/lists";
@@ -332,6 +334,27 @@ export default function Home() {
   const [recInfo, setRecInfo] = useState(null);
   const [recRefresh, setRecRefresh] = useState(0);
   const [recsLoading, setRecsLoading] = useState(false);
+  // Full details (director/cast + IMDb tconst) for the open recommendation
+  // popup, so the user sees who's in it and its ratings without navigating.
+  const [recDetails, setRecDetails] = useState(null);
+  useEffect(() => {
+    if (!recInfo) {
+      setRecDetails(null);
+      return;
+    }
+    let live = true;
+    setRecDetails(null);
+    getMovieById(recInfo.media_type, recInfo.tmdb_id)
+      .then((d) => {
+        if (live) setRecDetails(d || null);
+      })
+      .catch(() => {
+        if (live) setRecDetails(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [recInfo]);
   useEffect(() => {
     if (!userRatingsLoaded || !userLogsLoaded || !userWatchlistLoaded) return;
     // Seed pool = the user's top-rated titles. Sample 10 at random from the pool
@@ -1467,30 +1490,70 @@ export default function Home() {
             </button>
             <div className="hp-rec-modal-head">
               <img
-                className="hp-rec-modal-poster"
+                className="hp-rec-modal-poster hp-rec-modal-clickable"
                 src={recInfo.primaryImage || "/images/placeholderimage.jpg"}
                 alt=""
+                onClick={() =>
+                  navigate(
+                    `/mediadetails/${recInfo.media_type}/${recInfo.tmdb_id}`,
+                  )
+                }
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = "/images/placeholderimage.jpg";
                 }}
               />
-              <div>
-                <div className="hp-rec-modal-title">{recInfo.primaryTitle}</div>
-                {recInfo.startYear && (
-                  <div className="hp-rec-modal-year">{recInfo.startYear}</div>
-                )}
-                <button
-                  type="button"
-                  className="hp-rec-view"
+              <div className="hp-rec-modal-info">
+                <div
+                  className="hp-rec-modal-title hp-rec-modal-clickable"
                   onClick={() =>
                     navigate(
                       `/mediadetails/${recInfo.media_type}/${recInfo.tmdb_id}`,
                     )
                   }
                 >
-                  View details
-                </button>
+                  {recInfo.primaryTitle}
+                </div>
+                {recInfo.startYear && (
+                  <div className="hp-rec-modal-year">{recInfo.startYear}</div>
+                )}
+                {recDetails && (
+                  <>
+                    <div className="hp-rec-ratings">
+                      <IMDBInfo movie={recDetails} useLiveRating />
+                      {recInfo.media_type === "movie" && (
+                        <LetterboxdInfo movie={recDetails} live />
+                      )}
+                    </div>
+                    {(() => {
+                      const crew =
+                        recInfo.media_type === "tv"
+                          ? recDetails.creators
+                          : recDetails.directors;
+                      const label =
+                        recInfo.media_type === "tv" ? "Creator" : "Director";
+                      if (!crew || crew.length === 0) return null;
+                      return (
+                        <div className="hp-rec-crew">
+                          <span className="hp-rec-crew-label">{label}</span>{" "}
+                          {crew.map((c) => c.fullName).join(", ")}
+                        </div>
+                      );
+                    })()}
+                    {recDetails.cast?.length > 0 && (
+                      <div className="hp-rec-crew">
+                        <span className="hp-rec-crew-label">Cast</span>{" "}
+                        {recDetails.cast
+                          .filter(
+                            (c) => c.job === "actor" || c.job === "actress",
+                          )
+                          .slice(0, 4)
+                          .map((c) => c.fullName)
+                          .join(", ")}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
             <div className="hp-rec-because-label">

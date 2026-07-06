@@ -934,16 +934,38 @@
   font-size: 0.85rem;
   margin-top: 2px;
 }
-.hp-rec-view {
-  margin-top: 12px;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border: none;
-  border-radius: 8px;
-  padding: 7px 14px;
-  font-size: 0.85rem;
-  font-weight: 600;
+.hp-rec-modal-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hp-rec-modal-clickable {
   cursor: pointer;
+}
+.hp-rec-modal-title.hp-rec-modal-clickable:hover {
+  text-decoration: underline;
+}
+.hp-rec-modal-poster.hp-rec-modal-clickable {
+  transition: transform 200ms ease;
+}
+.hp-rec-modal-poster.hp-rec-modal-clickable:hover {
+  transform: scale(1.04);
+}
+.hp-rec-ratings {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+.hp-rec-crew {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #ccc;
+}
+.hp-rec-crew-label {
+  font-weight: 600;
+  color: #fff;
 }
 .hp-rec-because-label {
   font-size: 0.78rem;

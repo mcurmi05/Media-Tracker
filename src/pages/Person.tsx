@@ -4,12 +4,29 @@ import { getPersonById } from "../services/api";
 import ScrollStrip from "../components/layout/ScrollStrip";
 import Loader from "../components/layout/Loader";
 import { makeNavHandlers } from "../utils/navClick";
+import { useCovers } from "../contexts/UserCoversContext";
 import "../styles/pages/Person.css";
 
 // Crew departments shown first (and in this order); anything else follows.
 const DEPT_ORDER = ["Directing", "Writing", "Production"];
 
-function TitleStrip({ title, items, navigate }) {
+// TMDB names credit groups by activity ("Directing"); show the person's role
+// instead ("Director"). Falls back to the raw department for anything unmapped.
+const DEPT_LABEL = {
+  Directing: "Director",
+  Writing: "Writer",
+  Production: "Producer",
+  Editing: "Editor",
+  Camera: "Cinematographer",
+  Sound: "Sound",
+  Art: "Art",
+  Lighting: "Lighting",
+  "Visual Effects": "Visual Effects",
+  "Costume & Make-Up": "Costume & Make-Up",
+  Crew: "Crew",
+};
+
+function TitleStrip({ title, items, navigate, coverForTmdb }) {
   if (!items || items.length === 0) return null;
   return (
     <div className="person-section">
@@ -26,7 +43,11 @@ function TitleStrip({ title, items, navigate }) {
           >
             <img
               className="person-credit-poster"
-              src={it.primaryImage || "/images/placeholderimage.jpg"}
+              src={
+                coverForTmdb(it.media_type, it.tmdb_id) ||
+                it.primaryImage ||
+                "/images/placeholderimage.jpg"
+              }
               alt={it.primaryTitle}
               loading="lazy"
               onError={(e) => {
@@ -50,6 +71,7 @@ function TitleStrip({ title, items, navigate }) {
 function Person() {
   const { personId } = useParams();
   const navigate = useNavigate();
+  const { coverForTmdb } = useCovers();
   const [person, setPerson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -113,14 +135,25 @@ function Person() {
         </div>
       </div>
 
-      <TitleStrip title="Known For" items={person.knownFor} navigate={navigate} />
-      <TitleStrip title="Acting" items={person.acting} navigate={navigate} />
+      <TitleStrip
+        title="Known For"
+        items={person.knownFor}
+        navigate={navigate}
+        coverForTmdb={coverForTmdb}
+      />
+      <TitleStrip
+        title="Actor"
+        items={person.acting}
+        navigate={navigate}
+        coverForTmdb={coverForTmdb}
+      />
       {deptNames.map((dept) => (
         <TitleStrip
           key={dept}
-          title={dept}
+          title={DEPT_LABEL[dept] || dept}
           items={person.crewByDept[dept]}
           navigate={navigate}
+          coverForTmdb={coverForTmdb}
         />
       ))}
     </div>
