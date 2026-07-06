@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { Spinner } from "./Loader";
 import {
   Home,
   TrendingUp,
@@ -204,7 +205,13 @@ export default function CommandPalette() {
       </div>
       <CommandList>
         <CommandEmpty>
-          {loading ? "Searching..." : "No results found."}
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <Spinner />
+            </div>
+          ) : (
+            "No results found."
+          )}
         </CommandEmpty>
         {results.length > 0 && (
           <CommandGroup heading="Results">

@@ -266,6 +266,15 @@ function Log() {
     return new Date(log.created_at);
   };
 
+  // A log has an "unknown" watch date when it carries no real date. Movie/TV
+  // logs flag it explicitly; book logs have neither a start nor end date.
+  const movieDateUnknown = (log) => !!log.date_unknown;
+  const bookDateUnknown = (bookLog) => !bookLog.start_date && !bookLog.end_date;
+  const movieSortTitle = (log) =>
+    (log.movie_object?.primaryTitle || "").toLowerCase();
+  const bookSortTitle = (bookLog) =>
+    (getBookInfo(bookLog).title || "").toLowerCase();
+
   const getMostRecentBookDate = (bookLog) => {
     // Use end_date if the book is finished
     if (bookLog.end_date) {
@@ -317,8 +326,16 @@ function Log() {
             const valOf = sortKey === "goodreads" ? grRatingOf : grCountOf;
             const rc = compareNumeric(valOf(a), valOf(b));
             if (rc !== 0) return rc;
-          } else if (sortKey === "date" && sortDir === "asc") {
-            return getMostRecentBookDate(a) - getMostRecentBookDate(b);
+          } else if (sortKey === "date") {
+            // Unknown-date logs always sink to the bottom, ordered by title.
+            const au = bookDateUnknown(a);
+            const bu = bookDateUnknown(b);
+            if (au !== bu) return au ? 1 : -1;
+            if (au && bu)
+              return bookSortTitle(a).localeCompare(bookSortTitle(b));
+            return sortDir === "asc"
+              ? getMostRecentBookDate(a) - getMostRecentBookDate(b)
+              : getMostRecentBookDate(b) - getMostRecentBookDate(a);
           }
           return getMostRecentBookDate(b) - getMostRecentBookDate(a);
         })
@@ -387,8 +404,16 @@ function Log() {
               lbCountOf(b.movie_object),
             );
             if (rc !== 0) return rc;
-          } else if (sortKey === "date" && sortDir === "asc") {
-            return getMostRecentDate(a) - getMostRecentDate(b);
+          } else if (sortKey === "date") {
+            // Unknown-date logs always sink to the bottom, ordered by title.
+            const au = movieDateUnknown(a);
+            const bu = movieDateUnknown(b);
+            if (au !== bu) return au ? 1 : -1;
+            if (au && bu)
+              return movieSortTitle(a).localeCompare(movieSortTitle(b));
+            return sortDir === "asc"
+              ? getMostRecentDate(a) - getMostRecentDate(b)
+              : getMostRecentDate(b) - getMostRecentDate(a);
           }
           return getMostRecentDate(b) - getMostRecentDate(a);
         })
@@ -403,6 +428,8 @@ function Log() {
             id: `log-${log.id}`,
             data: log,
             date: getMostRecentDate(log),
+            dateUnknown: movieDateUnknown(log),
+            sortTitle: movieSortTitle(log),
             year: movieYear(log),
             rating: movieRating(log),
             imdb: imdbRatingOf(log.movie_object),
@@ -417,6 +444,8 @@ function Log() {
             id: `book-${bookLog.id}`,
             data: bookLog,
             date: getMostRecentBookDate(bookLog),
+            dateUnknown: bookDateUnknown(bookLog),
+            sortTitle: bookSortTitle(bookLog),
             year: bookYear(bookLog),
             rating: bookRating(bookLog),
             imdb: null,
@@ -452,8 +481,12 @@ function Log() {
           } else if (sortKey === "goodreadsCount") {
             const rc = compareNumeric(a.goodreadsCount, b.goodreadsCount);
             if (rc !== 0) return rc;
-          } else if (sortKey === "date" && sortDir === "asc") {
-            return a.date - b.date;
+          } else if (sortKey === "date") {
+            // Unknown-date logs always sink to the bottom, ordered by title.
+            if (a.dateUnknown !== b.dateUnknown) return a.dateUnknown ? 1 : -1;
+            if (a.dateUnknown && b.dateUnknown)
+              return a.sortTitle.localeCompare(b.sortTitle);
+            return sortDir === "asc" ? a.date - b.date : b.date - a.date;
           }
           return b.date - a.date;
         })

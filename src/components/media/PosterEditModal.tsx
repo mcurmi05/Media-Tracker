@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import "../../styles/layout/Loader.css";
 import { getTitleImages, getBookCovers } from "../../services/api";
 import { useCovers } from "../../contexts/UserCoversContext";
 
@@ -42,12 +43,17 @@ export default function PosterEditModal({
   const [selected, setSelected] = useState(
     coverFor(entryId) ?? currentImage ?? null,
   );
+  const [customUrl, setCustomUrl] = useState("");
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setSelected(coverFor(entryId) ?? currentImage ?? null);
+    setCustomUrl("");
     let live = true;
+    setLoading(true);
+    setPosters([]);
     const fetcher = isBook
       ? hardcoverId != null
         ? getBookCovers(hardcoverId)
@@ -55,9 +61,13 @@ export default function PosterEditModal({
       : tmdbId != null
         ? getTitleImages(mediaType, tmdbId)
         : Promise.resolve([]);
-    fetcher.then((list) => {
-      if (live) setPosters(Array.isArray(list) ? list : []);
-    });
+    fetcher
+      .then((list) => {
+        if (live) setPosters(Array.isArray(list) ? list : []);
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
     return () => {
       live = false;
     };
@@ -66,16 +76,18 @@ export default function PosterEditModal({
 
   const hasOverride = coverFor(entryId) != null;
 
+  const keys = { mediaType, tmdbId, hardcoverId };
+
   async function apply() {
     setSaving(true);
-    await setCover(entryId, selected);
+    await setCover(entryId, selected, keys);
     setSaving(false);
     onClose();
   }
 
   async function resetToDefault() {
     setSaving(true);
-    await setCover(entryId, null);
+    await setCover(entryId, null, keys);
     setSaving(false);
     onClose();
   }
@@ -99,7 +111,22 @@ export default function PosterEditModal({
           title.
         </div>
 
-        {posters.length === 0 ? (
+        {loading ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: "32px 0",
+            }}
+          >
+            <span
+              className="app-spinner"
+              style={{ width: 32, height: 32, borderWidth: 3 }}
+              aria-label="Loading"
+            />
+          </div>
+        ) : posters.length === 0 ? (
           <div style={{ color: "#888", padding: "12px 0" }}>
             No cover options found for this title.
           </div>
@@ -118,12 +145,63 @@ export default function PosterEditModal({
                 key={p.full}
                 src={p.thumb}
                 alt="Cover option"
-                onClick={() => setSelected(p.full)}
+                onClick={() => {
+                  setSelected(p.full);
+                  setCustomUrl("");
+                }}
                 className={`poster-option${selected === p.full ? " is-selected" : ""}`}
               />
             ))}
           </div>
         )}
+
+        <div style={{ marginTop: 18 }}>
+          <div style={{ color: "#aaa", fontSize: "0.85rem", marginBottom: 6 }}>
+            Or paste an image URL
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <input
+              type="url"
+              value={customUrl}
+              onChange={(e) => {
+                const url = e.target.value;
+                setCustomUrl(url);
+                setSelected(url.trim() || coverFor(entryId) || currentImage || null);
+              }}
+              placeholder="https://..."
+              style={{
+                flex: 1,
+                minWidth: 0,
+                background: "#111",
+                color: "#eee",
+                border: "1px solid #444",
+                borderRadius: 6,
+                padding: "8px 10px",
+                fontSize: "0.9rem",
+              }}
+            />
+            {customUrl.trim() && (
+              <img
+                src={customUrl.trim()}
+                alt="Custom cover preview"
+                onError={(e) => {
+                  e.target.style.visibility = "hidden";
+                }}
+                onLoad={(e) => {
+                  e.target.style.visibility = "visible";
+                }}
+                style={{
+                  width: 46,
+                  height: 69,
+                  objectFit: "cover",
+                  borderRadius: 4,
+                  border: "2px solid #e23030",
+                  flexShrink: 0,
+                }}
+              />
+            )}
+          </div>
+        </div>
 
         <div
           style={{

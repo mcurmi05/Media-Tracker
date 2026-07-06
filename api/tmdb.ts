@@ -521,6 +521,29 @@ export default async function handler(req, res) {
       return res.status(200).json(posters);
     }
 
+    if (action === "art") {
+      const mediaType = q.mediaType === "tv" ? "tv" : "movie";
+      const tmdbId = String(q.tmdbId || "").trim();
+      if (!/^\d+$/.test(tmdbId)) {
+        return res.status(400).json({ error: "Invalid tmdbId" });
+      }
+      // Backdrops (wide art/stills) for the media details collage. No language
+      // filter - artwork is mostly textless and we want as many as possible.
+      const data = await tmdbFetch(`/${mediaType}/${tmdbId}/images`, {}, key);
+      const backdrops = (data.backdrops || [])
+        .slice(0, 24)
+        .map((b) => ({
+          thumb: posterUrl(b.file_path, "w300"),
+          full: posterUrl(b.file_path, "w1280"),
+        }))
+        .filter((b) => b.full);
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=86400, stale-while-revalidate=604800",
+      );
+      return res.status(200).json(backdrops);
+    }
+
     if (action === "find") {
       const imdbId = String(q.imdbId || "").trim();
       if (!/^tt\d+$/.test(imdbId)) {

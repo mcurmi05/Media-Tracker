@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useRatings } from "../contexts/UserRatingsContext";
+import { useCovers } from "../contexts/UserCoversContext";
 import { useLogs } from "../contexts/UserLogsContext";
 import { useWatchlist } from "../contexts/UserWatchlistContext";
 import { useBookRatings } from "../contexts/UserBookRatingsContext";
@@ -274,6 +275,7 @@ function CoverStrip({ tiles, empty, loading, fill }) {
 export default function Home() {
   const navigate = useNavigate();
   const { user, isAuthenticated, loading } = useAuth();
+  const { coverForTmdb, coverForHardcover } = useCovers();
   const { userRatings, userRatingsLoaded } = useRatings();
   const { userLogs, userLogsLoaded } = useLogs();
   const { userWatchlist, userWatchlistLoaded } = useWatchlist();
@@ -341,7 +343,7 @@ export default function Home() {
   const movieTile = useCallback(
     (mo, { badge, rank } = {}) => ({
       key: mo?.id,
-      cover: mo?.primaryImage,
+      cover: coverForTmdb(mo?.media_type, mo?.tmdb_id) || mo?.primaryImage,
       title: mo?.primaryTitle || "Untitled",
       sub: mo?.startYear ? String(mo.startYear) : "",
       badge,
@@ -351,7 +353,7 @@ export default function Home() {
         mo?.tmdb_id != null &&
         navigate(`/mediadetails/${mo.media_type}/${mo.tmdb_id}`),
     }),
-    [navigate],
+    [navigate, coverForTmdb],
   );
 
   // Open the Logs page with its search bar pre-filled with this title.
@@ -363,7 +365,7 @@ export default function Home() {
   const bookTile = useCallback(
     (be, { badge, rank } = {}) => ({
       key: be?.id,
-      cover: be?.cover_image,
+      cover: coverForHardcover(be?.hardcover_id) || be?.cover_image,
       title: stripSeries(be?.title) || "Untitled",
       sub: be?.author || "",
       badge,
@@ -374,7 +376,7 @@ export default function Home() {
         if (route) navigate(route, { state: { book: be } });
       },
     }),
-    [navigate],
+    [navigate, coverForHardcover],
   );
 
   /* ---------- stats ---------- */
@@ -719,7 +721,9 @@ export default function Home() {
     };
     userRatings.forEach((r) =>
       check(r.created_at, (dt) => ({
-        cover: r.movie_object?.primaryImage,
+        cover:
+          coverForTmdb(r.movie_object?.media_type, r.movie_object?.tmdb_id) ||
+          r.movie_object?.primaryImage,
         title: r.movie_object?.primaryTitle,
         line: `You rated this ${r.rating}/10 in ${dt.getFullYear()}`,
         fit: "cover",
@@ -732,7 +736,9 @@ export default function Home() {
     );
     bookLogs.forEach((l) =>
       check(l.end_date, (dt) => ({
-        cover: l.book_entries?.cover_image,
+        cover:
+          coverForHardcover(l.book_entries?.hardcover_id) ||
+          l.book_entries?.cover_image,
         title: stripSeries(l.book_entries?.title),
         line: `You finished this in ${dt.getFullYear()}`,
         fit: "contain",
@@ -744,7 +750,7 @@ export default function Home() {
     );
     hits.sort((a, b) => b.dt - a.dt);
     return hits[0] || null;
-  }, [userRatings, bookLogs, navigate]);
+  }, [userRatings, bookLogs, navigate, coverForTmdb, coverForHardcover]);
 
   /* ---------- recent strips ---------- */
 

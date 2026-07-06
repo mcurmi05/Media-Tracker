@@ -3,6 +3,8 @@ import { useBookRatings } from "../contexts/UserBookRatingsContext";
 import ListComponent from "../components/common/ListComponent";
 import AddToList from "../components/common/AddToList";
 import BookRating from "../components/books/BookRating";
+import PaginationControls from "../components/common/PaginationControls";
+import { usePagination, pageBounds } from "../hooks/usePagination";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getBookInfo } from "../utils/bookInfo";
@@ -73,6 +75,22 @@ function Ratings() {
   });
   //rank mode: none | movies | tv | books
   const [rankModeType, setRankModeType] = useState("none");
+
+  const pag = usePagination(
+    [
+      debouncedSearch,
+      ratingFilter,
+      genreFilter,
+      mediaTypeFilter,
+      sortKey,
+      sortDir,
+      yearFrom,
+      yearTo,
+      addedFrom,
+      addedTo,
+      rankModeType,
+    ].join("|"),
+  );
 
   const activeFilterCount =
     (ratingFilter !== "all" ? 1 : 0) +
@@ -486,6 +504,8 @@ function Ratings() {
       ? !bookRatingsLoaded
       : !userRatingsLoaded;
 
+  const { pageStart, pageEnd } = pageBounds(pag.page, pag.pageSize, displayCount);
+
   if (isLoading) return <Loader />;
 
   return (
@@ -634,9 +654,10 @@ function Ratings() {
               : `No ratings found for "${searchTerm}"!`}
         </div>
       ) : null}
+      <PaginationControls pag={pag} totalCount={displayCount} />
       <div className="list-col">
         {isAllView
-          ? combinedAll.map((item) =>
+          ? combinedAll.slice(pageStart, pageEnd).map((item) =>
               item.kind === "rating" ? (
                 <div
                   key={item.id}
@@ -675,7 +696,7 @@ function Ratings() {
               ),
             )
           : isBooksView
-          ? sortedBooks.map((bookLog) => (
+          ? sortedBooks.slice(pageStart, pageEnd).map((bookLog) => (
               <div
                 key={bookLog.id}
                 className="list-row"
@@ -693,7 +714,7 @@ function Ratings() {
                 </div>
               </div>
             ))
-          : sortedRatings.map((rating) => (
+          : sortedRatings.slice(pageStart, pageEnd).map((rating) => (
               <div
                 key={rating.id || rating.movie_entry_id}
                 className="list-row"
@@ -723,6 +744,7 @@ function Ratings() {
               </div>
             ))}
       </div>
+      <PaginationControls pag={pag} totalCount={displayCount} />
     </div>
   );
 }

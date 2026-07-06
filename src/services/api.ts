@@ -194,6 +194,26 @@ export const getTitleImages = async (
   }
 };
 
+// Backdrop art (wide stills) for a title, for the media details collage.
+// Returns [{ thumb, full }]. Not stored - fetched fresh when a page opens.
+export const getTitleArt = async (
+  mediaType: MediaType,
+  tmdbId: string | number,
+) => {
+  try {
+    const response = await fetch(
+      `${API}?action=art&mediaType=${encodeURIComponent(
+        mediaType,
+      )}&tmdbId=${encodeURIComponent(tmdbId)}`,
+    );
+    if (!response.ok) return [];
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
 // Cover options for a book (Hardcover editions). Returns [{ thumb, full }].
 export const getBookCovers = async (hardcoverId: string | number) => {
   try {

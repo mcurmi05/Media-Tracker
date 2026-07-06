@@ -10,6 +10,7 @@ import GoodreadsInfo from "./GoodreadsInfo";
 import StorygraphInfo from "../../features/ratings/storygraph/StorygraphInfo";
 import { bookDetailsRouteForBook } from "../../utils/goodreads";
 import { makeNavHandlers } from "../../utils/navClick";
+import { useCovers } from "../../contexts/UserCoversContext";
 
 function parseTitle(rawTitle) {
   const match = (rawTitle || "").match(
@@ -29,6 +30,8 @@ function BookCard({ book: bookProp, posterOnly = false }) {
   const [book, setBook] = useState(bookProp);
   const [showEditModal, setShowEditModal] = useState(false);
   const navigate = useNavigate();
+  const { coverForHardcover } = useCovers();
+  const cover = coverForHardcover(book.hardcover_id) || book.cover_image;
 
   useEffect(() => {
     setBook(bookProp);
@@ -67,7 +70,7 @@ function BookCard({ book: bookProp, posterOnly = false }) {
         >
           <img
             className="movie-poster-img"
-            src={book.cover_image ? book.cover_image : "/images/placeholderimage.jpg"}
+            src={cover ? cover : "/images/placeholderimage.jpg"}
             alt={book.title}
             onError={(e) => {
               e.target.onerror = null;
@@ -88,7 +91,7 @@ function BookCard({ book: bookProp, posterOnly = false }) {
       >
         <img
           className="movie-poster-img"
-          src={book.cover_image ? book.cover_image : "/images/placeholderimage.jpg"}
+          src={cover ? cover : "/images/placeholderimage.jpg"}
           alt={book.title}
           style={{ objectFit: "contain" }}
           onError={(e) => {

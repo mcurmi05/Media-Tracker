@@ -4,11 +4,15 @@ import ReleaseAndRunTime from "./ReleaseAndRunTime";
 import AddLog from "./AddLog";
 import AddWatchlist from "./AddWatchlist";
 import { makeNavHandlers } from "../../utils/navClick";
+import { useCovers } from "../../contexts/UserCoversContext";
 
 
 function MovieCard({ movie, posterOnly = false }) {
 
   const navigate = useNavigate();
+  const { coverForTmdb } = useCovers();
+  const cover =
+    coverForTmdb(movie.media_type, movie.tmdb_id) || movie.primaryImage;
 
   const detailHandlers = makeNavHandlers(
     navigate,
@@ -21,11 +25,7 @@ function MovieCard({ movie, posterOnly = false }) {
         <div className="movie-poster" {...detailHandlers}>
           <img
             className="movie-poster-img"
-            src={
-              movie.primaryImage
-                ? `${movie.primaryImage}`
-                : "/images/placeholderimage.jpg"
-            }
+            src={cover ? `${cover}` : "/images/placeholderimage.jpg"}
             onError={e => { e.target.onerror = null; e.target.src = "/images/placeholderimage.jpg"}}
           />
         </div>

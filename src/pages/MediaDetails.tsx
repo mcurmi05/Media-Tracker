@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { getMovieById } from "../services/api";
+import { getMovieById, getTitleArt } from "../services/api";
 import { upsertMovie } from "../services/movieMetadata";
 import { supabase } from "../services/supabase-client";
 import PosterEditModal from "../components/media/PosterEditModal";
@@ -44,6 +44,8 @@ function MediaDetails() {
   const [backdropLoaded, setBackdropLoaded] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState(null);
   const [movieEntryId, setMovieEntryId] = useState(null);
+  const [art, setArt] = useState([]);
+  const [lightboxArt, setLightboxArt] = useState(null);
   const [showPosterEdit, setShowPosterEdit] = useState(false);
   const [watchStatus, setWatchStatus] = useState({});
   const { userRatings } = useRatings();
@@ -89,6 +91,20 @@ function MediaDetails() {
     };
 
     fetchMovieDetails();
+  }, [mediaType, tmdbId]);
+
+  // Backdrop art collage for the bottom of the page. Fetched fresh each open,
+  // never stored (one TMDB call per title view).
+  useEffect(() => {
+    if (tmdbId == null) return;
+    let live = true;
+    setArt([]);
+    getTitleArt(mediaType, tmdbId).then((list) => {
+      if (live) setArt(Array.isArray(list) ? list : []);
+    });
+    return () => {
+      live = false;
+    };
   }, [mediaType, tmdbId]);
 
   // Load this user's watch status for the title once we have its movies row id.
@@ -520,7 +536,36 @@ function MediaDetails() {
               ))}
             </div>
           )}
+
+        {art.length > 0 && (
+          <div className="art-collage-section">
+            <h3 className="art-collage-title">Photos</h3>
+            <div className="art-collage">
+              {art.map((a) => (
+                <button
+                  key={a.full}
+                  type="button"
+                  className="art-collage-item"
+                  onClick={() => setLightboxArt(a.full)}
+                >
+                  <img src={a.thumb} alt="" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {lightboxArt && (
+        <div
+          className="art-lightbox"
+          onClick={() => setLightboxArt(null)}
+          role="button"
+          tabIndex={-1}
+        >
+          <img src={lightboxArt} alt="" />
+        </div>
+      )}
 
       {selectedEpisode && (
         <EpisodeModal

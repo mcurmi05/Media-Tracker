@@ -2,6 +2,8 @@ import WatchlistComponent from "../components/media/WatchlistComponent";
 import BookTbrComponent from "../components/books/BookTbrComponent";
 import ListComponent from "../components/common/ListComponent";
 import AddToList from "../components/common/AddToList";
+import PaginationControls from "../components/common/PaginationControls";
+import { usePagination, pageBounds } from "../hooks/usePagination";
 import "../styles/pages/Log.css";
 import "../styles/search/Toolbar.css";
 import { useEffect, useMemo, useState } from "react";
@@ -77,6 +79,20 @@ function Watchlist() {
   const [addedFrom, setAddedFrom] = useState(location.state?.addedFrom || "");
   const [addedTo, setAddedTo] = useState(location.state?.addedTo || "");
   const [genreFilter, setGenreFilter] = useState(location.state?.genreFilter || "all");
+  const pag = usePagination(
+    [
+      debouncedSearch,
+      genreFilter,
+      mediaTypeFilter,
+      newSeasonFilter,
+      sortKey,
+      sortDir,
+      yearFrom,
+      yearTo,
+      addedFrom,
+      addedTo,
+    ].join("|"),
+  );
   const [filtersOpen, setFiltersOpen] = useState(() => {
     const s = location.state || {};
     return (
@@ -575,6 +591,8 @@ function Watchlist() {
       ? filteredBookTbr.length
       : filteredWatchlist.length;
 
+  const { pageStart, pageEnd } = pageBounds(pag.page, pag.pageSize, displayCount);
+
   if (isLoading) {
     return <Loader />;
   }
@@ -873,9 +891,10 @@ function Watchlist() {
             : "No watchlist items found!"}
         </div>
       )}
+      <PaginationControls pag={pag} totalCount={displayCount} />
       <div className="list-col">
         {isAllView
-          ? combinedAll.map((item) =>
+          ? combinedAll.slice(pageStart, pageEnd).map((item) =>
               item.kind === "movie" ? (
                 <div
                   key={item.id}
@@ -899,7 +918,7 @@ function Watchlist() {
               ),
             )
           : isBooksView
-            ? filteredBookTbr.map((entry) => (
+            ? filteredBookTbr.slice(pageStart, pageEnd).map((entry) => (
                 <div
                   key={entry.id}
                   className="list-row"
@@ -907,7 +926,7 @@ function Watchlist() {
                   <BookTbrComponent tbrEntry={entry} />
                 </div>
               ))
-            : filteredWatchlist.map((watchlist_entry) =>
+            : filteredWatchlist.slice(pageStart, pageEnd).map((watchlist_entry) =>
                 watchlist_entry.id ? (
                   <div
                     key={watchlist_entry.id}
@@ -924,6 +943,7 @@ function Watchlist() {
                 ) : null,
               )}
       </div>
+      <PaginationControls pag={pag} totalCount={displayCount} />
     </div>
   );
 }

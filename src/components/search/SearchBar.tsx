@@ -7,6 +7,8 @@ import {
   findByImdbId,
 } from "../../services/api";
 import { useSearch } from "../../contexts/SearchContext";
+import { useCovers } from "../../contexts/UserCoversContext";
+import { Spinner } from "../layout/Loader";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,13 +24,14 @@ export default function SearchBar() {
   const {
     searchQuery,
     setSearchQuery,
-    searchLoading,
     setSearchLoading,
     searchMode,
     setSearchMode,
   } = useSearch();
+  const { coverForTmdb, coverForHardcover } = useCovers();
 
   const [dropdownResults, setDropdownResults] = useState([]);
+  const [dropdownLoading, setDropdownLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchSubmitted, setSearchSubmitted] = useState(false);
 
@@ -42,6 +45,10 @@ export default function SearchBar() {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
+      // Show the spinner from the moment a query is pending (debounce + fetch),
+      // so the dropdown never flashes an empty "no results" first.
+      setDropdownLoading(true);
+      setShowDropdown(true);
       const delay = searchMode === "books" ? 300 : 1000;
       searchTimeoutRef.current = setTimeout(async () => {
         try {
@@ -72,11 +79,14 @@ export default function SearchBar() {
           console.log("Search error:", err);
           setDropdownResults([]);
           setShowDropdown(true);
+        } finally {
+          if (!cancelled) setDropdownLoading(false);
         }
       }, delay);
     } else {
       setShowDropdown(false);
       setDropdownResults([]);
+      setDropdownLoading(false);
     }
 
     return () => {
@@ -154,6 +164,23 @@ export default function SearchBar() {
     setSearchSubmitted(false);
   };
 
+  // Tab / Shift+Tab cycles through the media categories (without needing any
+  // search results first) and opens the dropdown so the active tab is visible.
+  const cycleMode = (dir) => {
+    const idx = SEARCH_MODES.findIndex((m) => m.value === searchMode);
+    const next =
+      SEARCH_MODES[(idx + dir + SEARCH_MODES.length) % SEARCH_MODES.length];
+    selectMode(next.value);
+    setShowDropdown(true);
+  };
+
+  const handleInputKeyDown = (e) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      cycleMode(e.shiftKey ? -1 : 1);
+    }
+  };
+
   return (
     <div className="relative w-full max-w-md" ref={dropdownRef}>
       <form onSubmit={handleSearch}>
@@ -164,9 +191,8 @@ export default function SearchBar() {
           className="h-9 rounded-lg bg-secondary/40 pl-9 pr-12 focus-visible:bg-background"
           value={searchQuery}
           onChange={handleInputChange}
-          onFocus={() => {
-            if (dropdownResults.length > 0) setShowDropdown(true);
-          }}
+          onKeyDown={handleInputKeyDown}
+          onFocus={() => setShowDropdown(true)}
         />
         <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground sm:flex">
           {navigator.platform.toUpperCase().includes("MAC") ? "⌘" : "Ctrl"}K
@@ -191,9 +217,9 @@ export default function SearchBar() {
             </Tabs>
           </div>
 
-          {searchLoading ? (
-            <div className="px-3 py-4 text-center text-sm text-muted-foreground">
-              Searching...
+          {dropdownLoading ? (
+            <div className="flex items-center justify-center px-3 py-6">
+              <Spinner />
             </div>
           ) : dropdownResults.length > 0 ? (
             <div className="p-1">
@@ -207,7 +233,11 @@ export default function SearchBar() {
                     onClick={() => handleDropdownClick(item)}
                   >
                     <img
-                      src={item.cover_image || "/images/placeholderimage.jpg"}
+                      src={
+                        coverForHardcover(item.hardcover_id) ||
+                        item.cover_image ||
+                        "/images/placeholderimage.jpg"
+                      }
                       alt={item.title}
                       className="h-14 w-9 shrink-0 rounded object-cover"
                       onError={(e) => {
@@ -233,7 +263,11 @@ export default function SearchBar() {
                     onClick={() => handleDropdownClick(item)}
                   >
                     <img
-                      src={item.primaryImage || "/images/placeholderimage.jpg"}
+                      src={
+                        coverForTmdb(item.media_type, item.tmdb_id) ||
+                        item.primaryImage ||
+                        "/images/placeholderimage.jpg"
+                      }
                       alt={item.primaryTitle}
                       className="h-14 w-9 shrink-0 rounded object-cover"
                     />
@@ -251,9 +285,13 @@ export default function SearchBar() {
                 ),
               )}
             </div>
-          ) : (
+          ) : searchQuery.trim().length > 1 ? (
             <div className="px-3 py-4 text-center text-sm text-muted-foreground">
               No results found
+            </div>
+          ) : (
+            <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+              Type to search · Tab to switch category
             </div>
           )}
         </div>
