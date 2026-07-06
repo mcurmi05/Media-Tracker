@@ -21,6 +21,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { UserRatingsProvider } from "./contexts/UserRatingsContext";
 import Ratings from "./pages/Ratings";
 import Log from "./pages/Log";
+import Calendar from "./pages/Calendar";
 import { UserLogsProvider } from "./contexts/UserLogsContext";
 import Home from "./pages/Home";
 import { UserWatchlistProvider } from "./contexts/UserWatchlistContext";
@@ -101,6 +102,7 @@ function App() {
                         <Route path="/signin" element={<SignIn></SignIn>} />
                         <Route path="/ratings" element={<Ratings></Ratings>} />
                         <Route path="/log" element={<Log></Log>} />
+                        <Route path="/calendar" element={<Calendar />} />
                         <Route
                           path="/watchlist"
                           element={<Watchlist></Watchlist>}

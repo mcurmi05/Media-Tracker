@@ -9,7 +9,7 @@ import { useBookRatings } from "../contexts/UserBookRatingsContext";
 import { useBookLogs } from "../contexts/UserBookLogsContext";
 import { useBookTbr } from "../contexts/UserBookTbrContext";
 import { useCache } from "../contexts/PopularMoviesCacheContext";
-import { getPopularMovies, getPopularTV } from "../services/api";
+import { getPopularMovies, getPopularTV, getRecommendations } from "../services/api";
 import { SignIn } from "./SignIn";
 import { bookDetailsRouteForBook } from "../utils/goodreads";
 import { getListsActivity } from "../services/lists";
@@ -325,6 +325,91 @@ export default function Home() {
       cancelled = true;
     };
   }, [popularTVLoaded, cachePopularTV]);
+
+  // Recommendations aggregated from TMDB for the user's highest-rated titles,
+  // with anything they've already rated/logged/watchlisted filtered out.
+  const [recs, setRecs] = useState([]);
+  const [recInfo, setRecInfo] = useState(null);
+  const [recRefresh, setRecRefresh] = useState(0);
+  const [recsLoading, setRecsLoading] = useState(false);
+  useEffect(() => {
+    if (!userRatingsLoaded || !userLogsLoaded || !userWatchlistLoaded) return;
+    // Seed pool = the user's top-rated titles. Sample 10 at random from the pool
+    // every mount and on every refresh, so a fresh (still-relevant) set surfaces
+    // each time instead of the same deterministic list.
+    const pool = [...userRatings]
+      .filter((r) => r.movie_object?.tmdb_id != null)
+      .sort((a, b) => Number(b.rating) - Number(a.rating))
+      .slice(0, 30);
+    if (!pool.length) return;
+    const seeds = [...pool].sort(() => Math.random() - 0.5).slice(0, 10);
+    setRecsLoading(true);
+    const key = (mt, id) => `${mt}:${id}`;
+    const known = new Set([
+      ...userRatings.map((r) =>
+        key(r.movie_object?.media_type, r.movie_object?.tmdb_id),
+      ),
+      ...userLogs.map((l) =>
+        key(l.movie_object?.media_type, l.movie_object?.tmdb_id),
+      ),
+      ...userWatchlist.map((w) =>
+        key(w.movie_object?.media_type, w.movie_object?.tmdb_id),
+      ),
+    ]);
+    let cancelled = false;
+    Promise.all(
+      seeds.map((s) =>
+        getRecommendations(s.movie_object.media_type, s.movie_object.tmdb_id),
+      ),
+    ).then((lists) => {
+      // Score each candidate by how many of the user's favourites recommend it
+      // (consensus) and its best rank across those TMDB lists. Titles suggested
+      // by several loved titles rise; TMDB's per-list relevance order is kept as
+      // the tiebreak. No vote_average sort - that just floats generic blockbusters.
+      // Each candidate also keeps the seed titles it came from ("because you
+      // liked X"), shown when the user clicks the recommendation.
+      const scored = new Map();
+      lists.forEach((list, i) => {
+        const seed = seeds[i];
+        (list || []).forEach((m, pos) => {
+          const k = key(m.media_type, m.tmdb_id);
+          if (known.has(k)) return;
+          const e = scored.get(k);
+          if (e) {
+            e.count++;
+            e.bestPos = Math.min(e.bestPos, pos);
+            e.reasons.push(seed);
+          } else {
+            scored.set(k, { item: m, count: 1, bestPos: pos, reasons: [seed] });
+          }
+        });
+      });
+      // Rank by consensus, keep a wider top slice, then shuffle so the final
+      // strip is mixed rather than the same popularity-ordered run every time.
+      const ranked = [...scored.values()]
+        .sort((a, b) => b.count - a.count || a.bestPos - b.bestPos)
+        .slice(0, 40);
+      const out = ranked
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 24)
+        .map((e) => ({ ...e.item, _reasons: e.reasons }));
+      if (!cancelled) {
+        setRecs(out);
+        setRecsLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    userRatingsLoaded,
+    userLogsLoaded,
+    userWatchlistLoaded,
+    userRatings,
+    userLogs,
+    userWatchlist,
+    recRefresh,
+  ]);
 
   const [hoverRating, setHoverRating] = useState(null);
 
@@ -874,6 +959,14 @@ export default function Home() {
     [userBookTbr, bookTile],
   );
 
+  // Clicking a recommendation opens a popup explaining which of the user's
+  // rated titles produced it, rather than jumping straight to the details page.
+  const recTiles = useMemo(
+    () =>
+      recs.map((m) => ({ ...movieTile(m), onClick: () => setRecInfo(m) })),
+    [recs, movieTile],
+  );
+
   const trendingMovies = useMemo(
     () => (popularMovies || []).slice(0, 10).map((m) => movieTile(m)),
     [popularMovies, movieTile],
@@ -951,6 +1044,30 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {/* recommendations aggregated from the user's favourites */}
+      {recTiles.length > 0 && (
+        <Section
+          panel
+          label={
+            <span className="hp-rec-head">
+              Recommended For You
+              <button
+                type="button"
+                className={`hp-rec-refresh${recsLoading ? " is-loading" : ""}`}
+                onClick={() => setRecRefresh((k) => k + 1)}
+                disabled={recsLoading}
+                aria-label="Refresh recommendations"
+                title="Refresh recommendations"
+              >
+                <img src="/images/undo.png" alt="" aria-hidden="true" />
+              </button>
+            </span>
+          }
+        >
+          <CoverStrip tiles={recTiles} empty="" />
+        </Section>
+      )}
 
       <div className="hp-two-col">
         <div className="hp-col-left">
@@ -1329,6 +1446,93 @@ export default function Home() {
           <div className="hp-sub-label">Books</div>
           <CoverStrip tiles={dnfBookLogs} empty="No DNFed books." />
         </Section>
+      )}
+
+      {/* why-recommended popup */}
+      {recInfo && (
+        <div
+          className="hp-rec-modal-backdrop"
+          onClick={() => setRecInfo(null)}
+          role="button"
+          tabIndex={-1}
+        >
+          <div className="hp-rec-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="hp-rec-close"
+              onClick={() => setRecInfo(null)}
+              aria-label="Close"
+            >
+              {String.fromCharCode(0x00d7)}
+            </button>
+            <div className="hp-rec-modal-head">
+              <img
+                className="hp-rec-modal-poster"
+                src={recInfo.primaryImage || "/images/placeholderimage.jpg"}
+                alt=""
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/images/placeholderimage.jpg";
+                }}
+              />
+              <div>
+                <div className="hp-rec-modal-title">{recInfo.primaryTitle}</div>
+                {recInfo.startYear && (
+                  <div className="hp-rec-modal-year">{recInfo.startYear}</div>
+                )}
+                <button
+                  type="button"
+                  className="hp-rec-view"
+                  onClick={() =>
+                    navigate(
+                      `/mediadetails/${recInfo.media_type}/${recInfo.tmdb_id}`,
+                    )
+                  }
+                >
+                  View details
+                </button>
+              </div>
+            </div>
+            <div className="hp-rec-because-label">
+              Because you rated
+            </div>
+            <div className="hp-rec-seeds">
+              {recInfo._reasons.map((r) => (
+                <div
+                  key={r.movie_object.tmdb_id}
+                  className="hp-rec-seed"
+                  onClick={() =>
+                    navigate(
+                      `/mediadetails/${r.movie_object.media_type}/${r.movie_object.tmdb_id}`,
+                    )
+                  }
+                >
+                  <div className="hp-rec-seed-poster">
+                    <img
+                      src={
+                        coverForTmdb(
+                          r.movie_object.media_type,
+                          r.movie_object.tmdb_id,
+                        ) ||
+                        r.movie_object.primaryImage ||
+                        "/images/placeholderimage.jpg"
+                      }
+                      alt=""
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/images/placeholderimage.jpg";
+                      }}
+                    />
+                    <span className="hp-rec-seed-badge">{r.rating}</span>
+                  </div>
+                  <div className="hp-rec-seed-title">
+                    {r.movie_object.primaryTitle}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

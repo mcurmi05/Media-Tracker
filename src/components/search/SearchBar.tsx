@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search } from "lucide-react";
+import { Search, CircleCheck } from "lucide-react";
 import {
   searchBooksHardcoverFIRSTFIVEONLY,
   searchMoviesFIRSTFIVEONLY,
@@ -8,6 +8,7 @@ import {
 } from "../../services/api";
 import { useSearch } from "../../contexts/SearchContext";
 import { useCovers } from "../../contexts/UserCoversContext";
+import { useLoggedLookup } from "../../hooks/useLoggedLookup";
 import { Spinner } from "../layout/Loader";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export default function SearchBar() {
     setSearchMode,
   } = useSearch();
   const { coverForTmdb, coverForHardcover } = useCovers();
+  const { isLogged } = useLoggedLookup();
 
   const [dropdownResults, setDropdownResults] = useState([]);
   const [dropdownLoading, setDropdownLoading] = useState(false);
@@ -201,8 +203,12 @@ export default function SearchBar() {
 
       {showDropdown && (
         <div className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg">
-          <div className="border-b border-border p-1.5">
-            <Tabs value={searchMode} onValueChange={selectMode}>
+          <div className="flex items-center gap-2 border-b border-border p-1.5">
+            <Tabs
+              value={searchMode}
+              onValueChange={selectMode}
+              className="flex-1"
+            >
               <TabsList className="grid h-8 w-full grid-cols-4">
                 {SEARCH_MODES.map((mode) => (
                   <TabsTrigger
@@ -215,6 +221,9 @@ export default function SearchBar() {
                 ))}
               </TabsList>
             </Tabs>
+            <kbd className="shrink-0 rounded border border-border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground">
+              Tab
+            </kbd>
           </div>
 
           {dropdownLoading ? (
@@ -253,6 +262,9 @@ export default function SearchBar() {
                         {item.author} · Book
                       </p>
                     </div>
+                    {isLogged(item) && (
+                      <CircleCheck className="ml-auto size-4 shrink-0 text-green-500" />
+                    )}
                   </button>
                 ) : (
                   <button
@@ -281,6 +293,9 @@ export default function SearchBar() {
                         {item.media_type === "tv" ? "TV" : "Movie"}
                       </p>
                     </div>
+                    {isLogged(item) && (
+                      <CircleCheck className="ml-auto size-4 shrink-0 text-green-500" />
+                    )}
                   </button>
                 ),
               )}

@@ -873,3 +873,171 @@
     min-width: 52px;
   }
 }
+
+/* ---------- "why recommended" popup ---------- */
+.hp-rec-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+.hp-rec-modal {
+  position: relative;
+  background: #171717;
+  border: 1px solid #2e2e2e;
+  border-radius: 14px;
+  padding: 22px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.hp-rec-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.hp-rec-close:hover {
+  color: #eee;
+}
+.hp-rec-modal-head {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.hp-rec-modal-poster {
+  width: 92px;
+  height: 138px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: #1d1d1d;
+}
+.hp-rec-modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #eee;
+  line-height: 1.2;
+}
+.hp-rec-modal-year {
+  color: #888;
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+.hp-rec-view {
+  margin-top: 12px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.hp-rec-because-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #999;
+  margin-bottom: 12px;
+}
+.hp-rec-seeds {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 12px;
+}
+.hp-rec-seed {
+  cursor: pointer;
+}
+.hp-rec-seed-poster {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+  background: #1d1d1d;
+}
+.hp-rec-seed-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 200ms ease;
+}
+.hp-rec-seed:hover .hp-rec-seed-poster img {
+  transform: scale(1.05);
+}
+.hp-rec-seed-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.78);
+  color: #f5c518;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+.hp-rec-seed-title {
+  margin-top: 5px;
+  font-size: 0.75rem;
+  color: #ccc;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* recommendations refresh button */
+.hp-rec-refresh {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted-foreground);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.hp-rec-refresh:hover:not(:disabled) {
+  border-color: var(--muted-foreground);
+  color: var(--foreground);
+}
+.hp-rec-refresh:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.hp-rec-refresh img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  transform: scaleX(-1);
+}
+.hp-rec-refresh.is-loading img {
+  animation: hp-rec-spin 0.8s linear infinite;
+}
+@keyframes hp-rec-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hp-rec-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}

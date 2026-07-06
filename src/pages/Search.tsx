@@ -5,6 +5,7 @@ import "../styles/search/Search.css";
 import MovieCard from "../components/media/MovieCard";
 import BookCard from "../components/books/BookCard";
 import Loader from "../components/layout/Loader";
+import { useLoggedLookup } from "../hooks/useLoggedLookup";
 import {
   combineSearchResults,
   searchBooksHardcover,
@@ -24,6 +25,7 @@ function Search() {
   } = useSearch();
 
   const location = useLocation();
+  const { isLogged } = useLoggedLookup();
   const [resultsMode, setResultsMode] = useState(null);
 
   useEffect(() => {
@@ -96,12 +98,14 @@ function Search() {
                 <BookCard
                   book={item}
                   posterOnly
+                  logged={isLogged(item)}
                   key={`book-${item.hardcover_id || item.id}`}
                 />
               ) : (
                 <MovieCard
                   movie={item}
                   posterOnly={true}
+                  logged={isLogged(item)}
                   key={`${item.media_type}-${item.tmdb_id}`}
                 />
               ),

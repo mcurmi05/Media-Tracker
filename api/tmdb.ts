@@ -494,6 +494,28 @@ export default async function handler(req, res) {
       return res.status(200).json(mapDetail(data, mediaType, seasonDetails));
     }
 
+    if (action === "recommendations") {
+      const mediaType = q.mediaType === "tv" ? "tv" : "movie";
+      const tmdbId = String(q.tmdbId || "").trim();
+      if (!/^\d+$/.test(tmdbId)) {
+        return res.status(400).json({ error: "Invalid tmdbId" });
+      }
+      const [data, { movieGenres, tvGenres }] = await Promise.all([
+        tmdbFetch(`/${mediaType}/${tmdbId}/recommendations`, {}, key),
+        getGenreMaps(key),
+      ]);
+      const genreMap = mediaType === "tv" ? tvGenres : movieGenres;
+      const items = (data.results || [])
+        .map((it) => mapListItem(it, mediaType, genreMap))
+        .filter(Boolean)
+        .slice(0, 20);
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=86400, stale-while-revalidate=604800",
+      );
+      return res.status(200).json(items);
+    }
+
     if (action === "images") {
       const mediaType = q.mediaType === "tv" ? "tv" : "movie";
       const tmdbId = String(q.tmdbId || "").trim();
@@ -527,21 +549,33 @@ export default async function handler(req, res) {
       if (!/^\d+$/.test(tmdbId)) {
         return res.status(400).json({ error: "Invalid tmdbId" });
       }
-      // Backdrops (wide art/stills) for the media details collage. No language
-      // filter - artwork is mostly textless and we want as many as possible.
+      // Mixed art (backdrops + posters + logos) for the media details collage.
+      // TMDB's images endpoint returns all three; we interleave them so the grid
+      // isn't just a wall of wide stills. No language filter - keep everything.
       const data = await tmdbFetch(`/${mediaType}/${tmdbId}/images`, {}, key);
-      const backdrops = (data.backdrops || [])
-        .slice(0, 24)
-        .map((b) => ({
-          thumb: posterUrl(b.file_path, "w300"),
-          full: posterUrl(b.file_path, "w1280"),
-        }))
-        .filter((b) => b.full);
+      // Sectioned in a fixed order: wide banners, then posters, then logos
+      // (title art - many are localized/non-English so they sit last).
+      const backdrops = (data.backdrops || []).slice(0, 16).map((b) => ({
+        type: "backdrop",
+        thumb: posterUrl(b.file_path, "w300"),
+        full: posterUrl(b.file_path, "w1280"),
+      }));
+      const posters = (data.posters || []).slice(0, 12).map((p) => ({
+        type: "poster",
+        thumb: posterUrl(p.file_path, "w342"),
+        full: posterUrl(p.file_path, "w780"),
+      }));
+      const logos = (data.logos || []).slice(0, 8).map((l) => ({
+        type: "logo",
+        thumb: posterUrl(l.file_path, "w300"),
+        full: posterUrl(l.file_path, "w500"),
+      }));
+      const art = [...backdrops, ...posters, ...logos].filter((a) => a.full);
       res.setHeader(
         "Cache-Control",
         "public, s-maxage=86400, stale-while-revalidate=604800",
       );
-      return res.status(200).json(backdrops);
+      return res.status(200).json(art);
     }
 
     if (action === "find") {

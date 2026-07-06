@@ -586,6 +586,64 @@
 }
 
 /* Backdrop art collage at the bottom of the media details page. */
+.md-recs-section {
+  margin-top: 30px;
+}
+.md-recs-strip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.md-recs-strip::-webkit-scrollbar {
+  display: none;
+}
+/* Center the scroll arrows on the 195px posters (not the default 45px used for
+   the shorter cast/episode strips). */
+.md-recs-wrap .scroll-strip-arrow {
+  top: 97px;
+}
+.md-recs-wrap .scroll-strip-arrow:hover {
+  transform: translateY(-50%) scale(1.05);
+}
+.md-rec-card {
+  flex: 0 0 auto;
+  width: 130px;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.md-rec-poster {
+  width: 130px;
+  height: 195px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #1d1d1d;
+  transition: transform 200ms ease;
+}
+.md-rec-card:hover .md-rec-poster {
+  transform: scale(1.04);
+}
+.md-rec-title {
+  font-size: 0.85rem;
+  color: #ddd;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.md-rec-year {
+  font-size: 0.78rem;
+  color: #888;
+}
+
 .art-collage-section {
   margin-top: 30px;
 }
@@ -594,20 +652,34 @@
   font-weight: 600;
   margin-bottom: 12px;
 }
+.art-collage-group {
+  margin-bottom: 18px;
+}
+.art-collage-subhead {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #999;
+  margin-bottom: 8px;
+}
+/* Three stacked sections: wide banners, then small posters, then logos.
+   Each keeps its own aspect so nothing is cropped or stretched. */
 .art-collage {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 8px;
+  margin-bottom: 8px;
 }
 .art-collage-item {
   border: none;
   padding: 0;
   margin: 0;
+  width: 100%;
   background: #1d1d1d;
   cursor: pointer;
   border-radius: 8px;
   overflow: hidden;
-  aspect-ratio: 16 / 9;
+  display: block;
 }
 .art-collage-item img {
   width: 100%;
@@ -615,6 +687,33 @@
   object-fit: cover;
   display: block;
   transition: transform 220ms ease;
+}
+/* Wide banners. */
+.art-collage-backdrop {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.art-collage-backdrop .art-collage-item {
+  aspect-ratio: 16 / 9;
+}
+/* Posters: small tiles that fill their cell edge-to-edge, far smaller than
+   the banners above. */
+.art-collage-poster {
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+.art-collage-poster .art-collage-item {
+  aspect-ratio: 2 / 3;
+}
+/* Logos are transparent PNGs - contain + pad on a neutral tile. */
+.art-collage-logo {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.art-collage-logo .art-collage-item {
+  aspect-ratio: 16 / 9;
+  background: #2a2a2a;
+}
+.art-collage-logo .art-collage-item img {
+  object-fit: contain;
+  padding: 18px;
 }
 .art-collage-item:hover img {
   transform: scale(1.05);
@@ -638,7 +737,13 @@
 }
 
 @media (max-width: 600px) {
-  .art-collage {
+  .art-collage-backdrop {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  .art-collage-poster {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  }
+  .art-collage-logo {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 }

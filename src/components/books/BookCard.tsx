@@ -26,7 +26,7 @@ function parseTitle(rawTitle) {
   };
 }
 
-function BookCard({ book: bookProp, posterOnly = false }) {
+function BookCard({ book: bookProp, posterOnly = false, logged = false }) {
   const [book, setBook] = useState(bookProp);
   const [showEditModal, setShowEditModal] = useState(false);
   const navigate = useNavigate();
@@ -77,6 +77,7 @@ function BookCard({ book: bookProp, posterOnly = false }) {
               e.target.src = "/images/placeholderimage.jpg";
             }}
           />
+          {logged && <span className="poster-logged-tick" title="Logged" />}
         </div>
       </div>
     );

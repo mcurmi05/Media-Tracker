@@ -214,6 +214,27 @@ export const getTitleArt = async (
   }
 };
 
+// TMDB recommendations for a title. Returns minimal movie_objects (same shape
+// as trending list items). Used on the media details page and aggregated on the
+// home page.
+export const getRecommendations = async (
+  mediaType: MediaType,
+  tmdbId: string | number,
+) => {
+  try {
+    const response = await fetch(
+      `${API}?action=recommendations&mediaType=${encodeURIComponent(
+        mediaType,
+      )}&tmdbId=${encodeURIComponent(tmdbId)}`,
+    );
+    if (!response.ok) return [];
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
 // Cover options for a book (Hardcover editions). Returns [{ thumb, full }].
 export const getBookCovers = async (hardcoverId: string | number) => {
   try {

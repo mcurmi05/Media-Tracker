@@ -744,7 +744,7 @@ function Ratings() {
               </div>
             ))}
       </div>
-      <PaginationControls pag={pag} totalCount={displayCount} />
+      <PaginationControls pag={pag} totalCount={displayCount} position="bottom" />
     </div>
   );
 }

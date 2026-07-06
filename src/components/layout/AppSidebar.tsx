@@ -6,6 +6,7 @@ import {
   List,
   BookOpen,
   Star,
+  CalendarDays,
   Settings,
   LogOut,
   LogIn,
@@ -47,6 +48,7 @@ const libraryItems = [
   { title: "Watchlist", url: "/watchlist", icon: Bookmark, authOnly: true },
   { title: "Lists", url: "/lists", icon: List, authOnly: true },
   { title: "Log", url: "/log", icon: BookOpen, authOnly: true },
+  { title: "Calendar", url: "/calendar", icon: CalendarDays, authOnly: true },
   { title: "Ratings", url: "/ratings", icon: Star, authOnly: true },
 ];
 

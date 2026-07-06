@@ -33,6 +33,31 @@
   display: block;
 }
 
+/* Green "logged" tick badge, top-right of a poster. */
+.poster-logged-tick {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  z-index: 3;
+  pointer-events: none;
+}
+.poster-logged-tick::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
 .movie-overlay {
   position: absolute;
   top: 0;

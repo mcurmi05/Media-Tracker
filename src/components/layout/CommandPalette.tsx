@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   LogIn,
+  CircleCheck,
 } from "lucide-react";
 import {
   searchBooksHardcoverFIRSTFIVEONLY,
@@ -19,6 +20,8 @@ import {
 } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSearch } from "../../contexts/SearchContext";
+import { useCovers } from "../../contexts/UserCoversContext";
+import { useLoggedLookup } from "../../hooks/useLoggedLookup";
 import {
   CommandDialog,
   CommandEmpty,
@@ -62,6 +65,8 @@ export default function CommandPalette() {
   const [loading, setLoading] = useState(false);
   const { isAuthenticated, signOut } = useAuth();
   const { clearSearch } = useSearch();
+  const { coverForTmdb, coverForHardcover } = useCovers();
+  const { isLogged } = useLoggedLookup();
   const navigate = useNavigate();
   const searchTimeoutRef = useRef(null);
 
@@ -223,7 +228,11 @@ export default function CommandPalette() {
                   onSelect={() => openResult(item)}
                 >
                   <img
-                    src={item.cover_image || "/images/placeholderimage.jpg"}
+                    src={
+                      coverForHardcover(item.hardcover_id) ||
+                      item.cover_image ||
+                      "/images/placeholderimage.jpg"
+                    }
                     alt=""
                     className="h-10 w-7 shrink-0 rounded object-cover"
                   />
@@ -233,6 +242,9 @@ export default function CommandPalette() {
                       {item.author} · Book
                     </p>
                   </div>
+                  {isLogged(item) && (
+                    <CircleCheck className="ml-auto size-4 shrink-0 text-green-500" />
+                  )}
                 </CommandItem>
               : <CommandItem
                   key={`${item.media_type}-${item.tmdb_id}`}
@@ -240,7 +252,11 @@ export default function CommandPalette() {
                   onSelect={() => openResult(item)}
                 >
                   <img
-                    src={item.primaryImage || "/images/placeholderimage.jpg"}
+                    src={
+                      coverForTmdb(item.media_type, item.tmdb_id) ||
+                      item.primaryImage ||
+                      "/images/placeholderimage.jpg"
+                    }
                     alt=""
                     className="h-10 w-7 shrink-0 rounded object-cover"
                   />
@@ -254,6 +270,9 @@ export default function CommandPalette() {
                       {item.media_type === "tv" ? "TV" : "Movie"}
                     </p>
                   </div>
+                  {isLogged(item) && (
+                    <CircleCheck className="ml-auto size-4 shrink-0 text-green-500" />
+                  )}
                 </CommandItem>,
             )}
           </CommandGroup>

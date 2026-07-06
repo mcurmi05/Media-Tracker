@@ -48,7 +48,36 @@
   cursor: default;
 }
 
-.pagination-indicator {
-  min-width: 48px;
+.pagination-page {
+  background: transparent;
+  color: #ddd;
+  border: 1px solid #333;
+  border-radius: 6px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-page:hover {
+  border-color: #888;
+}
+
+.pagination-page.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+.pagination-ellipsis {
+  min-width: 20px;
   text-align: center;
+  color: #777;
+  user-select: none;
 }

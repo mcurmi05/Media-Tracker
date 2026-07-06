@@ -1,6 +1,6 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { getMovieById, getTitleArt } from "../services/api";
+import { getMovieById, getTitleArt, getRecommendations } from "../services/api";
 import { upsertMovie } from "../services/movieMetadata";
 import { supabase } from "../services/supabase-client";
 import PosterEditModal from "../components/media/PosterEditModal";
@@ -38,6 +38,7 @@ function formatEpisodeDate(d) {
 
 function MediaDetails() {
   const { mediaType, tmdbId } = useParams();
+  const navigate = useNavigate();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,6 +46,7 @@ function MediaDetails() {
   const [selectedEpisode, setSelectedEpisode] = useState(null);
   const [movieEntryId, setMovieEntryId] = useState(null);
   const [art, setArt] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [lightboxArt, setLightboxArt] = useState(null);
   const [showPosterEdit, setShowPosterEdit] = useState(false);
   const [watchStatus, setWatchStatus] = useState({});
@@ -99,8 +101,12 @@ function MediaDetails() {
     if (tmdbId == null) return;
     let live = true;
     setArt([]);
+    setRecommendations([]);
     getTitleArt(mediaType, tmdbId).then((list) => {
       if (live) setArt(Array.isArray(list) ? list : []);
+    });
+    getRecommendations(mediaType, tmdbId).then((list) => {
+      if (live) setRecommendations(Array.isArray(list) ? list : []);
     });
     return () => {
       live = false;
@@ -537,21 +543,70 @@ function MediaDetails() {
             </div>
           )}
 
+        {recommendations.length > 0 && (
+          <div className="md-recs-section">
+            <h3 className="art-collage-title">
+              If you liked this, you might like
+            </h3>
+            <ScrollStrip className="md-recs-strip" wrapClassName="md-recs-wrap">
+              {recommendations.map((rec) => (
+                <button
+                  key={`${rec.media_type}-${rec.tmdb_id}`}
+                  type="button"
+                  className="md-rec-card"
+                  onClick={() =>
+                    navigate(
+                      `/mediadetails/${rec.media_type}/${rec.tmdb_id}`,
+                    )
+                  }
+                >
+                  <img
+                    className="md-rec-poster"
+                    src={rec.primaryImage || "/images/placeholderimage.jpg"}
+                    alt={rec.primaryTitle}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "/images/placeholderimage.jpg";
+                    }}
+                  />
+                  <span className="md-rec-title">{rec.primaryTitle}</span>
+                  {rec.startYear && (
+                    <span className="md-rec-year">{rec.startYear}</span>
+                  )}
+                </button>
+              ))}
+            </ScrollStrip>
+          </div>
+        )}
+
         {art.length > 0 && (
           <div className="art-collage-section">
             <h3 className="art-collage-title">Photos</h3>
-            <div className="art-collage">
-              {art.map((a) => (
-                <button
-                  key={a.full}
-                  type="button"
-                  className="art-collage-item"
-                  onClick={() => setLightboxArt(a.full)}
-                >
-                  <img src={a.thumb} alt="" loading="lazy" />
-                </button>
-              ))}
-            </div>
+            {["backdrop", "poster", "logo"].map((type) => {
+              const items = art.filter(
+                (a) => (a.type || "backdrop") === type,
+              );
+              if (items.length === 0) return null;
+              const label = { backdrop: "Backdrops", poster: "Posters", logo: "Logos" }[type];
+              return (
+                <div key={type} className="art-collage-group">
+                  <h4 className="art-collage-subhead">{label}</h4>
+                  <div className={`art-collage art-collage-${type}`}>
+                  {items.map((a) => (
+                    <button
+                      key={a.full}
+                      type="button"
+                      className="art-collage-item"
+                      onClick={() => setLightboxArt(a.full)}
+                    >
+                      <img src={a.thumb} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -7,7 +7,7 @@ import { makeNavHandlers } from "../../utils/navClick";
 import { useCovers } from "../../contexts/UserCoversContext";
 
 
-function MovieCard({ movie, posterOnly = false }) {
+function MovieCard({ movie, posterOnly = false, logged = false }) {
 
   const navigate = useNavigate();
   const { coverForTmdb } = useCovers();
@@ -28,6 +28,7 @@ function MovieCard({ movie, posterOnly = false }) {
             src={cover ? `${cover}` : "/images/placeholderimage.jpg"}
             onError={e => { e.target.onerror = null; e.target.src = "/images/placeholderimage.jpg"}}
           />
+          {logged && <span className="poster-logged-tick" title="Logged" />}
         </div>
 
         {!posterOnly && (
