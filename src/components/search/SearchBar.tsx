@@ -54,24 +54,34 @@ export default function SearchBar() {
       const delay = searchMode === "books" ? 300 : 1000;
       searchTimeoutRef.current = setTimeout(async () => {
         try {
+          // Trailing 4-digit year filters to just that year; it's stripped from
+          // the searched term (e.g. "Dune 2021").
+          const yearMatch = searchQuery
+            .trim()
+            .match(/^(.*\S)\s+((?:19|20)\d{2})$/);
+          const yearFilter = yearMatch ? Number(yearMatch[2]) : null;
+          const term = yearMatch ? yearMatch[1].trim() : searchQuery;
+          const matchesYear = (it) => {
+            if (yearFilter == null) return true;
+            const y = it.hardcover_id != null ? it.release_year : it.startYear;
+            return Number(y) === yearFilter;
+          };
           let results;
           if (searchMode === "all") {
             const [books, movies, tv] = await Promise.all([
-              searchBooksHardcoverFIRSTFIVEONLY(searchQuery),
-              searchMoviesFIRSTFIVEONLY(searchQuery, "movie"),
-              searchMoviesFIRSTFIVEONLY(searchQuery, "tv"),
+              searchBooksHardcoverFIRSTFIVEONLY(term),
+              searchMoviesFIRSTFIVEONLY(term, "movie"),
+              searchMoviesFIRSTFIVEONLY(term, "tv"),
             ]);
-            results = combineSearchResults(
-              searchQuery,
-              books,
-              movies,
-              tv,
-            ).slice(0, 5);
+            results = combineSearchResults(term, books, movies, tv)
+              .filter(matchesYear)
+              .slice(0, 5);
           } else {
-            results =
+            const raw =
               searchMode === "books"
-                ? await searchBooksHardcoverFIRSTFIVEONLY(searchQuery)
-                : await searchMoviesFIRSTFIVEONLY(searchQuery, searchMode);
+                ? await searchBooksHardcoverFIRSTFIVEONLY(term)
+                : await searchMoviesFIRSTFIVEONLY(term, searchMode);
+            results = (raw || []).filter(matchesYear);
           }
           if (cancelled) return;
           setDropdownResults(results || []);
@@ -307,6 +317,8 @@ export default function SearchBar() {
           ) : (
             <div className="px-3 py-4 text-center text-sm text-muted-foreground">
               Type to search · Tab to switch category
+              <br />
+              Add a year to filter, e.g. “Dune 2021”
             </div>
           )}
         </div>

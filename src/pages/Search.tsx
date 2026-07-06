@@ -39,23 +39,33 @@ function Search() {
     setSearchMode(mode);
 
     const trimmed = query.trim();
-    if (trimmed) {
+    // A trailing 4-digit year filters results to just that year. The year is
+    // stripped from the term that's actually searched (e.g. "Dune 2021").
+    const yearMatch = trimmed.match(/^(.*\S)\s+((?:19|20)\d{2})$/);
+    const yearFilter = yearMatch ? Number(yearMatch[2]) : null;
+    const term = yearMatch ? yearMatch[1].trim() : trimmed;
+    const matchesYear = (it) => {
+      if (yearFilter == null) return true;
+      const y = it.hardcover_id != null ? it.release_year : it.startYear;
+      return Number(y) === yearFilter;
+    };
+    if (term) {
       setSearchLoading(true);
       const fetcher =
         mode === "all"
           ? Promise.all([
-              searchBooksHardcover(trimmed),
-              searchMovies(trimmed, "movie"),
-              searchMovies(trimmed, "tv"),
+              searchBooksHardcover(term),
+              searchMovies(term, "movie"),
+              searchMovies(term, "tv"),
             ]).then(([books, movies, tv]) =>
-              combineSearchResults(trimmed, books, movies, tv),
+              combineSearchResults(term, books, movies, tv),
             )
           : mode === "books"
-            ? searchBooksHardcover(trimmed)
-            : searchMovies(trimmed, mode);
+            ? searchBooksHardcover(term)
+            : searchMovies(term, mode);
       Promise.resolve(fetcher)
         .then((results) => {
-          setSearchResults(results || []);
+          setSearchResults((results || []).filter(matchesYear));
           setResultsMode(mode);
           setSearchError(null);
         })
@@ -113,9 +123,20 @@ function Search() {
         </div>
       ) : (
         <div style={{ textAlign: "center" }}>
-          {isBooks
-            ? "Use the search bar to search Hardcover!"
-            : "Use the search bar to search for movies or shows!"}
+          <div>
+            {isBooks
+              ? "Use the search bar to search Hardcover!"
+              : "Use the search bar to search for movies or shows!"}
+          </div>
+          <div
+            style={{
+              marginTop: "8px",
+              fontSize: "0.85rem",
+              color: "var(--muted-foreground)",
+            }}
+          >
+            Tip: add a year to filter to it, e.g. “Dune 2021”.
+          </div>
         </div>
       )}
     </div>

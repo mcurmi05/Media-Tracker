@@ -110,7 +110,11 @@ export default function LogModal({ open, movie, book, logId, onConfirm, onCancel
         .from("user_logs")
         .update({ started_at: iso })
         .eq("id", logId);
-      if (!error) updateDate(logId, iso);
+      if (!error) {
+        updateDate(logId, iso);
+        // Setting a real date clears the unknown flag.
+        patchLog(logId, { date_unknown: false });
+      }
     }
   }
 
@@ -123,7 +127,9 @@ export default function LogModal({ open, movie, book, logId, onConfirm, onCancel
         .from("user_logs")
         .update({ started_at: null })
         .eq("id", logId);
-      if (!error) updateDate(logId, null);
+      // Flag it unknown in memory so the card shows the "Date unknown" chip
+      // (not the insert date) and sorts to the bottom like reloaded logs do.
+      if (!error) patchLog(logId, { date_unknown: true });
     }
   }
 
@@ -180,16 +186,26 @@ export default function LogModal({ open, movie, book, logId, onConfirm, onCancel
                     Date unknown
                   </button>
                 ) : (
-                  <Dialog
-                    initialDate={watchDate}
-                    onDateChange={saveDate}
-                    showWeekday={false}
-                    dateColor="#fff"
-                    minWidth="auto"
-                    extraActions={[
-                      { label: "Date unknown", onClick: markDateUnknown },
-                    ]}
-                  />
+                  <>
+                    <Dialog
+                      initialDate={watchDate}
+                      onDateChange={saveDate}
+                      showWeekday={false}
+                      dateColor="#fff"
+                      minWidth="auto"
+                      extraActions={[
+                        { label: "Date unknown", onClick: markDateUnknown },
+                      ]}
+                    />
+                    <button
+                      type="button"
+                      onClick={markDateUnknown}
+                      style={unknownBtnStyle}
+                      title="Mark as watched with an unknown date"
+                    >
+                      Set unknown
+                    </button>
+                  </>
                 )}
               </div>
               <div className="logmodal-rating">

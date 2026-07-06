@@ -56,11 +56,12 @@ export default function AddLog({ movie }) {
     createLog();
   }
 
-  // Confirm: keep the log, jump to the Log page scrolled to it.
+  // Confirm: keep the log, go to the Log page with its title prefilled in the
+  // search so the user lands right on what they just added.
   function onConfirm() {
-    const logId = editing?.logId;
+    const title = editing?.full?.primaryTitle || "";
     setEditing(null);
-    navigate("/log", { state: { scrollToLogId: logId } });
+    navigate("/log", { state: { searchTerm: title } });
   }
 
   // Cancel / click away: discard the log that was created up-front.

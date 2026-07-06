@@ -71,6 +71,10 @@ function Log() {
   const [noteFilter, setNoteFilter] = useState(
     location.state?.noteFilter || "all",
   );
+  // Filter by whether the log has a watch/read date. all | has | none.
+  const [dateFilter, setDateFilter] = useState(
+    location.state?.dateFilter || "all",
+  );
   // Paging cap - number or "all". Keeps the DOM small on big logs.
   const [pageSize, setPageSize] = useState(50);
   // Current page (0-based) within the paged list.
@@ -88,6 +92,7 @@ function Log() {
       (s.ratingFilter && s.ratingFilter !== "all") ||
       (s.genreFilter && s.genreFilter !== "all") ||
       (s.noteFilter && s.noteFilter !== "all") ||
+      (s.dateFilter && s.dateFilter !== "all") ||
       s.yearFrom ||
       s.yearTo ||
       s.addedFrom ||
@@ -101,6 +106,7 @@ function Log() {
     (ratingFilter !== "all" ? 1 : 0) +
     (genreFilter !== "all" ? 1 : 0) +
     (noteFilter !== "all" ? 1 : 0) +
+    (dateFilter !== "all" ? 1 : 0) +
     (yearFrom || yearTo ? 1 : 0) +
     (addedFrom || addedTo ? 1 : 0) +
     (sortKey !== "date" || sortDir !== "desc" ? 1 : 0);
@@ -192,22 +198,11 @@ function Log() {
 
   const compareNumeric = (a, b) => compareNums(a, b, sortDir);
 
-  // Land at the top normally, but when arriving from an "Add log" action jump
-  // to the freshly created log instead so the user sees what they just added.
-  const scrollToLogId = location.state?.scrollToLogId;
+  // Land at the top on arrival. A freshly-added log arrives with its title
+  // prefilled in the search box (see AddLog), so it's already the visible result.
   useEffect(() => {
-    if (scrollToLogId) return;
     window.scrollTo({ top: 0 });
-  }, [scrollToLogId]);
-
-  useEffect(() => {
-    if (!scrollToLogId) return;
-    const t = setTimeout(() => {
-      const el = document.getElementById(`log-row-${scrollToLogId}`);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 300);
-    return () => clearTimeout(t);
-  }, [scrollToLogId, userLogs]);
+  }, []);
 
   // Any change that resizes/reorders the list sends the user back to page 1.
   useEffect(() => {
@@ -217,6 +212,7 @@ function Log() {
     ratingFilter,
     genreFilter,
     noteFilter,
+    dateFilter,
     mediaTypeFilter,
     yearFrom,
     yearTo,
@@ -311,6 +307,11 @@ function Log() {
             if (Number(rating) !== Number(ratingFilter)) return false;
           }
           if (!noteMatchesFilter(bookLog.log)) return false;
+          if (dateFilter !== "all") {
+            const unknown = bookDateUnknown(bookLog);
+            if (dateFilter === "has" && unknown) return false;
+            if (dateFilter === "none" && !unknown) return false;
+          }
           if (!yearMatchesFilter(bookYear(bookLog))) return false;
           if (!addedMatchesFilter(bookLog.created_at)) return false;
           return true;
@@ -369,6 +370,11 @@ function Log() {
             if (!genres.includes(genreFilter)) return false;
           }
           if (!noteMatchesFilter(log.log)) return false;
+          if (dateFilter !== "all") {
+            const unknown = movieDateUnknown(log);
+            if (dateFilter === "has" && unknown) return false;
+            if (dateFilter === "none" && !unknown) return false;
+          }
           if (!yearMatchesFilter(movieYear(log))) return false;
           if (!addedMatchesFilter(log.created_at)) return false;
           return true;
@@ -610,6 +616,7 @@ function Log() {
             setRatingFilter("all");
             setGenreFilter("all");
             setNoteFilter("all");
+            setDateFilter("all");
             setYearFrom("");
             setYearTo("");
             setAddedFrom("");
@@ -636,6 +643,14 @@ function Log() {
             <option value="all">All Notes</option>
             <option value="has">Has note</option>
             <option value="none">No note</option>
+          </select>
+          <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          >
+            <option value="all">All Dates</option>
+            <option value="has">Has date</option>
+            <option value="none">No date</option>
           </select>
           <select
             value={genreFilter}
