@@ -11,6 +11,7 @@ import { useBookTbr } from "../contexts/UserBookTbrContext";
 import { useCache } from "../contexts/PopularMoviesCacheContext";
 import { getPopularMovies, getPopularTV, getRecommendations, getMovieById } from "../services/api";
 import IMDBInfo from "../components/media/IMDBInfo";
+import EditFavouritesModal from "../components/home/EditFavouritesModal";
 import LetterboxdInfo from "../components/media/LetterboxdInfo";
 import { SignIn } from "./SignIn";
 import { bookDetailsRouteForBook } from "../utils/goodreads";
@@ -539,35 +540,96 @@ export default function Home() {
     ];
   }, [userRatings, bookRatings, userLogs, bookLogs, navigate]);
 
-  /* ---------- top 4 ranked per category ---------- */
+  /* ---------- top 4 per category: manual picks or ranked fallback ---------- */
 
-  const topMovies = useMemo(
-    () =>
-      userRatings
-        .filter((r) => r.ranking != null && !isTV(r.movie_object))
-        .sort(byRank)
+  // Hand-picked favourites stored in auth user_metadata (favourites_v1):
+  // { manual, movies: [entry ids], tv: [...], books: [...] } in pick order.
+  // Falls back to the top-ranked titles when manual mode is off or a
+  // category has no picks.
+  const favPrefs = user?.user_metadata?.favourites_v1 || null;
+  const [showFavEdit, setShowFavEdit] = useState(false);
+
+  const topMovies = useMemo(() => {
+    if (favPrefs?.manual && favPrefs.movies?.length) {
+      return favPrefs.movies
+        .map((id) => userRatings.find((r) => r.movie_entry_id === id))
+        .filter(Boolean)
         .slice(0, 4)
-        .map((r, i) => movieTile(r.movie_object, { rank: i + 1 })),
-    [userRatings, movieTile],
-  );
-  const topTV = useMemo(
-    () =>
-      userRatings
-        .filter((r) => r.ranking != null && isTV(r.movie_object))
-        .sort(byRank)
+        .map((r, i) => movieTile(r.movie_object, { rank: i + 1 }));
+    }
+    return userRatings
+      .filter((r) => r.ranking != null && !isTV(r.movie_object))
+      .sort(byRank)
+      .slice(0, 4)
+      .map((r, i) => movieTile(r.movie_object, { rank: i + 1 }));
+  }, [userRatings, movieTile, favPrefs]);
+  const topTV = useMemo(() => {
+    if (favPrefs?.manual && favPrefs.tv?.length) {
+      return favPrefs.tv
+        .map((id) => userRatings.find((r) => r.movie_entry_id === id))
+        .filter(Boolean)
         .slice(0, 4)
-        .map((r, i) => movieTile(r.movie_object, { rank: i + 1 })),
-    [userRatings, movieTile],
-  );
-  const topBooks = useMemo(
-    () =>
-      bookRatings
-        .filter((r) => r.ranking != null)
-        .sort(byRank)
+        .map((r, i) => movieTile(r.movie_object, { rank: i + 1 }));
+    }
+    return userRatings
+      .filter((r) => r.ranking != null && isTV(r.movie_object))
+      .sort(byRank)
+      .slice(0, 4)
+      .map((r, i) => movieTile(r.movie_object, { rank: i + 1 }));
+  }, [userRatings, movieTile, favPrefs]);
+  const topBooks = useMemo(() => {
+    if (favPrefs?.manual && favPrefs.books?.length) {
+      return favPrefs.books
+        .map((id) => bookRatings.find((r) => r.book_id === id))
+        .filter(Boolean)
         .slice(0, 4)
-        .map((r, i) => bookTile(r.book_entries, { rank: i + 1 })),
-    [bookRatings, bookTile],
-  );
+        .map((r, i) => bookTile(r.book_entries, { rank: i + 1 }));
+    }
+    return bookRatings
+      .filter((r) => r.ranking != null)
+      .sort(byRank)
+      .slice(0, 4)
+      .map((r, i) => bookTile(r.book_entries, { rank: i + 1 }));
+  }, [bookRatings, bookTile, favPrefs]);
+
+  // Rated titles offered by the favourites editor, best-rated first.
+  const favOptions = useMemo(() => {
+    const byRatingDesc = (a, b) => Number(b.rating) - Number(a.rating);
+    return {
+      movies: [...userRatings]
+        .filter((r) => !isTV(r.movie_object))
+        .sort(byRatingDesc)
+        .map((r) => ({
+          id: r.movie_entry_id,
+          title: r.movie_object?.primaryTitle || "Untitled",
+          cover:
+            coverForTmdb(r.movie_object?.media_type, r.movie_object?.tmdb_id) ||
+            r.movie_object?.primaryImage,
+          rating: r.rating,
+        })),
+      tv: [...userRatings]
+        .filter((r) => isTV(r.movie_object))
+        .sort(byRatingDesc)
+        .map((r) => ({
+          id: r.movie_entry_id,
+          title: r.movie_object?.primaryTitle || "Untitled",
+          cover:
+            coverForTmdb(r.movie_object?.media_type, r.movie_object?.tmdb_id) ||
+            r.movie_object?.primaryImage,
+          rating: r.rating,
+        })),
+      books: [...bookRatings]
+        .sort((a, b) => Number(b.book_rating) - Number(a.book_rating))
+        .map((r) => ({
+          id: r.book_id,
+          title: stripSeries(r.book_entries?.title) || "Untitled",
+          cover:
+            coverForHardcover(r.book_entries?.hardcover_id) ||
+            r.book_entries?.cover_image,
+          rating: r.book_rating,
+        })),
+    };
+  }, [userRatings, bookRatings, coverForTmdb, coverForHardcover]);
 
   /* ---------- ratings distribution: all categories combined, 5..10 ---------- */
 
@@ -1141,7 +1203,21 @@ export default function Home() {
             />
           </Section>
           {/* top 4 ranked */}
-          <Section label="4 Favourites" panel>
+          <Section
+            label="4 Favourites"
+            panel
+            action={
+              <button
+                type="button"
+                className="hp-fav-edit"
+                onClick={() => setShowFavEdit(true)}
+                aria-label="Edit favourites"
+                title="Edit favourites"
+              >
+                {String.fromCharCode(0x270e)}
+              </button>
+            }
+          >
         <div className="hp-sub-label">Movies</div>
         <CoverStrip
           tiles={topMovies}
@@ -1490,6 +1566,15 @@ export default function Home() {
           <div className="hp-sub-label">Books</div>
           <CoverStrip tiles={dnfBookLogs} empty="No DNFed books." />
         </Section>
+      )}
+
+      {/* pick-your-own favourites editor */}
+      {showFavEdit && (
+        <EditFavouritesModal
+          onClose={() => setShowFavEdit(false)}
+          options={favOptions}
+          initial={favPrefs}
+        />
       )}
 
       {/* why-recommended popup */}
