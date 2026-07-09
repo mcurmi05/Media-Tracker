@@ -569,6 +569,9 @@ export default async function handler(req, res) {
         .map((it) => mapListItem(it, mediaType, genreMap))
         .filter(Boolean)
         .slice(0, 20);
+      // Resolve IMDb ids so the client can filter recommendations by live
+      // IMDb rating/votes. Cached a day per seed, so the extra lookups amortize.
+      await attachImdbIds(items, key);
       res.setHeader(
         "Cache-Control",
         "public, s-maxage=86400, stale-while-revalidate=604800",

@@ -1069,6 +1069,38 @@
   gap: 10px;
 }
 
+/* filter button shows as active (brand-coloured) when any pref is set */
+.hp-rec-filter-active {
+  color: var(--brand, #e23030);
+  border-color: var(--brand, #e23030);
+}
+
+/* recommendation preferences popup rows */
+.hp-rec-pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: var(--foreground);
+}
+.hp-rec-pref-row select {
+  background: #101010;
+  border: 1px solid #2e2e2e;
+  border-radius: 8px;
+  color: var(--foreground);
+  padding: 6px 10px;
+  font-size: 0.86rem;
+  outline: none;
+  cursor: pointer;
+}
+.hp-rec-pref-note {
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  margin: 14px 0 0;
+}
+
 /* ---- pick-your-own favourites editor ---- */
 .hp-fav-edit {
   background: none;

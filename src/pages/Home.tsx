@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, SlidersHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useRatings } from "../contexts/UserRatingsContext";
@@ -19,6 +19,7 @@ import { bookDetailsRouteForBook } from "../utils/goodreads";
 import { getListsActivity } from "../services/lists";
 import { PRESS_HANDLERS } from "../utils/pressHandlers";
 import { getDisplayName, getAvatarUrl } from "../utils/profile";
+import { supabase } from "../services/supabase-client";
 import "../styles/pages/Home.css";
 
 /* ---------- helpers ---------- */
@@ -356,6 +357,27 @@ export default function Home() {
   const [recInfo, setRecInfo] = useState(null);
   const [recRefresh, setRecRefresh] = useState(0);
   const [recsLoading, setRecsLoading] = useState(false);
+  // Recommendation preferences: media type plus minimum IMDb rating/votes
+  // (from the imdb_ratings dataset). Persisted so they survive reloads.
+  const REC_PREF_DEFAULTS = {
+    type: "all",
+    minImdbRating: 0,
+    minImdbVotes: 0,
+  };
+  const [recPrefs, setRecPrefs] = useState(() => {
+    try {
+      return {
+        ...REC_PREF_DEFAULTS,
+        ...JSON.parse(localStorage.getItem("hp-rec-prefs") || "{}"),
+      };
+    } catch {
+      return { ...REC_PREF_DEFAULTS };
+    }
+  });
+  const [showRecPrefs, setShowRecPrefs] = useState(false);
+  useEffect(() => {
+    localStorage.setItem("hp-rec-prefs", JSON.stringify(recPrefs));
+  }, [recPrefs]);
   // Full details (director/cast + IMDb tconst) for the open recommendation
   // popup, so the user sees who's in it and its ratings without navigating.
   const [recDetails, setRecDetails] = useState(null);
@@ -419,6 +441,9 @@ export default function Home() {
         (list || []).forEach((m, pos) => {
           const k = key(m.media_type, m.tmdb_id);
           if (known.has(k)) return;
+          // User preference: media type.
+          if (recPrefs.type !== "all" && m.media_type !== recPrefs.type)
+            return;
           const e = scored.get(k);
           if (e) {
             e.count++;
@@ -431,17 +456,61 @@ export default function Home() {
       });
       // Rank by consensus, keep a wider top slice, then shuffle so the final
       // strip is mixed rather than the same popularity-ordered run every time.
-      const ranked = [...scored.values()]
-        .sort((a, b) => b.count - a.count || a.bestPos - b.bestPos)
-        .slice(0, 40);
-      const out = ranked
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 24)
-        .map((e) => ({ ...e.item, _reasons: e.reasons }));
-      if (!cancelled) {
-        setRecs(out);
-        setRecsLoading(false);
-      }
+      // A wider pool goes into the rating filter so thresholds still leave
+      // enough titles to fill the strip.
+      const ranked = [...scored.values()].sort(
+        (a, b) => b.count - a.count || a.bestPos - b.bestPos,
+      );
+
+      // Minimum IMDb rating/votes (by tconst, from the imdb_ratings dataset).
+      const imdbActive =
+        recPrefs.minImdbRating > 0 || recPrefs.minImdbVotes > 0;
+      const applyRatingPrefs = async (entries) => {
+        if (!imdbActive) return entries;
+        const pool = entries.slice(0, 120);
+
+        const imdbMap = {};
+        const tconsts = pool
+          .map((e) => e.item.id)
+          .filter((t) => typeof t === "string" && t.startsWith("tt"));
+        for (let i = 0; i < tconsts.length; i += 200) {
+          const { data } = await supabase
+            .from("imdb_ratings")
+            .select("tconst, rating, votes")
+            .in("tconst", tconsts.slice(i, i + 200));
+          (data || []).forEach((r) => {
+            imdbMap[r.tconst] = r;
+          });
+        }
+
+        return pool.filter((e) => {
+          const row = imdbMap[e.item.id];
+          if (!row) return false;
+          if (
+            recPrefs.minImdbRating > 0 &&
+            (row.rating ?? 0) < recPrefs.minImdbRating
+          )
+            return false;
+          if (
+            recPrefs.minImdbVotes > 0 &&
+            (row.votes ?? 0) < recPrefs.minImdbVotes
+          )
+            return false;
+          return true;
+        });
+      };
+
+      applyRatingPrefs(ranked).then((filtered) => {
+        const out = filtered
+          .slice(0, 40)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 24)
+          .map((e) => ({ ...e.item, _reasons: e.reasons }));
+        if (!cancelled) {
+          setRecs(out);
+          setRecsLoading(false);
+        }
+      });
     });
     return () => {
       cancelled = true;
@@ -454,6 +523,7 @@ export default function Home() {
     userLogs,
     userWatchlist,
     recRefresh,
+    recPrefs,
   ]);
 
   const [hoverRating, setHoverRating] = useState(null);
@@ -1152,8 +1222,9 @@ export default function Home() {
         ))}
       </div>
 
-      {/* recommendations aggregated from the user's favourites */}
-      {recTiles.length > 0 && (
+      {/* recommendations aggregated from the user's favourites; stays visible
+          when filters exclude everything so the note (and prefs button) show */}
+      {(recTiles.length > 0 || recsLoading || userRatings.length > 0) && (
         <Section
           panel
           label={
@@ -1169,11 +1240,109 @@ export default function Home() {
               >
                 <img src="/images/undo.png" alt="" aria-hidden="true" />
               </button>
+              <button
+                type="button"
+                className={`hp-rec-refresh${
+                  recPrefs.type !== "all" ||
+                  recPrefs.minImdbRating > 0 ||
+                  recPrefs.minImdbVotes > 0
+                    ? " hp-rec-filter-active"
+                    : ""
+                }`}
+                onClick={() => setShowRecPrefs(true)}
+                aria-label="Recommendation preferences"
+                title="Recommendation preferences"
+              >
+                <SlidersHorizontal size={14} />
+              </button>
             </span>
           }
         >
-          <CoverStrip tiles={recTiles} empty="" />
+          <CoverStrip
+            tiles={recTiles}
+            loading={recsLoading}
+            empty="No recommendations fit your filters."
+          />
         </Section>
+      )}
+
+      {/* recommendation preferences popup */}
+      {showRecPrefs && (
+        <div
+          className="hp-rec-modal-backdrop"
+          onClick={() => setShowRecPrefs(false)}
+          role="button"
+          tabIndex={-1}
+        >
+          <div className="hp-rec-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="hp-rec-close"
+              onClick={() => setShowRecPrefs(false)}
+              aria-label="Close"
+            >
+              {String.fromCharCode(0x00d7)}
+            </button>
+            <div className="hp-fav-title">Recommendation Preferences</div>
+            <div className="hp-rec-pref-row">
+              <label htmlFor="hp-rec-pref-type">Type</label>
+              <select
+                id="hp-rec-pref-type"
+                value={recPrefs.type}
+                onChange={(e) =>
+                  setRecPrefs((p) => ({ ...p, type: e.target.value }))
+                }
+              >
+                <option value="all">Movies & TV</option>
+                <option value="movie">Movies only</option>
+                <option value="tv">TV only</option>
+              </select>
+            </div>
+            <div className="hp-rec-pref-row">
+              <label htmlFor="hp-rec-pref-rating">Minimum IMDb rating</label>
+              <select
+                id="hp-rec-pref-rating"
+                value={recPrefs.minImdbRating}
+                onChange={(e) =>
+                  setRecPrefs((p) => ({
+                    ...p,
+                    minImdbRating: Number(e.target.value),
+                  }))
+                }
+              >
+                <option value={0}>Any</option>
+                {[5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5].map((r) => (
+                  <option key={r} value={r}>
+                    {r}+
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="hp-rec-pref-row">
+              <label htmlFor="hp-rec-pref-votes">Minimum IMDb votes</label>
+              <select
+                id="hp-rec-pref-votes"
+                value={recPrefs.minImdbVotes}
+                onChange={(e) =>
+                  setRecPrefs((p) => ({
+                    ...p,
+                    minImdbVotes: Number(e.target.value),
+                  }))
+                }
+              >
+                <option value={0}>Any</option>
+                {[1000, 5000, 10000, 50000, 100000, 500000].map((v) => (
+                  <option key={v} value={v}>
+                    {v.toLocaleString()}+
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="hp-rec-pref-note">
+              Applied to new recommendations as they load.
+            </p>
+          </div>
+        </div>
       )}
 
       <div className="hp-two-col">
