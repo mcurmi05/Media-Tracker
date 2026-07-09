@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useRatings } from "../contexts/UserRatingsContext";
@@ -1214,7 +1215,7 @@ export default function Home() {
                 aria-label="Edit favourites"
                 title="Edit favourites"
               >
-                {String.fromCharCode(0x270e)}
+                <Pencil size={14} />
               </button>
             }
           >

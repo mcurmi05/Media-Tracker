@@ -619,11 +619,22 @@ export default async function handler(req, res) {
       }
 
       // "Known For" = most popular titles across every role, deduped.
+      // Talk/news/reality shows and "Self" guest appearances are excluded -
+      // an actor's chat-show circuit otherwise outranks their actual work.
+      const excludedTvGenres = new Set([10763, 10764, 10767]); // News, Reality, Talk
+      const isTalkish = (c) =>
+        c.media_type === "tv" &&
+        (c.genre_ids || []).some((id) => excludedTvGenres.has(id));
+      const isSelfAppearance = (c) =>
+        /\bself\b|\bhimself\b|\bherself\b|\bthemselves\b/i.test(
+          c.character || "",
+        );
       const knownFor = dedupe(
         [
           ...(data.combined_credits?.cast || []),
           ...(data.combined_credits?.crew || []),
         ]
+          .filter((c) => !isTalkish(c) && !isSelfAppearance(c))
           .map(mapCredit)
           .filter(Boolean)
           .sort((a, b) => (b.popularity || 0) - (a.popularity || 0)),
