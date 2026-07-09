@@ -651,115 +651,172 @@ export default function LogComponent({
                               />
                             </button>
                           )}
-                          {/* show remove button only for the last season */}
-                          {idx === arr.length - 1 && (
-                            <img
-                              src="/images/logdelete.png"
-                              alt="Remove newest season"
-                              title="Remove newest season"
-                              onClick={() => {
-                                setSeasonToRemoveIndex(idx);
-                                setShowRemoveSeasonModal(true);
-                              }}
-                              style={{
-                                width: 12,
-                                height: 12,
-                                cursor: "pointer",
-                              }}
-                            />
-                          )}
+                          <img
+                            src="/images/logdelete.png"
+                            alt="Remove season"
+                            title="Remove season"
+                            onClick={() => {
+                              setSeasonToRemoveIndex(idx);
+                              setShowRemoveSeasonModal(true);
+                            }}
+                            style={{
+                              width: 12,
+                              height: 12,
+                              cursor: "pointer",
+                            }}
+                          />
                         </div>
                       </div>
                       <div
                         className="season-dates-wrap"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="season-chunk">
-                          <div
-                            className="season-started-label"
-                            style={{ fontSize: "0.9rem", color: "#ccc" }}
-                          >
-                            Started:
-                          </div>
-                          <Dialog
-                            initialDate={
-                              s.start_date ? new Date(s.start_date) : null
-                            }
-                            onDateChange={(d) =>
-                              updateSeasonDate(
-                                log_id,
-                                idx,
-                                "start_date",
-                                toLocalDateString(d),
-                              )
-                            }
-                            showWeekday={false}
-                            dateColor="#fff"
-                            iconGap="8px"
-                            minWidth="110px"
-                            extraActions={
-                              // DNF the whole series from an in-progress last
-                              // season - one with a start date but no finish
-                              // date yet. A finished last season offers DNF
-                              // from its "Finished:" picker instead.
-                              idx === arr.length - 1 && !logDnf && !s.finished
-                                ? [
+                        {(() => {
+                          const startUnknown = !s.start_date;
+                          const endUnknown = !s.end_date;
+                          // DNF the whole series from an in-progress last
+                          // season's start picker, or a finished last
+                          // season's finish picker.
+                          const startDnf =
+                            idx === arr.length - 1 && !logDnf && !s.finished
+                              ? [
+                                  {
+                                    label: "DNF",
+                                    onClick: () => handleSeriesDnf(true),
+                                    danger: true,
+                                  },
+                                ]
+                              : [];
+                          const endDnf =
+                            idx === arr.length - 1 && !logDnf
+                              ? [
+                                  {
+                                    label: "DNF",
+                                    onClick: () => handleSeriesDnf(true),
+                                    danger: true,
+                                  },
+                                ]
+                              : [];
+                          // Every date on the season is unknown: collapse the
+                          // two pickers into a single "Date unknown" chip.
+                          // Picking a date from it sets the start date.
+                          if (startUnknown && (!s.finished || endUnknown)) {
+                            return (
+                              <div className="season-chunk">
+                                <Dialog
+                                  key="season-unknown"
+                                  initialDate={null}
+                                  onDateChange={(d) =>
+                                    updateSeasonDate(
+                                      log_id,
+                                      idx,
+                                      "start_date",
+                                      toLocalDateString(d),
+                                    )
+                                  }
+                                  showWeekday={false}
+                                  dateColor="#fff"
+                                  iconGap="8px"
+                                  minWidth="auto"
+                                  placeholder="Date unknown"
+                                  extraActions={s.finished ? endDnf : startDnf}
+                                />
+                              </div>
+                            );
+                          }
+                          return (
+                            <>
+                              <div className="season-chunk">
+                                <div
+                                  className="season-started-label"
+                                  style={{ fontSize: "0.9rem", color: "#ccc" }}
+                                >
+                                  Started:
+                                </div>
+                                <Dialog
+                                  key={`start-${s.start_date || "none"}`}
+                                  initialDate={
+                                    s.start_date ? new Date(s.start_date) : null
+                                  }
+                                  onDateChange={(d) =>
+                                    updateSeasonDate(
+                                      log_id,
+                                      idx,
+                                      "start_date",
+                                      toLocalDateString(d),
+                                    )
+                                  }
+                                  showWeekday={false}
+                                  dateColor="#fff"
+                                  iconGap="8px"
+                                  minWidth="110px"
+                                  placeholder="Date unknown"
+                                  extraActions={[
                                     {
-                                      label: "DNF",
-                                      onClick: () => handleSeriesDnf(true),
-                                      danger: true,
+                                      label: "Date unknown",
+                                      onClick: () =>
+                                        updateSeasonDate(
+                                          log_id,
+                                          idx,
+                                          "start_date",
+                                          null,
+                                        ),
+                                      disabled: startUnknown,
                                     },
-                                  ]
-                                : []
-                            }
-                          />
-                        </div>
+                                    ...startDnf,
+                                  ]}
+                                />
+                              </div>
 
-                        {s.finished && (
-                          <div className="season-chunk">
-                            <div
-                              className="season-finished-label"
-                              style={{ fontSize: "0.9rem", color: "#ccc" }}
-                            >
-                              Finished:
-                            </div>
-                            <Dialog
-                              initialDate={
-                                s.end_date
-                                  ? new Date(s.end_date)
-                                  : s.finished_at
-                                    ? new Date(s.finished_at)
-                                    : null
-                              }
-                              onDateChange={(d) =>
-                                updateSeasonDate(
-                                  log_id,
-                                  idx,
-                                  "end_date",
-                                  toLocalDateString(d),
-                                )
-                              }
-                              showWeekday={false}
-                              dateColor="#fff"
-                              iconGap="6px"
-                              minWidth="120px"
-                              extraActions={
-                                // DNF the whole series from the last season's
-                                // finish-date picker - only reachable once that
-                                // season has an end date.
-                                idx === arr.length - 1 && !logDnf
-                                  ? [
+                              {s.finished && (
+                                <div className="season-chunk">
+                                  <div
+                                    className="season-finished-label"
+                                    style={{
+                                      fontSize: "0.9rem",
+                                      color: "#ccc",
+                                    }}
+                                  >
+                                    Finished:
+                                  </div>
+                                  <Dialog
+                                    key={`end-${s.end_date || "none"}`}
+                                    initialDate={
+                                      s.end_date ? new Date(s.end_date) : null
+                                    }
+                                    onDateChange={(d) =>
+                                      updateSeasonDate(
+                                        log_id,
+                                        idx,
+                                        "end_date",
+                                        toLocalDateString(d),
+                                      )
+                                    }
+                                    showWeekday={false}
+                                    dateColor="#fff"
+                                    iconGap="6px"
+                                    minWidth="120px"
+                                    placeholder="Date unknown"
+                                    extraActions={[
                                       {
-                                        label: "DNF",
-                                        onClick: () => handleSeriesDnf(true),
-                                        danger: true,
+                                        label: "Date unknown",
+                                        onClick: () =>
+                                          updateSeasonDate(
+                                            log_id,
+                                            idx,
+                                            "end_date",
+                                            null,
+                                          ),
+                                        disabled: endUnknown,
                                       },
-                                    ]
-                                  : []
-                              }
-                            />
-                          </div>
-                        )}
+                                      ...endDnf,
+                                    ]}
+                                  />
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
 
                         {/* Series DNF badge - sits next to the last season's
                             finished date once the whole show is marked DNF.
