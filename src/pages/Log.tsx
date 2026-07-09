@@ -33,6 +33,8 @@ import { useLetterboxdRatings } from "../contexts/LetterboxdRatingsContext";
 import { useGoodreadsRatings } from "../contexts/GoodreadsRatingsContext";
 import ExtraFiltersPanel from "../components/filters/ExtraFiltersPanel";
 import { useDebouncedValue } from "../utils/useDebouncedValue";
+import PaginationControls from "../components/common/PaginationControls";
+import { usePagination, pageBounds } from "../hooks/usePagination";
 
 const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
@@ -75,10 +77,6 @@ function Log() {
   const [dateFilter, setDateFilter] = useState(
     location.state?.dateFilter || "all",
   );
-  // Paging cap - number or "all". Keeps the DOM small on big logs.
-  const [pageSize, setPageSize] = useState(50);
-  // Current page (0-based) within the paged list.
-  const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState(location.state?.sortKey || "date");
   const [sortDir, setSortDir] = useState(location.state?.sortDir || "desc");
   const [yearFrom, setYearFrom] = useState(location.state?.yearFrom || "");
@@ -86,6 +84,22 @@ function Log() {
   const [addedFrom, setAddedFrom] = useState(location.state?.addedFrom || "");
   const [addedTo, setAddedTo] = useState(location.state?.addedTo || "");
   const [genreFilter, setGenreFilter] = useState(location.state?.genreFilter || "all");
+  const pag = usePagination(
+    [
+      debouncedSearch,
+      ratingFilter,
+      genreFilter,
+      mediaTypeFilter,
+      noteFilter,
+      dateFilter,
+      sortKey,
+      sortDir,
+      yearFrom,
+      yearTo,
+      addedFrom,
+      addedTo,
+    ].join("|"),
+  );
   const [filtersOpen, setFiltersOpen] = useState(() => {
     const s = location.state || {};
     return (
@@ -203,25 +217,6 @@ function Log() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, []);
-
-  // Any change that resizes/reorders the list sends the user back to page 1.
-  useEffect(() => {
-    setPage(0);
-  }, [
-    debouncedSearch,
-    ratingFilter,
-    genreFilter,
-    noteFilter,
-    dateFilter,
-    mediaTypeFilter,
-    yearFrom,
-    yearTo,
-    addedFrom,
-    addedTo,
-    sortKey,
-    sortDir,
-    pageSize,
-  ]);
 
   const needsMovieData =
     mediaTypeFilter === "all" ||
@@ -508,73 +503,11 @@ function Log() {
         ? filteredBookLogs.length
         : filteredLogs.length;
 
-  // Total pages and a clamped current page, guarding against a page that fell
-  // out of range after the list shrank.
-  const totalPages =
-    pageSize === "all" ? 1 : Math.max(1, Math.ceil(displayCount / pageSize));
-  const safePage = Math.min(page, totalPages - 1);
-  // Slice bounds for the current page. "all" collapses to a single page.
-  const pageStart = pageSize === "all" ? 0 : safePage * pageSize;
-  const pageEnd = pageSize === "all" ? Infinity : pageStart + pageSize;
-  const shownFrom = displayCount === 0 ? 0 : pageStart + 1;
-  const shownTo = Math.min(
-    pageSize === "all" ? displayCount : pageStart + pageSize,
+  // Slice bounds for the current page, clamped after the list shrinks.
+  const { pageStart, pageEnd } = pageBounds(
+    pag.page,
+    pag.pageSize,
     displayCount,
-  );
-
-  // Rendered above and below the list so the count + page controls are
-  // reachable without scrolling on long logs.
-  const pageSizeControl = displayCount > 0 && (
-    <div className="log-page-size">
-      <span>
-        Showing {shownFrom}–{shownTo} of {displayCount}
-      </span>
-      {totalPages > 1 && (
-        <div className="log-page-nav">
-          <button
-            type="button"
-            className="log-page-arrow"
-            onClick={() => {
-              setPage((p) => Math.max(0, p - 1));
-              window.scrollTo({ top: 0 });
-            }}
-            disabled={safePage === 0}
-            aria-label="Previous page"
-          >
-            ‹
-          </button>
-          <span className="log-page-indicator">
-            {safePage + 1} / {totalPages}
-          </span>
-          <button
-            type="button"
-            className="log-page-arrow"
-            onClick={() => {
-              setPage((p) => Math.min(totalPages - 1, p + 1));
-              window.scrollTo({ top: 0 });
-            }}
-            disabled={safePage >= totalPages - 1}
-            aria-label="Next page"
-          >
-            ›
-          </button>
-        </div>
-      )}
-      <select
-        value={pageSize}
-        onChange={(e) =>
-          setPageSize(
-            e.target.value === "all" ? "all" : Number(e.target.value),
-          )
-        }
-      >
-        <option value={20}>20</option>
-        <option value={50}>50</option>
-        <option value={75}>75</option>
-        <option value={100}>100</option>
-        <option value="all">All</option>
-      </select>
-    </div>
   );
 
   return (
@@ -708,6 +641,7 @@ function Log() {
         </button>
         <span className="toolbar-count">{displayCount}</span>
       </div>
+      <PaginationControls pag={pag} totalCount={displayCount} />
       {mediaTypeFilter === "all" ? (
         // Combined view: movies, TV, and books interleaved by date
         <>
@@ -789,7 +723,11 @@ function Log() {
         </>
       )}
 
-      {pageSizeControl}
+      <PaginationControls
+        pag={pag}
+        totalCount={displayCount}
+        position="bottom"
+      />
     </div>
   );
 }
