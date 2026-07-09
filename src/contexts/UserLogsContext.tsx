@@ -204,6 +204,81 @@ export const UserLogsProvider = ({ children }) => {
     }
   };
 
+  // Update several fields on one season atomically (e.g. clearing both the
+  // start and end date at once - two updateSeasonDate calls would race and
+  // the second persist would drop the first change).
+  const updateSeasonFields = async (log_id, seasonIndex, fields) => {
+    setUserLogs((prev) => {
+      return prev.map((l) => {
+        if (l.id !== log_id) return l;
+        const current = Array.isArray(l.season_info) ? [...l.season_info] : [];
+        if (!current[seasonIndex]) return l;
+        current[seasonIndex] = { ...current[seasonIndex], ...fields };
+        return { ...l, season_info: current };
+      });
+    });
+
+    try {
+      const logRow = userLogs.find((x) => x.id === log_id);
+      const current = logRow?.season_info ? [...logRow.season_info] : [];
+      if (!current[seasonIndex]) return;
+      current[seasonIndex] = { ...current[seasonIndex], ...fields };
+      const { error } = await supabase
+        .from("user_logs")
+        .update({ season_info: current })
+        .eq("id", log_id);
+      if (error) console.error("Failed to persist season fields:", error);
+    } catch (err) {
+      console.error("updateSeasonFields error:", err);
+    }
+  };
+
+  // Add several seasons in one go ("Add all seasons"). Bulk adds are a
+  // backfill of seasons watched some time ago, so their dates start unknown
+  // rather than defaulting to today.
+  const addSeasons = async (log_id, seasonNumbers) => {
+    const creationTimestamp = new Date().toISOString();
+    const createNewSeasonObject = (num) => ({
+      season: num,
+      start_date: null,
+      end_date: null,
+      finished: false,
+      finished_at: null,
+      created_at: creationTimestamp,
+    });
+
+    const withNewSeasons = (current) => {
+      const existing = new Set(current.map((s) => s.season));
+      const added = seasonNumbers
+        .filter((n) => !existing.has(n))
+        .map(createNewSeasonObject);
+      if (added.length === 0) return current;
+      return [...current, ...added].sort(
+        (a, b) => (a.season || 0) - (b.season || 0),
+      );
+    };
+
+    setUserLogs((prev) =>
+      prev.map((l) =>
+        l.id === log_id
+          ? { ...l, season_info: withNewSeasons(l.season_info || []) }
+          : l,
+      ),
+    );
+
+    try {
+      const logRow = userLogs.find((x) => x.id === log_id);
+      const newSeasonInfo = withNewSeasons(logRow?.season_info || []);
+      const { error } = await supabase
+        .from("user_logs")
+        .update({ season_info: newSeasonInfo })
+        .eq("id", log_id);
+      if (error) console.error("Failed to persist new seasons:", error);
+    } catch (err) {
+      console.error("addSeasons error:", err);
+    }
+  };
+
   // Remove the newest season for a log (only removes the last season)
   const removeSeason = async (log_id) => {
     setUserLogs((prev) => {
@@ -322,7 +397,9 @@ export const UserLogsProvider = ({ children }) => {
         setUserLogs,
         addLog,
         addSeason,
+        addSeasons,
         updateSeasonDate,
+        updateSeasonFields,
         removeSeason,
         removeSeasonAt,
         setSeasonFinished,

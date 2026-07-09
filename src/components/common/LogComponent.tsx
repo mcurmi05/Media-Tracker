@@ -46,7 +46,9 @@ export default function LogComponent({
     updateDate,
     userLogs,
     addSeason,
+    addSeasons,
     updateSeasonDate,
+    updateSeasonFields,
     removeSeasonAt,
     setSeasonFinished,
     setSeasonDnf,
@@ -697,6 +699,21 @@ export default function LogComponent({
                                   },
                                 ]
                               : [];
+                          // On a finished season, both pickers offer clearing
+                          // start and finish in one go.
+                          const bothUnknownAction = s.finished
+                            ? [
+                                {
+                                  label: "Both dates unknown",
+                                  onClick: () =>
+                                    updateSeasonFields(log_id, idx, {
+                                      start_date: null,
+                                      end_date: null,
+                                    }),
+                                  disabled: startUnknown && endUnknown,
+                                },
+                              ]
+                            : [];
                           // Every date on the season is unknown: collapse the
                           // two pickers into a single "Date unknown" chip.
                           // Picking a date from it sets the start date.
@@ -763,6 +780,7 @@ export default function LogComponent({
                                         ),
                                       disabled: startUnknown,
                                     },
+                                    ...bothUnknownAction,
                                     ...startDnf,
                                   ]}
                                 />
@@ -809,6 +827,7 @@ export default function LogComponent({
                                           ),
                                         disabled: endUnknown,
                                       },
+                                      ...bothUnknownAction,
                                       ...endDnf,
                                     ]}
                                   />
@@ -1169,6 +1188,25 @@ export default function LogComponent({
                   Season {n}
                 </Button>
               ))}
+              {availableSeasonNumbers.length > 1 && (
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    addSeasons(log_id, availableSeasonNumbers);
+                    setShowAddSeasonModal(false);
+                  }}
+                  sx={{
+                    color: "white",
+                    borderColor: "#666",
+                    "&:hover": { borderColor: "#888" },
+                    fontWeight: "bold",
+                    textTransform: "none",
+                    minWidth: 96,
+                  }}
+                >
+                  Add all seasons
+                </Button>
+              )}
             </Box>
           ) : tmdbSeasonNumbers.length > 0 ? (
             <div style={{ textAlign: "center", color: "#bbb" }}>
