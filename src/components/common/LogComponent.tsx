@@ -13,6 +13,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useCallback, useRef } from "react";
 import { useEffect } from "react";
 import { Dialog } from "./ReactDayPicker";
+import { toLocalDateString } from "../../utils/localDate";
 import SeasonEpisodes from "../media/SeasonEpisodes";
 import { getMovieById } from "../../services/api";
 import { getWatchStatus, saveWatchStatus } from "../../services/watchStatus";
@@ -96,7 +97,7 @@ export default function LogComponent({
   }, [text]);
 
   async function handleDateChange(newDate) {
-    const isoDate = newDate.toISOString();
+    const isoDate = toLocalDateString(newDate);
     setSaving(true);
     const { error } = await supabase
       .from("user_logs")
@@ -286,7 +287,7 @@ export default function LogComponent({
   // Save the multi-day end date for a movie log (also clears any DNF state)
   function handleEndDateChange(newDate) {
     return persistLog(
-      { movie_end_date: newDate.toISOString(), dnf: false },
+      { movie_end_date: toLocalDateString(newDate), dnf: false },
       "Failed to save date. Please try again.",
     );
   }
@@ -689,7 +690,7 @@ export default function LogComponent({
                                 log_id,
                                 idx,
                                 "start_date",
-                                d.toISOString(),
+                                toLocalDateString(d),
                               )
                             }
                             showWeekday={false}
@@ -735,7 +736,7 @@ export default function LogComponent({
                                   log_id,
                                   idx,
                                   "end_date",
-                                  d.toISOString(),
+                                  toLocalDateString(d),
                                 )
                               }
                               showWeekday={false}
@@ -1140,8 +1141,17 @@ export default function LogComponent({
         </Box>
       </Modal>
       {saving && (
-        <div style={{ fontSize: "0.9rem", color: "#888", marginTop: "4px" }}>
-          <p>Saving, please don't refresh or click away...</p>
+        <div
+          style={{
+            fontSize: "0.9rem",
+            color: "#888",
+            marginTop: "4px",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <span className="saving-spinner" aria-hidden="true" />
+          <p style={{ margin: 0 }}>Saving, please don't refresh or click away...</p>
         </div>
       )}
     </div>

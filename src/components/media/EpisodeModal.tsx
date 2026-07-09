@@ -1,6 +1,7 @@
 import "../../styles/media/EpisodeModal.css";
 import { useEffect } from "react";
 import { Dialog } from "../common/ReactDayPicker";
+import { toLocalDateString } from "../../utils/localDate";
 
 function formatEpisodeDate(d) {
   if (!d) return null;
@@ -104,7 +105,7 @@ export default function EpisodeModal({
               <Dialog
                 key={watchedDate || "none"}
                 initialDate={watchedDate ? new Date(watchedDate) : null}
-                onDateChange={(d) => onSetDate(d.toISOString())}
+                onDateChange={(d) => onSetDate(toLocalDateString(d))}
                 showWeekday={false}
                 dateColor="#ddd"
                 iconGap="8px"

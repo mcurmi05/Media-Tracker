@@ -8,6 +8,7 @@ import { useLogs } from "../../contexts/UserLogsContext";
 import { useBookLogs } from "../../contexts/UserBookLogsContext";
 import { getBookInfo } from "../../utils/bookInfo";
 import { Dialog } from "../common/ReactDayPicker";
+import { toLocalDateString } from "../../utils/localDate";
 import MovieRatingStar from "./MovieRatingStar";
 import BookRatingStar from "../books/BookRatingStar";
 import "../../styles/common/LogComponent.css";
@@ -100,7 +101,7 @@ export default function LogModal({ open, movie, book, logId, onConfirm, onCancel
   }
 
   async function saveDate(date) {
-    const iso = date.toISOString().slice(0, 10);
+    const iso = toLocalDateString(date);
     setDateUnknown(false);
     setWatchDate(date);
     if (isBook) {

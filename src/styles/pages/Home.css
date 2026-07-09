@@ -1052,9 +1052,14 @@
 .hp-rec-refresh.is-loading img {
   animation: hp-rec-spin 0.8s linear infinite;
 }
+/* keep the base scaleX(-1) mirror in every frame, otherwise the browser
+   matrix-interpolates the flip away and the icon wobbles instead of spinning */
 @keyframes hp-rec-spin {
+  from {
+    transform: scaleX(-1) rotate(0deg);
+  }
   to {
-    transform: rotate(360deg);
+    transform: scaleX(-1) rotate(-360deg);
   }
 }
 

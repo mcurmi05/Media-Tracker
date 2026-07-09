@@ -1,6 +1,7 @@
 import "../../styles/media/SeasonEpisodes.css";
 import { useState } from "react";
 import { Dialog } from "../common/ReactDayPicker";
+import { toLocalDateString } from "../../utils/localDate";
 import ScrollStrip from "../layout/ScrollStrip";
 import EpisodeModal from "./EpisodeModal";
 
@@ -124,7 +125,7 @@ export default function SeasonEpisodes({
                       key={watchedDate || "none"}
                       initialDate={watchedDate ? new Date(watchedDate) : null}
                       onDateChange={(d) =>
-                        onSetDate(ep.episode_number, d.toISOString())
+                        onSetDate(ep.episode_number, toLocalDateString(d))
                       }
                       showWeekday={false}
                       dateColor="#bbb"

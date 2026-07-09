@@ -6,6 +6,7 @@ import { useLogs } from "../../contexts/UserLogsContext";
 import { supabase } from "../../services/supabase-client";
 import { upsertMovie, resolveFullMovie } from "../../services/movieMetadata";
 import LogModal from "./LogModal";
+import { toLocalDateString } from "../../utils/localDate";
 
 export default function AddLog({ movie }) {
   const { user, isAuthenticated } = useAuth();
@@ -33,7 +34,7 @@ export default function AddLog({ movie }) {
         user_id: user.id,
         entry_id: movieEntryId,
         // watch date; the old schema used created_at for this
-        started_at: new Date().toISOString().slice(0, 10),
+        started_at: toLocalDateString(new Date()),
       })
       .select();
 

@@ -238,33 +238,36 @@ function Log() {
     return <Loader />;
   }
 
-  // Helper function to get the most recent activity date for a log
+  // Most recent activity date for a log: the latest watch date across every
+  // season (not just the last one), or a movie's multi-day finish date.
   const getMostRecentDate = (log) => {
-    if (
-      log.season_info &&
-      Array.isArray(log.season_info) &&
-      log.season_info.length > 0
-    ) {
-      const lastSeason = log.season_info[log.season_info.length - 1];
-
-      // If the last season has an end_date AND is marked as finished, use that
-      if (lastSeason.end_date && lastSeason.finished) {
-        return new Date(lastSeason.end_date);
-      }
-
-      // Otherwise, use the start_date of the last season (currently watching or unwatched)
-      if (lastSeason.start_date) {
-        return new Date(lastSeason.start_date);
-      }
-    }
-
-    // Fallback to log creation date for movies or shows without seasons
-    return new Date(log.created_at);
+    let latest = null;
+    const consider = (raw) => {
+      if (!raw) return;
+      const d = new Date(raw);
+      if (!Number.isNaN(d.getTime()) && (!latest || d > latest)) latest = d;
+    };
+    const seasons = Array.isArray(log.season_info) ? log.season_info : [];
+    seasons.forEach((s) => {
+      consider(s.start_date);
+      if (s.finished) consider(s.end_date);
+    });
+    if (latest) return latest;
+    consider(log.movie_end_date);
+    consider(log.created_at);
+    return latest || new Date(0);
   };
 
   // A log has an "unknown" watch date when it carries no real date. Movie/TV
   // logs flag it explicitly; book logs have neither a start nor end date.
-  const movieDateUnknown = (log) => !!log.date_unknown;
+  // A TV log with real season dates is never "date unknown", even if the
+  // log-level flag is set (the log row's own watch date is meaningless for TV).
+  const movieDateUnknown = (log) => {
+    const seasons = Array.isArray(log.season_info) ? log.season_info : [];
+    if (seasons.some((s) => s.start_date || (s.finished && s.end_date)))
+      return false;
+    return !!log.date_unknown;
+  };
   const bookDateUnknown = (bookLog) => !bookLog.start_date && !bookLog.end_date;
   const movieSortTitle = (log) =>
     (log.movie_object?.primaryTitle || "").toLowerCase();

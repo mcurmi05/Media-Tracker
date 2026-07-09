@@ -535,8 +535,11 @@ const BookLogCard = ({ bookLog }) => {
                 fontSize: "0.8em",
                 color: "#888",
                 whiteSpace: "nowrap",
+                display: "flex",
+                alignItems: "center",
               }}
             >
+              <span className="saving-spinner" aria-hidden="true" />
               <p style={{ margin: 0, color: "#888" }}>
                 Saving, please don't refresh or click away...
               </p>

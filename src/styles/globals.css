@@ -162,6 +162,25 @@
   border-color: #e23030;
 }
 
+/* Small spinner shown next to "Saving..." notes on log cards. */
+@keyframes saving-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.saving-spinner {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(136, 136, 136, 0.35);
+  border-top-color: #888;
+  border-radius: 50%;
+  animation: saving-spin 0.7s linear infinite;
+  vertical-align: -1px;
+  margin-right: 7px;
+  flex-shrink: 0;
+}
+
 /* Kill the browser default blue focus outline on interactive elements. Project
    convention: no default blue focus/hover borders on selections (buttons, ticks,
    posters, links). Intentional focus rings use box-shadow/ring utilities and are

@@ -50,16 +50,36 @@ function timeAgo(value) {
 const byDateDesc = (key) => (a, b) =>
   new Date(b[key] || 0).getTime() - new Date(a[key] || 0).getTime();
 
-// Most-recent activity date for a movie/TV log - mirrors the Log page so the
-// home strips list logs in the same order they appear there.
+// Most-recent activity date for a movie/TV log, by actual watch dates: the
+// latest date across every season (not just the last one), and for movies the
+// finish date of a multi-day watch. Falls back to the log's own date only
+// when no season carries one.
 function mostRecentLogDate(log) {
-  const seasons = log.season_info;
-  if (Array.isArray(seasons) && seasons.length > 0) {
-    const last = seasons[seasons.length - 1];
-    if (last.end_date && last.finished) return new Date(last.end_date);
-    if (last.start_date) return new Date(last.start_date);
-  }
-  return new Date(log.created_at);
+  let latest = null;
+  const consider = (raw) => {
+    if (!raw) return;
+    const d = new Date(raw);
+    if (!Number.isNaN(d.getTime()) && (!latest || d > latest)) latest = d;
+  };
+  const seasons = Array.isArray(log.season_info) ? log.season_info : [];
+  seasons.forEach((s) => {
+    consider(s.start_date);
+    if (s.finished) consider(s.end_date);
+  });
+  if (latest) return latest;
+  consider(log.movie_end_date);
+  consider(log.created_at);
+  return latest || new Date(0);
+}
+
+// A movie/TV log counts as date-unknown when the flag is set and no season
+// carries a real date; a book log when it has neither start nor end date.
+// These are hidden from the home Recent Logs strips entirely.
+function logDateUnknown(log) {
+  const seasons = Array.isArray(log.season_info) ? log.season_info : [];
+  if (seasons.some((s) => s.start_date || (s.finished && s.end_date)))
+    return false;
+  return !!log.date_unknown;
 }
 
 // Most-recent activity date for a book log - also mirrors the Log page.
@@ -891,7 +911,7 @@ export default function Home() {
   const recentFilmLogs = useMemo(
     () =>
       [...userLogs]
-        .filter((l) => !isTV(l.movie_object))
+        .filter((l) => !isTV(l.movie_object) && !logDateUnknown(l))
         .sort((a, b) => mostRecentLogDate(b) - mostRecentLogDate(a))
         .slice(0, 36)
         .map((l) => ({
@@ -903,7 +923,7 @@ export default function Home() {
   const recentTvLogs = useMemo(
     () =>
       [...userLogs]
-        .filter((l) => isTV(l.movie_object))
+        .filter((l) => isTV(l.movie_object) && !logDateUnknown(l))
         .sort((a, b) => mostRecentLogDate(b) - mostRecentLogDate(a))
         .slice(0, 36)
         .map((l) => ({
@@ -915,6 +935,7 @@ export default function Home() {
   const recentBookLogs = useMemo(
     () =>
       [...bookLogs]
+        .filter((l) => l.start_date || l.end_date)
         .sort((a, b) => mostRecentBookLogDate(b) - mostRecentBookLogDate(a))
         .slice(0, 36)
         .map((l) => bookTile(l.book_entries, {})),
