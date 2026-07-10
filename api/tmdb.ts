@@ -10,7 +10,7 @@
 //   ?action=images&mediaType=<movie|tv>&tmdbId=<id> -> [{ thumb, full }]
 //   ?action=find&imdbId=<tconst>      -> { tmdb_id, media_type } (or null)
 
-import POPULAR_TITLES from "./_data/popularTitles";
+import POPULAR_TITLES from "./_data/popularTitles.js";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const IMG_BASE = "https://image.tmdb.org/t/p";
