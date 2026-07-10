@@ -240,19 +240,32 @@ export default function Discovery() {
           const yt = Number(filters.yearTo);
           if (yf && (!m.startYear || m.startYear < yf)) return;
           if (yt && (!m.startYear || m.startYear > yt)) return;
+          // Server-side blended score (sources + quality); positional decay
+          // as a fallback for stale cached responses without rec_score.
+          const s = m.rec_score ?? 1 / (1 + pos / 20);
           const e = scored.get(k);
           if (e) {
             e.count++;
+            e.score += s;
             e.bestPos = Math.min(e.bestPos, pos);
             e.reasons.push(seed);
           } else {
-            scored.set(k, { item: m, count: 1, bestPos: pos, reasons: [seed] });
+            scored.set(k, {
+              item: m,
+              count: 1,
+              score: s,
+              bestPos: pos,
+              reasons: [seed],
+            });
           }
         });
       });
 
+      // Summed scores already reward consensus (each seed adds its score);
+      // count and position only break ties.
       let ranked = [...scored.values()].sort(
-        (a, b) => b.count - a.count || a.bestPos - b.bestPos,
+        (a, b) =>
+          b.score - a.score || b.count - a.count || a.bestPos - b.bestPos,
       );
 
       // IMDb rating/vote bounds via the imdb_ratings dataset (by tconst).

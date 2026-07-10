@@ -722,16 +722,83 @@ export default async function handler(req, res) {
       if (!/^\d+$/.test(tmdbId)) {
         return res.status(400).json({ error: "Invalid tmdbId" });
       }
-      // TMDB paginates recommendations (20 per page, ~2 pages total); fetch
-      // both so the client gets the full list.
-      const [page1, page2, { movieGenres, tvGenres }] = await Promise.all([
-        tmdbFetch(`/${mediaType}/${tmdbId}/recommendations`, {}, key),
-        tmdbFetch(`/${mediaType}/${tmdbId}/recommendations`, { page: 2 }, key),
-        getGenreMaps(key),
-      ]);
+      // TMDB's /recommendations is a weak collaborative signal (their user
+      // base is small) and caps out at ~2 pages (~40 titles, often far
+      // fewer). Blend three sources for depth and quality:
+      //   /recommendations - behavioral, best per-title signal (w=1.0)
+      //   /similar         - metadata match, decent volume (w=0.55)
+      //   /discover by the title's keywords+genres - thematic matches with a
+      //     vote-count floor so it adds depth without junk (w=0.5)
+      // Items are position-decayed within each source, get a Bayesian
+      // quality prior (vote_average shrunk by vote_count), and titles that
+      // appear in multiple sources score higher.
+      const fetchList = (path, params = {}) =>
+        tmdbFetch(path, params, key)
+          .then((d) => d.results || [])
+          .catch(() => []);
+      const [rec1, rec2, sim1, sim2, detail, kw, { movieGenres, tvGenres }] =
+        await Promise.all([
+          fetchList(`/${mediaType}/${tmdbId}/recommendations`),
+          fetchList(`/${mediaType}/${tmdbId}/recommendations`, { page: "2" }),
+          fetchList(`/${mediaType}/${tmdbId}/similar`),
+          fetchList(`/${mediaType}/${tmdbId}/similar`, { page: "2" }),
+          tmdbFetch(`/${mediaType}/${tmdbId}`, {}, key).catch(() => null),
+          tmdbFetch(`/${mediaType}/${tmdbId}/keywords`, {}, key).catch(
+            () => null,
+          ),
+          getGenreMaps(key),
+        ]);
+
+      // movie keywords come back as { keywords }, tv as { results }
+      const keywordIds = (kw?.keywords || kw?.results || [])
+        .slice(0, 6)
+        .map((k) => k.id);
+      const genreIds = (detail?.genres || []).map((g) => g.id).slice(0, 3);
+      let discover = [];
+      if (keywordIds.length) {
+        const params = {
+          with_keywords: keywordIds.join("|"),
+          sort_by: "vote_average.desc",
+          "vote_count.gte": mediaType === "tv" ? "100" : "200",
+        };
+        if (genreIds.length) params.with_genres = genreIds.join("|");
+        const [d1, d2] = await Promise.all([
+          fetchList(`/discover/${mediaType}`, params),
+          fetchList(`/discover/${mediaType}`, { ...params, page: "2" }),
+        ]);
+        discover = [...d1, ...d2];
+      }
+
+      const SOURCES = [
+        { list: [...rec1, ...rec2], w: 1.0 },
+        { list: [...sim1, ...sim2], w: 0.55 },
+        { list: discover, w: 0.5 },
+      ];
+      const byId = new Map();
+      for (const { list, w } of SOURCES) {
+        list.forEach((it, pos) => {
+          if (String(it.id) === tmdbId) return;
+          const decay = 1 / (1 + pos / 20);
+          const vc = it.vote_count || 0;
+          const quality = (vc / (vc + 500)) * ((it.vote_average || 0) / 10);
+          const score = w * decay + 0.35 * quality;
+          const cur = byId.get(it.id);
+          // Later sources add half their score - agreement across sources
+          // beats a high rank in any single one.
+          if (cur) cur.score += score * 0.5;
+          else byId.set(it.id, { it, score });
+        });
+      }
+
       const genreMap = mediaType === "tv" ? tvGenres : movieGenres;
-      const items = [...(page1.results || []), ...(page2.results || [])]
-        .map((it) => mapListItem(it, mediaType, genreMap))
+      const items = [...byId.values()]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 80)
+        .map(({ it, score }) => {
+          const m = mapListItem(it, mediaType, genreMap);
+          if (m) m.rec_score = Math.round(score * 1000) / 1000;
+          return m;
+        })
         .filter(Boolean);
       // Resolve IMDb ids so the client can filter recommendations by live
       // IMDb rating/votes. Cached a day per seed, so the extra lookups amortize.
