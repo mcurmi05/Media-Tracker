@@ -200,6 +200,9 @@ export function normalizeHardcoverBook(raw, fallbackId = null) {
     description: raw.description || "",
     book_description: raw.description || "",
     rating: raw.rating == null ? null : Number(raw.rating),
+    // Hardcover/Typesense reader count - cross-source prominence signal for
+    // merged "All" search ranking.
+    users_count: Number(raw.users_count) || 0,
     hardcover_url: raw.slug ? `https://hardcover.app/books/${raw.slug}` : null,
     goodreads_id: raw.goodreads_id ?? null,
     goodreads_link: raw.goodreads_link ?? null,

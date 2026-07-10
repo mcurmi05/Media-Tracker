@@ -85,6 +85,16 @@ export const updateUserRating = async (
   return data;
 };
 
+// Overwrite a rating's history array (used when deleting a history event).
+export const updateUserRatingHistory = async (userId, movieEntryId, history) => {
+  const { error } = await supabase
+    .from("user_ratings")
+    .update({ rating_history: history })
+    .eq("user_id", userId)
+    .eq("entry_id", movieEntryId);
+  if (error) throw error;
+};
+
 // Update a user's ranking (nullable).
 export const updateUserRanking = async (userId, movieEntryId, ranking) => {
   const { data, error } = await supabase

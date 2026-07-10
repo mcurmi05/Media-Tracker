@@ -128,6 +128,23 @@ export const UserBookRatingsProvider = ({ children }) => {
     }
   };
 
+  // Remove one event (by index in the history array) from a rating's history.
+  const deleteBookRatingHistoryEvent = async (ratingId, index) => {
+    const row = bookRatings.find((r) => r.id === ratingId);
+    if (!row) return;
+    const history = (row.rating_history ?? []).filter((_, i) => i !== index);
+    setBookRatings((prev) =>
+      prev.map((r) =>
+        r.id === ratingId ? { ...r, rating_history: history } : r,
+      ),
+    );
+    try {
+      await updateBookRatingService(ratingId, { rating_history: history });
+    } catch (err) {
+      console.error("Error deleting book rating history event:", err);
+    }
+  };
+
   const syncBookEntry = (bookId, updatedEntry) => {
     if (!bookId) return;
     setBookRatings((prev) =>
@@ -210,6 +227,7 @@ export const UserBookRatingsProvider = ({ children }) => {
         rateBook,
         findRatingForBook,
         updateBookRanking: updateBookRankingValue,
+        deleteBookRatingHistoryEvent,
         syncBookEntry,
       }}
     >

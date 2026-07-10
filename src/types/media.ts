@@ -16,6 +16,7 @@ export interface NormalizedBook {
   goodreads_id: number | null;
   goodreads_link: string | null;
   storygraph_slug?: string | null;
+  users_count?: number;
   id?: string;
 }
 

@@ -149,15 +149,27 @@ function combinedMatchScore(item: SearchResult, query: string) {
   const title = normalizedTitle(item);
   const target = normalizedTitle({ title: query });
   if (!title || !target) return 0;
-  if (title === target) return 100;
-  if (title.startsWith(target)) return 70;
-  if (title.includes(target)) return 50;
-  const words = target.split(" ");
-  const titleWords = new Set(title.split(" "));
-  return words.reduce(
-    (score, word) => score + (titleWords.has(word) ? 10 : 0),
-    0,
-  );
+  // Log-scaled prominence (TMDB vote count / Hardcover reader count) breaks
+  // ties within a match tier, so "interstellar" ranks the Nolan film above
+  // the same-named book instead of deferring to group order.
+  const votes =
+    ("numVotes" in item ? item.numVotes : null) ??
+    ("users_count" in item ? item.users_count : null) ??
+    0;
+  const prominence = Math.log10((votes || 0) + 1);
+  let base = 0;
+  if (title === target) base = 100;
+  else if (title.startsWith(target)) base = 70;
+  else if (title.includes(target)) base = 50;
+  else {
+    const words = target.split(" ");
+    const titleWords = new Set(title.split(" "));
+    base = words.reduce(
+      (score, word) => score + (titleWords.has(word) ? 10 : 0),
+      0,
+    );
+  }
+  return base ? base + prominence : 0;
 }
 
 export function combineSearchResults(

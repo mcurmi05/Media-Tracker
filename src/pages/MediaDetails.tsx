@@ -24,27 +24,7 @@ import { getRatingForMovie } from "../services/ratingsfromtable";
 import { useAuth } from "../contexts/AuthContext";
 import { getWatchStatus, saveWatchStatus } from "../services/watchStatus";
 import Loader from "../components/layout/Loader";
-import { makeNavHandlers } from "../utils/navClick";
-
-// Render a comma-separated people list where anyone with a person_id links to
-// their person page.
-function PeopleLinks({ people, navigate }) {
-  return people.map((p, i) => (
-    <span key={`${p.fullName}-${i}`}>
-      {i > 0 ? ", " : ""}
-      {p.person_id != null ? (
-        <span
-          className="person-inline-link"
-          {...makeNavHandlers(navigate, `/person/${p.person_id}`)}
-        >
-          {p.fullName}
-        </span>
-      ) : (
-        p.fullName
-      )}
-    </span>
-  ));
-}
+import PeopleLinks from "../components/common/PeopleLinks";
 
 function formatEpisodeDate(d) {
   if (!d) return null;

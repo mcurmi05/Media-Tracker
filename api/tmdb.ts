@@ -10,6 +10,8 @@
 //   ?action=images&mediaType=<movie|tv>&tmdbId=<id> -> [{ thumb, full }]
 //   ?action=find&imdbId=<tconst>      -> { tmdb_id, media_type } (or null)
 
+import POPULAR_TITLES from "./_data/popularTitles";
+
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const IMG_BASE = "https://image.tmdb.org/t/p";
 
@@ -270,9 +272,15 @@ function mapDetail(d, mediaType, seasonDetails) {
 
 // --- Fuzzy search ranking ------------------------------------------------
 // TMDB's search has limited typo tolerance and its default ordering buries
-// good matches behind popular near-misses. We pull several pages, merge the
-// per-type endpoints (which are more lenient than /search/multi), then
-// re-rank everything client-of-TMDB-side by similarity to the typed query.
+// good matches behind popular near-misses. Two-part fix, IMDb/Letterboxd
+// style:
+//   1. Candidate generation: pull several pages, merge the per-type
+//      endpoints, and - when the pool looks weak for the typed query - fire
+//      recovery variants (drop a word, trim trailing chars) so misspelled or
+//      over-specified queries still surface candidates at all.
+//   2. Ranking: re-rank every candidate by fuzzy similarity to the typed
+//      query (Damerau edit distance, token alignment, prefix/substring
+//      bonuses) with a small popularity tiebreak.
 
 function normalize(s) {
   return String(s || "")
@@ -283,42 +291,50 @@ function normalize(s) {
     .trim();
 }
 
-// Levenshtein edit distance (iterative, single-row) for short strings.
-function levenshtein(a, b) {
+// Damerau-Levenshtein (optimal string alignment): like Levenshtein but a
+// transposition of adjacent chars ("teh" -> "the") costs 1 edit, matching how
+// people actually mistype.
+function editDistance(a, b) {
   const m = a.length;
   const n = b.length;
   if (!m) return n;
   if (!n) return m;
-  const dp = new Array(n + 1);
-  for (let j = 0; j <= n; j++) dp[j] = j;
+  // Three rolling rows: two-back, previous, current.
+  let prev2 = null;
+  let prev = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
   for (let i = 1; i <= m; i++) {
-    let prev = dp[0];
-    dp[0] = i;
+    const cur = new Array(n + 1);
+    cur[0] = i;
     for (let j = 1; j <= n; j++) {
-      const tmp = dp[j];
-      dp[j] = Math.min(
-        dp[j] + 1, // deletion
-        dp[j - 1] + 1, // insertion
-        prev + (a[i - 1] === b[j - 1] ? 0 : 1), // substitution
-      );
-      prev = tmp;
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      if (
+        i > 1 &&
+        j > 1 &&
+        a[i - 1] === b[j - 2] &&
+        a[i - 2] === b[j - 1]
+      ) {
+        cur[j] = Math.min(cur[j], prev2[j - 2] + 1);
+      }
     }
+    prev2 = prev;
+    prev = cur;
   }
-  return dp[n];
+  return prev[n];
 }
 
 // 0..1 similarity (1 = identical) based on edit distance.
 function simRatio(a, b) {
   if (!a && !b) return 1;
   const maxLen = Math.max(a.length, b.length) || 1;
-  return 1 - levenshtein(a, b) / maxLen;
+  return 1 - editDistance(a, b) / maxLen;
 }
 
-// Higher score = better match for the typed query. Combines whole-string
-// similarity, substring/prefix bonuses, fuzzy token overlap, and a small
-// popularity tiebreak so the well-known title wins among equally-good matches.
-function relevanceScore(item, qNorm) {
-  const title = normalize(item.title || item.name);
+// Score one title string against the query. Combines whole-string similarity,
+// prefix/substring bonuses and order-insensitive fuzzy token alignment (so
+// "knight dark" or "the batman dark knight" still land on The Dark Knight).
+function scoreTitle(qNorm, title) {
   if (!title || !qNorm) return 0;
 
   const full = simRatio(qNorm, title);
@@ -328,19 +344,138 @@ function relevanceScore(item, qNorm) {
   const qTokens = qNorm.split(" ").filter(Boolean);
   const tTokens = title.split(" ").filter(Boolean);
   let tokenHits = 0;
+  let titleTokensMatched = 0;
   for (const qt of qTokens) {
     if (tTokens.includes(qt)) {
       tokenHits += 1;
-    } else if (tTokens.some((tt) => simRatio(qt, tt) >= 0.8)) {
-      tokenHits += 0.7;
+      titleTokensMatched += 1;
+    } else {
+      let best = 0;
+      for (const tt of tTokens) {
+        const s = simRatio(qt, tt);
+        if (s > best) best = s;
+      }
+      if (best >= 0.75) {
+        tokenHits += best * 0.85;
+        titleTokensMatched += 1;
+      }
     }
   }
-  const tokenScore = qTokens.length ? (tokenHits / qTokens.length) * 0.4 : 0;
+  const tokenScore = qTokens.length ? (tokenHits / qTokens.length) * 0.45 : 0;
+  // Among titles matching the same query tokens, prefer the one with fewer
+  // leftover words ("dark knight" -> The Dark Knight, not ... Rises).
+  const coverage = tTokens.length
+    ? (Math.min(titleTokensMatched, tTokens.length) / tTokens.length) * 0.1
+    : 0;
 
-  // log-scaled popularity, kept small so it only breaks near-ties.
+  // Whole-string similarity on alphabetically sorted tokens: order-
+  // insensitive, so "knight dark" still lands on The Dark Knight.
+  const sortedFull =
+    qTokens.length > 1
+      ? simRatio(
+          qTokens.slice().sort().join(" "),
+          tTokens.slice().sort().join(" "),
+        ) * 0.95
+      : 0;
+
+  return Math.max(full, prefix, sortedFull) + substr + tokenScore + coverage;
+}
+
+// Best raw title similarity for an item, checked against the display title
+// AND the original-language title (helps foreign titles searched either way).
+function bestTitleSim(item, qNorm) {
+  const titles = [
+    item.title,
+    item.name,
+    item.original_title,
+    item.original_name,
+  ];
+  let best = 0;
+  for (const t of titles) {
+    const tn = normalize(t);
+    if (!tn) continue;
+    const s = Math.max(
+      simRatio(qNorm, tn),
+      simRatio(qNorm, tn.slice(0, qNorm.length)),
+    );
+    if (s > best) best = s;
+  }
+  return best;
+}
+
+// Higher score = better match for the typed query. Popularity is log-scaled
+// and small so it only breaks near-ties in favor of the well-known title.
+function relevanceScore(item, qNorm) {
+  const titles = [
+    item.title,
+    item.name,
+    item.original_title,
+    item.original_name,
+  ];
+  let best = 0;
+  for (const t of titles) {
+    const s = scoreTitle(qNorm, normalize(t));
+    if (s > best) best = s;
+  }
+  if (!best) return 0;
   const pop = Math.log10((item.popularity || 0) + 1) / 12;
+  return best + pop;
+}
 
-  return Math.max(full, prefix) + substr + tokenScore + pop;
+// If the initial candidate pool has no strong title match, the query itself
+// is probably misspelled or over-specified; below this similarity we fire
+// recovery variant queries to widen the pool. High on purpose: a near-miss
+// pool ("intrastellar" -> only Interstellar Pig, sim ~0.83) still means the
+// intended title is probably missing, and recovery is a no-op cost when the
+// wider pool adds nothing better.
+const RECOVERY_SIM_THRESHOLD = 0.88;
+
+// Spell-correct the query against the local index of well-known titles.
+// TMDB has zero typo tolerance ("intrastellar" returns nothing at all), so
+// the only way to recover is knowing what the user probably meant and
+// searching for that instead - same idea as IMDb's own suggestion index.
+function localCorrections(qNorm, limit = 3) {
+  if (!qNorm || qNorm.length < 4) return [];
+  const scored = [];
+  for (const [t, pop] of POPULAR_TITLES) {
+    if (Math.abs(t.length - qNorm.length) > 5) continue;
+    const s = simRatio(qNorm, t);
+    if (s >= 0.7 && s < 1) scored.push({ t, s, pop });
+  }
+  scored.sort((a, b) => b.s - a.s || b.pop - a.pop);
+  return scored.slice(0, limit).map((x) => x.t);
+}
+
+// Alternate query strings for recovery: drop one word at a time (wrong/extra
+// word - "shawshank redemtion" still hits via "shawshank"), and trim trailing
+// chars (suffix typos - "intersteller" hits via "interst" prefix matching).
+function buildRecoveryVariants(query) {
+  const qNorm = normalize(query);
+  const tokens = qNorm.split(" ").filter(Boolean);
+  const variants = new Set();
+
+  if (tokens.length >= 2 && tokens.length <= 4) {
+    for (let i = 0; i < tokens.length; i++) {
+      variants.add(tokens.filter((_, j) => j !== i).join(" "));
+    }
+  } else if (tokens.length > 4) {
+    variants.add(tokens.slice(0, 3).join(" "));
+    variants.add(tokens.slice(-3).join(" "));
+  }
+
+  if (tokens.length === 1 && qNorm.length >= 6) {
+    variants.add(qNorm.slice(0, qNorm.length - 2));
+    variants.add(qNorm.slice(0, Math.max(4, Math.ceil(qNorm.length * 0.6))));
+    // Short prefix casts the widest net: trims can't fix a mid-word typo
+    // ("intrastellar"), but "intr" still surfaces Interstellar for the
+    // fuzzy re-rank to pick out.
+    variants.add(qNorm.slice(0, 4));
+  } else if (qNorm.length >= 8) {
+    variants.add(qNorm.slice(0, qNorm.length - 3));
+  }
+
+  variants.delete(qNorm);
+  return [...variants].slice(0, 5);
 }
 
 export default async function handler(req, res) {
@@ -392,18 +527,42 @@ export default async function handler(req, res) {
       const query = String(q.query || "").trim();
       if (!query) return res.status(400).json({ error: "Missing query" });
 
-      const common = { query, include_adult: "false" };
+      const qNorm = normalize(query);
+
+      // One page of one search endpoint; failures collapse to empty results
+      // so a flaky variant request never sinks the whole search.
+      const searchPage = (path, qStr, page) =>
+        tmdbFetch(
+          path,
+          { query: qStr, include_adult: "false", page: String(page) },
+          key,
+        ).catch(() => ({ results: [], total_pages: 0 }));
 
       // People search: /search/person, re-ranked by name similarity so the
-      // intended person surfaces even when misspelled.
+      // intended person surfaces even when misspelled; weak pools get the
+      // same recovery variants as titles.
       if (q.mediaType === "person") {
-        const data = await tmdbFetch(
-          "/search/person",
-          { ...common, page: "1" },
-          key,
+        const first = await searchPage("/search/person", query, 1);
+        let pool = first.results || [];
+        const bestSim = pool.reduce(
+          (m, p) => Math.max(m, simRatio(qNorm, normalize(p.name))),
+          0,
         );
-        const qNorm = normalize(query);
-        const people = (data.results || [])
+        if (bestSim < RECOVERY_SIM_THRESHOLD) {
+          const extra = await Promise.all(
+            buildRecoveryVariants(query).map((v) =>
+              searchPage("/search/person", v, 1),
+            ),
+          );
+          pool = [...pool, ...extra.flatMap((d) => d.results || [])];
+        }
+        const seenPeople = new Set();
+        const people = pool
+          .filter((p) => {
+            if (seenPeople.has(p.id)) return false;
+            seenPeople.add(p.id);
+            return true;
+          })
           .map((p) => ({ p, name: normalize(p.name) }))
           .sort(
             (a, b) =>
@@ -419,96 +578,99 @@ export default async function handler(req, res) {
       const requestedMediaType =
         q.mediaType === "movie" || q.mediaType === "tv" ? q.mediaType : null;
 
-      //three way search requests one tmdb media type at a time
-      //legacy callers without a media type keep the merged search
+      // ---- Candidate collection ----
+      // Entries are { it, mt } and deduped on media_type:id as they land.
+      const seen = new Set();
+      const deduped = [];
+      const collect = (results, mt) => {
+        for (const it of results || []) {
+          const t = mt || it.media_type;
+          if (t !== "movie" && t !== "tv") continue;
+          const k = `${t}:${it.id}`;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          deduped.push({ it, mt: t });
+        }
+      };
+
       if (requestedMediaType) {
-        const first = await tmdbFetch(
+        // Three-way search requests one tmdb media type at a time.
+        const first = await searchPage(
           `/search/${requestedMediaType}`,
-          { ...common, page: "1" },
-          key,
+          query,
+          1,
         );
-        const totalPages = Math.min(
-          first.total_pages || 1,
-          MAX_SEARCH_PAGES,
-        );
+        const totalPages = Math.min(first.total_pages || 1, MAX_SEARCH_PAGES);
         const remaining = [];
         for (let page = 2; page <= totalPages; page++) {
           remaining.push(
-            tmdbFetch(
-              `/search/${requestedMediaType}`,
-              { ...common, page: String(page) },
-              key,
-            )
-              .then((data) => data.results || [])
-              .catch(() => []),
+            searchPage(`/search/${requestedMediaType}`, query, page).then(
+              (d) => d.results || [],
+            ),
           );
         }
-        const raw = [
-          ...(first.results || []),
-          ...(await Promise.all(remaining)).flat(),
-        ];
-        const seen = new Set();
-        const unique = raw.filter((item) => {
-          if (seen.has(item.id)) return false;
-          seen.add(item.id);
-          return true;
-        });
-        const qNorm = normalize(query);
-        unique.sort(
-          (a, b) => relevanceScore(b, qNorm) - relevanceScore(a, qNorm),
-        );
-        const items = unique
-          .map((item) => mapListItem(item, requestedMediaType))
-          .filter(Boolean);
-        return res.status(200).json({ results: items });
+        collect(first.results, requestedMediaType);
+        collect((await Promise.all(remaining)).flat(), requestedMediaType);
+      } else {
+        // Legacy callers without a media type keep the merged search: first
+        // multi page (tells us total_pages) alongside the per-type searches -
+        // /search/movie and /search/tv are more lenient than /search/multi,
+        // so merging them improves recall for badly misspelled queries.
+        const [multi1, movie1, tv1] = await Promise.all([
+          searchPage("/search/multi", query, 1),
+          searchPage("/search/movie", query, 1),
+          searchPage("/search/tv", query, 1),
+        ]);
+        const totalPages = Math.min(multi1.total_pages || 1, MAX_SEARCH_PAGES);
+        const morePageReqs = [];
+        for (let p = 2; p <= totalPages; p++) {
+          morePageReqs.push(
+            searchPage("/search/multi", query, p).then((d) => d.results || []),
+          );
+        }
+        collect(multi1.results, null);
+        collect((await Promise.all(morePageReqs)).flat(), null);
+        collect(movie1.results, "movie");
+        collect(tv1.results, "tv");
       }
 
-      // Kick off the first multi page (tells us total_pages) alongside the
-      // per-type searches — /search/movie and /search/tv are more typo-
-      // tolerant than /search/multi, so merging them improves recall for
-      // badly misspelled queries.
-      const [multi1, movie1, tv1] = await Promise.all([
-        tmdbFetch("/search/multi", { ...common, page: "1" }, key),
-        tmdbFetch("/search/movie", { ...common, page: "1" }, key).catch(() => ({
-          results: [],
-        })),
-        tmdbFetch("/search/tv", { ...common, page: "1" }, key).catch(() => ({
-          results: [],
-        })),
-      ]);
-
-      // Pull the remaining multi pages (capped) for a deeper result set.
-      const totalPages = Math.min(multi1.total_pages || 1, MAX_SEARCH_PAGES);
-      const morePageReqs = [];
-      for (let p = 2; p <= totalPages; p++) {
-        morePageReqs.push(
-          tmdbFetch("/search/multi", { ...common, page: String(p) }, key)
-            .then((d) => d.results || [])
-            .catch(() => []),
-        );
-      }
-      const moreMulti = (await Promise.all(morePageReqs)).flat();
-
-      // Tag every raw item with its media_type, keep only movie/tv, dedupe.
-      const tagged = [
-        ...(multi1.results || []).map((it) => ({ it, mt: it.media_type })),
-        ...moreMulti.map((it) => ({ it, mt: it.media_type })),
-        ...(movie1.results || []).map((it) => ({ it, mt: "movie" })),
-        ...(tv1.results || []).map((it) => ({ it, mt: "tv" })),
-      ].filter(({ mt }) => mt === "movie" || mt === "tv");
-
-      const seen = new Set();
-      const deduped = [];
-      for (const entry of tagged) {
-        const k = `${entry.mt}:${entry.it.id}`;
-        if (seen.has(k)) continue;
-        seen.add(k);
-        deduped.push(entry);
+      // ---- Recovery ----
+      // No candidate resembles the typed query, so the query itself is
+      // probably misspelled or carries extra words TMDB can't match. Re-query
+      // with variants (word dropped / trailing chars trimmed) and merge.
+      const bestSim = deduped.reduce(
+        (m, { it }) => Math.max(m, bestTitleSim(it, qNorm)),
+        0,
+      );
+      if (bestSim < RECOVERY_SIM_THRESHOLD) {
+        const types = requestedMediaType
+          ? [requestedMediaType]
+          : ["movie", "tv"];
+        // Spell-corrected titles from the local index first (they search for
+        // what the user probably meant), then the structural variants.
+        const variants = [
+          ...localCorrections(qNorm),
+          ...buildRecoveryVariants(query),
+        ].slice(0, 6);
+        const reqs = [];
+        for (const v of variants) {
+          for (const t of types) {
+            reqs.push(
+              searchPage(`/search/${t}`, v, 1).then((d) => ({
+                results: d.results || [],
+                mt: t,
+              })),
+            );
+          }
+        }
+        for (const { results, mt } of await Promise.all(reqs)) {
+          collect(results, mt);
+        }
       }
 
-      // Re-rank by fuzzy similarity to the typed query so the intended title
-      // surfaces even when misspelled or buried.
-      const qNorm = normalize(query);
+      // ---- Ranking ----
+      // Re-rank everything by fuzzy similarity to the typed query so the
+      // intended title surfaces even when misspelled or buried.
       deduped.sort(
         (a, b) => relevanceScore(b.it, qNorm) - relevanceScore(a.it, qNorm),
       );

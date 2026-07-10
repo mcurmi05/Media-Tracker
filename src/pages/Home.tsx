@@ -524,22 +524,28 @@ export default function Home() {
     };
   }, [userRatings, bookRatings, coverForTmdb, coverForHardcover]);
 
-  /* ---------- ratings distribution: all categories combined, 5..10 ---------- */
+  /* ---------- ratings distribution: all categories combined, 1..10 in 0.5
+     steps. Arrays are indexed by rating*2 so halves get their own bucket;
+     custom ratings (off the half-step grid or out of range) are excluded. */
 
   const dist = useMemo(() => {
-    const film = Array(11).fill(0);
-    const tv = Array(11).fill(0);
-    const book = Array(11).fill(0);
+    const film = Array(21).fill(0);
+    const tv = Array(21).fill(0);
+    const book = Array(21).fill(0);
+    const bucket = (raw) => {
+      const idx = Number(raw) * 2;
+      return Number.isInteger(idx) && idx >= 2 && idx <= 20 ? idx : null;
+    };
     userRatings.forEach((r) => {
-      const v = Math.round(Number(r.rating));
-      if (v >= 1 && v <= 10) (isTV(r.movie_object) ? tv : film)[v]++;
+      const idx = bucket(r.rating);
+      if (idx != null) (isTV(r.movie_object) ? tv : film)[idx]++;
     });
     bookRatings.forEach((r) => {
-      const v = Math.round(Number(r.book_rating));
-      if (v >= 1 && v <= 10) book[v]++;
+      const idx = bucket(r.book_rating);
+      if (idx != null) book[idx]++;
     });
     const total = film.map((f, i) => f + tv[i] + book[i]);
-    const max = Math.max(1, ...total.slice(5, 11));
+    const max = Math.max(1, ...total.slice(2));
     return { film, tv, book, total, max };
   }, [userRatings, bookRatings]);
 
@@ -614,17 +620,21 @@ export default function Home() {
     userLogs.forEach((l) => {
       const title = l.movie_object?.primaryTitle || "a title";
       const seasons = l.season_info || [];
+      // Activity dates are the actual log/watch dates, never the row's insert
+      // time - logging an old watch today must not surface it as recent, and
+      // unknown-date logs don't belong in the feed at all.
       if (isTV(l.movie_object) && seasons.length > 0) {
         // one event per season the show was started, plus one when finished
         seasons.forEach((s) => {
-          ev.push({
-            date: s.start_date || s.created_at || l.created_at,
-            type: "log",
-            media: "screen",
-            prefix: `Started watching Season ${s.season} of`,
-            title,
-            onClick: goLog(l.movie_object?.primaryTitle),
-          });
+          if (s.start_date)
+            ev.push({
+              date: s.start_date,
+              type: "log",
+              media: "screen",
+              prefix: `Started watching Season ${s.season} of`,
+              title,
+              onClick: goLog(l.movie_object?.primaryTitle),
+            });
           if (s.end_date && s.finished) {
             ev.push({
               date: s.end_date,
@@ -637,14 +647,17 @@ export default function Home() {
           }
         });
       } else if (!isTV(l.movie_object) && l.multi_day) {
-        ev.push({
-          date: l.created_at,
-          type: "log",
-          media: "screen",
-          prefix: "Started watching",
-          title,
-          onClick: goLog(l.movie_object?.primaryTitle),
-        });
+        // l.created_at holds the watch start date when known (see
+        // toMovieLogRow); date_unknown means there is no real watch date.
+        if (!l.date_unknown)
+          ev.push({
+            date: l.created_at,
+            type: "log",
+            media: "screen",
+            prefix: "Started watching",
+            title,
+            onClick: goLog(l.movie_object?.primaryTitle),
+          });
         if (l.movie_end_date) {
           ev.push({
             date: l.movie_end_date,
@@ -655,7 +668,7 @@ export default function Home() {
             onClick: goLog(l.movie_object?.primaryTitle),
           });
         }
-      } else {
+      } else if (!l.date_unknown) {
         ev.push({
           date: l.created_at,
           type: "log",
@@ -690,14 +703,17 @@ export default function Home() {
     );
     bookLogs.forEach((l) => {
       const bookTitle = stripSeries(l.book_entries?.title) || "a book";
-      ev.push({
-        date: l.start_date || l.created_at,
-        type: "log",
-        media: "book",
-        prefix: "Started reading",
-        title: bookTitle,
-        onClick: goLog(stripSeries(l.book_entries?.title)),
-      });
+      // Only real reading dates count as activity; a book with neither start
+      // nor end date (date unknown) stays out of the feed.
+      if (l.start_date)
+        ev.push({
+          date: l.start_date,
+          type: "log",
+          media: "book",
+          prefix: "Started reading",
+          title: bookTitle,
+          onClick: goLog(stripSeries(l.book_entries?.title)),
+        });
       if (l.end_date)
         ev.push({
           date: l.end_date,
@@ -1214,11 +1230,12 @@ export default function Home() {
       <Section label="Ratings Distribution">
         <div className="hp-chart">
           <div className="hp-chart-bars">
-            {[5, 6, 7, 8, 9, 10].map((rating) => {
-              const total = dist.total[rating];
+            {Array.from({ length: 19 }, (_, i) => 1 + i * 0.5).map((rating) => {
+              const idx = rating * 2;
+              const total = dist.total[idx];
               const active = hoverRating === rating;
-              // 5 = red, 10 = green, through yellow in between
-              const hue = ((rating - 5) / 5) * 120;
+              // 1 = red, 10 = green, through yellow in between
+              const hue = ((rating - 1) / 9) * 120;
               const clickable = total > 0;
               return (
                 <div
@@ -1244,15 +1261,15 @@ export default function Home() {
                         </div>
                         <div className="hp-chart-tip-row">
                           <span>Movies</span>
-                          <b>{dist.film[rating]}</b>
+                          <b>{dist.film[idx]}</b>
                         </div>
                         <div className="hp-chart-tip-row">
                           <span>TV</span>
-                          <b>{dist.tv[rating]}</b>
+                          <b>{dist.tv[idx]}</b>
                         </div>
                         <div className="hp-chart-tip-row">
                           <span>Books</span>
-                          <b>{dist.book[rating]}</b>
+                          <b>{dist.book[idx]}</b>
                         </div>
                         <div className="hp-chart-tip-row hp-chart-tip-total">
                           <span>Total</span>
@@ -1270,7 +1287,10 @@ export default function Home() {
                       }}
                     />
                   </div>
-                  <div className="hp-chart-x">{rating}</div>
+                  {/* 19 columns - only label whole numbers to avoid crowding */}
+                  <div className="hp-chart-x">
+                    {Number.isInteger(rating) ? rating : ""}
+                  </div>
                 </div>
               );
             })}

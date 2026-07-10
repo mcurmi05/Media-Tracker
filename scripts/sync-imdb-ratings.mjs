@@ -24,20 +24,43 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
 
 const ENDPOINT = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/imdb_ratings`;
 
-async function upsert(rows) {
-  const res = await fetch(`${ENDPOINT}?on_conflict=tconst`, {
-    method: "POST",
-    headers: {
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "resolution=merge-duplicates,return=minimal",
-    },
-    body: JSON.stringify(rows),
-  });
-  if (!res.ok) {
-    const detail = await res.text();
-    throw new Error(`Upsert failed: ${res.status} ${res.statusText} - ${detail}`);
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// ~320 batches per run means the odd dropped connection (ECONNRESET) is
+// expected; retry with backoff instead of failing the whole sync.
+async function upsert(rows, attempt = 1) {
+  const MAX_ATTEMPTS = 4;
+  try {
+    const res = await fetch(`${ENDPOINT}?on_conflict=tconst`, {
+      method: "POST",
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal",
+      },
+      body: JSON.stringify(rows),
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      // Retry server-side hiccups; anything else (auth, schema) is fatal.
+      if ((res.status >= 500 || res.status === 429) && attempt < MAX_ATTEMPTS) {
+        throw new Error(`retryable: ${res.status}`);
+      }
+      throw new Error(
+        `Upsert failed: ${res.status} ${res.statusText} - ${detail}`,
+      );
+    }
+  } catch (err) {
+    if (attempt >= MAX_ATTEMPTS || String(err).includes("Upsert failed")) {
+      throw err;
+    }
+    const backoff = 1000 * 2 ** (attempt - 1);
+    console.warn(
+      `  upsert attempt ${attempt} failed (${err.cause?.code || err.message}), retrying in ${backoff}ms`,
+    );
+    await wait(backoff);
+    return upsert(rows, attempt + 1);
   }
 }
 

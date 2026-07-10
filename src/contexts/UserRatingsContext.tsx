@@ -3,6 +3,7 @@ import {
   getUserRatings,
   updateUserRating,
   updateUserRanking,
+  updateUserRatingHistory,
 } from "../services/ratingsfromtable";
 import { useAuth } from "./AuthContext";
 import { useEffect, useRef } from "react";
@@ -104,6 +105,27 @@ export const UserRatingsProvider = ({ children }) => {
     );
   };
 
+  // Remove one event (by index in the history array) from a rating's history.
+  const deleteRatingHistoryEvent = async (movieEntryId, index) => {
+    const row = userRatings.find((r) => r.movie_entry_id === movieEntryId);
+    if (!row) return;
+    const history = (row.rating_history ?? []).filter((_, i) => i !== index);
+    setUserRatings((prev) =>
+      prev.map((r) =>
+        r.movie_entry_id === movieEntryId
+          ? { ...r, rating_history: history }
+          : r,
+      ),
+    );
+    if (user) {
+      try {
+        await updateUserRatingHistory(user.id, movieEntryId, history);
+      } catch (err) {
+        console.error("Failed to delete rating history event:", err);
+      }
+    }
+  };
+
   const updateRanking = async (movieEntryId, newRanking) => {
     // optimistic update in memory
     setUserRatings((prev) =>
@@ -148,6 +170,7 @@ export const UserRatingsProvider = ({ children }) => {
         removeRating,
         updateRating,
         updateRanking,
+        deleteRatingHistoryEvent,
       }}
     >
       {children}

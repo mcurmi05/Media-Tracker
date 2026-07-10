@@ -562,9 +562,9 @@ function Ratings() {
             onChange={(e) => handleRatingFilterChange(e.target.value)}
           >
             <option value="all">All Ratings</option>
-            {[...Array(10)].map((_, i) => (
-              <option key={10 - i} value={10 - i}>
-                {10 - i}
+            {Array.from({ length: 19 }, (_, i) => 10 - i * 0.5).map((v) => (
+              <option key={v} value={v}>
+                {v}
               </option>
             ))}
           </select>

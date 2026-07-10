@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import PosterEditModal from "../media/PosterEditModal";
 import RatingHistoryModal from "./RatingHistoryModal";
 import { useCovers } from "../../contexts/UserCoversContext";
+import { useRatings } from "../../contexts/UserRatingsContext";
 import MovieRatingStar from "../media/MovieRatingStar";
 import ReleaseAndRunTime from "../media/ReleaseAndRunTime";
 import AddLog from "../media/AddLog";
@@ -13,6 +14,7 @@ import IMDBInfo from "../media/IMDBInfo";
 import LetterboxdInfo from "../media/LetterboxdInfo";
 import { getRatingDateInfo } from "../../utils/ratingDate";
 import { makeNavHandlers } from "../../utils/navClick";
+import PeopleLinks from "./PeopleLinks";
 
 function ListComponent({
   movie_object,
@@ -38,6 +40,7 @@ function ListComponent({
 }) {
   const navigate = useNavigate();
   const { coverFor, coverForTmdb } = useCovers();
+  const { deleteRatingHistoryEvent } = useRatings();
   // Self-managed cover edit modal, so any page (log, ratings, watchlist, ...)
   // gets it for free just by passing posterEditable + posterEntryId.
   const [showPosterEdit, setShowPosterEdit] = useState(false);
@@ -238,26 +241,16 @@ function ListComponent({
                     whiteSpace: "nowrap",
                   }}
                 >
+                  {/* Latest date only - the full evolution lives in the
+                      rating history modal. */}
                   {ratingDateInfo.unknown ? (
-                    <span style={{ fontWeight: 600 }}>
-                      Updated: {ratingDateInfo.lastUpdatedFormatted}
-                      {ratingDateInfo.previousRating != null
-                        ? `, was ${ratingDateInfo.previousRating}`
-                        : ""}
-                    </span>
+                    <>Rated: {ratingDateInfo.lastUpdatedFormatted}</>
                   ) : (
                     <>
-                      Rated: {ratingDateInfo.ratedFormatted}
-                      {ratingDateInfo.changed ? (
-                        <span className="rating-last-updated" style={{ fontWeight: 600 }}>
-                          {" "}
-                          (Updated: {ratingDateInfo.updatedFormatted}
-                          {ratingDateInfo.previousRating != null
-                            ? `, was ${ratingDateInfo.previousRating}`
-                            : ""}
-                          )
-                        </span>
-                      ) : null}
+                      Rated:{" "}
+                      {ratingDateInfo.changed
+                        ? ratingDateInfo.updatedFormatted
+                        : ratingDateInfo.ratedFormatted}
                     </>
                   )}
                 </span>
@@ -311,9 +304,10 @@ function ListComponent({
                   movie_object.directors.length > 0 && (
                     <p className="director-p">
                       <span className="bold-span">Directed by</span>{" "}
-                      {movie_object.directors
-                        .map((director) => director.fullName)
-                        .join(", ")}
+                      <PeopleLinks
+                        people={movie_object.directors}
+                        navigate={navigate}
+                      />
                     </p>
                   )}
                 {movie_object.media_type === "tv" &&
@@ -321,17 +315,18 @@ function ListComponent({
                   movie_object.creators.length > 0 && (
                     <p className="director-p">
                       <span className="bold-span">Created by</span>{" "}
-                      {movie_object.creators
-                        .map((c) => c.fullName)
-                        .join(", ")}
+                      <PeopleLinks
+                        people={movie_object.creators}
+                        navigate={navigate}
+                      />
                     </p>
                   )}
                 <p>
                   <span className="bold-span">Stars</span>{" "}
-                  {movie_object.cast
-                    .slice(0, 3)
-                    .map((castMember) => castMember.fullName)
-                    .join(", ")}
+                  <PeopleLinks
+                    people={movie_object.cast.slice(0, 3)}
+                    navigate={navigate}
+                  />
                 </p>
               </div>
             </div>
@@ -357,6 +352,9 @@ function ListComponent({
           open={showHistory}
           title={movie_object.primaryTitle}
           history={ratingHistory}
+          onDeleteEvent={(idx) =>
+            deleteRatingHistoryEvent(posterEntryId, idx)
+          }
           onClose={() => setShowHistory(false)}
         />
       )}

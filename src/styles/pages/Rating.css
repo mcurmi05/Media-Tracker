@@ -724,3 +724,11 @@
 }
 
 
+
+/* Clickable person names (directors/creators/stars) in list rows. */
+.person-inline-link {
+  cursor: pointer;
+}
+.person-inline-link:hover {
+  text-decoration: underline;
+}

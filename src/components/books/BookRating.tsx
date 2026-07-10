@@ -39,7 +39,7 @@ function BookRating({
   onSendTop,
   onSendBottom,
 }) {
-  const { rateBook } = useBookRatings();
+  const { rateBook, deleteBookRatingHistoryEvent } = useBookRatings();
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const navigate = useNavigate();
@@ -212,26 +212,16 @@ function BookRating({
                     whiteSpace: "nowrap",
                   }}
                 >
+                  {/* Latest date only - the full evolution lives in the
+                      rating history modal. */}
                   {ratingDateInfo.unknown ? (
-                    <span style={{ fontWeight: 600 }}>
-                      Updated: {ratingDateInfo.lastUpdatedFormatted}
-                      {ratingDateInfo.previousRating != null
-                        ? `, was ${ratingDateInfo.previousRating}`
-                        : ""}
-                    </span>
+                    <>Rated: {ratingDateInfo.lastUpdatedFormatted}</>
                   ) : (
                     <>
-                      Rated: {ratingDateInfo.ratedFormatted}
-                      {ratingDateInfo.changed ? (
-                        <span className="rating-last-updated" style={{ fontWeight: 600 }}>
-                          {" "}
-                          (Updated: {ratingDateInfo.updatedFormatted}
-                          {ratingDateInfo.previousRating != null
-                            ? `, was ${ratingDateInfo.previousRating}`
-                            : ""}
-                          )
-                        </span>
-                      ) : null}
+                      Rated:{" "}
+                      {ratingDateInfo.changed
+                        ? ratingDateInfo.updatedFormatted
+                        : ratingDateInfo.ratedFormatted}
                     </>
                   )}
                 </span>
@@ -300,6 +290,9 @@ function BookRating({
           open={showHistory}
           title={book.title}
           history={bookLog.rating_history}
+          onDeleteEvent={(idx) =>
+            deleteBookRatingHistoryEvent(bookLog.id, idx)
+          }
           onClose={() => setShowHistory(false)}
         />
       )}
