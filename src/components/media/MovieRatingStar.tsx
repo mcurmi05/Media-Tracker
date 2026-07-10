@@ -87,7 +87,12 @@ function MovieRatingStar({movie}) {
 
           const result = await supabase
             .from('user_ratings')
-            .insert({user_id: user.id, rating: newRating, entry_id: movieEntryId });
+            .insert({
+              user_id: user.id,
+              rating: newRating,
+              entry_id: movieEntryId,
+              rating_history: [{ rating: newRating, at: new Date().toISOString() }],
+            });
           error = result.error;
         }
 
@@ -155,7 +160,11 @@ function MovieRatingStar({movie}) {
                 src="/images/user-rating-star2.png"
                 onClick={handleReRatingClick}
             />
-            <p className="user-rating-number" onClick={handleReRatingClick}>
+            <p
+                className="user-rating-number"
+                data-len={Math.min(String(rating).length, 5)}
+                onClick={handleReRatingClick}
+            >
                 {rating}
             </p>
             </>

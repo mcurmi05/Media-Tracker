@@ -3,6 +3,7 @@ import "../../styles/media/MovieRatingStar.css";
 import { useState } from "react";
 import { useBookRatings } from "../../contexts/UserBookRatingsContext";
 import RatingModal from "../common/RatingModal";
+import RatingHistoryModal from "../common/RatingHistoryModal";
 import AddToList from "../common/AddToList";
 import AddBookWatchlist from "./AddBookWatchlist";
 import AddBookLogButton from "./AddBookLogButton";
@@ -40,6 +41,7 @@ function BookRating({
 }) {
   const { rateBook } = useBookRatings();
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const navigate = useNavigate();
   const book = getBookInfo(bookLog);
 
@@ -155,6 +157,7 @@ function BookRating({
                       />
                       <p
                         className="user-rating-number"
+                        data-len={Math.min(String(bookLog.book_rating).length, 5)}
                         onClick={() => setShowRatingModal(true)}
                         style={{ cursor: "pointer" }}
                       >
@@ -233,6 +236,38 @@ function BookRating({
                   )}
                 </span>
               ) : null}
+              {bookLog.rating_history?.length > 0 && (
+                <button
+                  type="button"
+                  title="Rating history"
+                  onClick={() => setShowHistory(true)}
+                  style={{
+                    border: "none",
+                    background: "none",
+                    color: "#888",
+                    cursor: "pointer",
+                    padding: 0,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    outline: "none",
+                  }}
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" />
+                  </svg>
+                </button>
+              )}
               {/* Rank badge (mobile slot - to the right of the date text) */}
               {showRankBadge && (
                 <span className="rank-badge-slot rank-badge-slot-date">
@@ -260,6 +295,14 @@ function BookRating({
         )}
       </div>
 
+      {showHistory && (
+        <RatingHistoryModal
+          open={showHistory}
+          title={book.title}
+          history={bookLog.rating_history}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
       <RatingModal
         open={showRatingModal}
         onClose={() => setShowRatingModal(false)}

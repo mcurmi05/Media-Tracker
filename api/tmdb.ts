@@ -560,15 +560,17 @@ export default async function handler(req, res) {
       if (!/^\d+$/.test(tmdbId)) {
         return res.status(400).json({ error: "Invalid tmdbId" });
       }
-      const [data, { movieGenres, tvGenres }] = await Promise.all([
+      // TMDB paginates recommendations (20 per page, ~2 pages total); fetch
+      // both so the client gets the full list.
+      const [page1, page2, { movieGenres, tvGenres }] = await Promise.all([
         tmdbFetch(`/${mediaType}/${tmdbId}/recommendations`, {}, key),
+        tmdbFetch(`/${mediaType}/${tmdbId}/recommendations`, { page: 2 }, key),
         getGenreMaps(key),
       ]);
       const genreMap = mediaType === "tv" ? tvGenres : movieGenres;
-      const items = (data.results || [])
+      const items = [...(page1.results || []), ...(page2.results || [])]
         .map((it) => mapListItem(it, mediaType, genreMap))
-        .filter(Boolean)
-        .slice(0, 20);
+        .filter(Boolean);
       // Resolve IMDb ids so the client can filter recommendations by live
       // IMDb rating/votes. Cached a day per seed, so the extra lookups amortize.
       await attachImdbIds(items, key);

@@ -11,11 +11,23 @@
   color: rgb(255, 255, 255) !important;
   font-weight: 1000;
   font-size: 1.2rem !important;
-  z-index: 2; 
+  z-index: 2;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+}
+
+/* Shrink the number for longer values (halves/custom ratings) so it stays
+   inside the star. data-len is the character count, capped at 5. */
+.user-rating-number[data-len="3"] {
+  font-size: 1rem !important;
+}
+.user-rating-number[data-len="4"] {
+  font-size: 0.85rem !important;
+}
+.user-rating-number[data-len="5"] {
+  font-size: 0.7rem !important;
 }
 
 .user-rating-movie-card {

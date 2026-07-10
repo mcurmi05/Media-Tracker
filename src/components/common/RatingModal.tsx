@@ -10,6 +10,9 @@ import Button from '@mui/material/Button';
 import { styled } from '@mui/material/styles';
 
 import { useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../services/supabase-client';
+import { RATING_SCALES, getRatingScaleKey } from '../../utils/ratingScale';
 
 const StyledRating = styled(Rating)({
   '& .MuiRating-iconFilled': {
@@ -35,18 +38,37 @@ const modalStyle = {
 };
 
 export default function RatingModal({ open, onClose, onRate, onRemove, currentRating = 0, movieTitle, isRated = false }) {
+  const { user, refreshUser } = useAuth();
+  const scaleKey = getRatingScaleKey(user);
+  const scale = RATING_SCALES[scaleKey];
+  const isCustom = scale.max === null;
+
+  const [showScalePicker, setShowScalePicker] = useState(false);
+  const [savingScale, setSavingScale] = useState(false);
+
   const [value, setValue] = useState(currentRating);
+  // Custom scale types into a plain text field, so keep it as a string.
+  const [customValue, setCustomValue] = useState(currentRating ? String(currentRating) : '');
 
   useEffect(() => {
     setValue(currentRating);
+    setCustomValue(currentRating ? String(currentRating) : '');
   }, [currentRating]);
 
   const handleRatingChange = (event, newValue) => {
     setValue(newValue);
   };
 
+  const customNumber = Number(customValue);
+  const customValid = customValue.trim() !== '' && Number.isFinite(customNumber);
+
   const handleSubmit = () => {
-    if (value > 0) {
+    if (isCustom) {
+      if (customValid) {
+        onRate(customNumber);
+        onClose();
+      }
+    } else if (value > 0) {
       onRate(value);
       onClose();
     }
@@ -61,7 +83,26 @@ export default function RatingModal({ open, onClose, onRate, onRemove, currentRa
 
   const handleClose = () => {
     setValue(currentRating);
+    setCustomValue(currentRating ? String(currentRating) : '');
+    setShowScalePicker(false);
     onClose();
+  };
+
+  // Persist the new scale immediately; refreshUser re-renders the modal
+  // with the new star count / input style.
+  const handleScaleChange = async (e) => {
+    const key = e.target.value;
+    setSavingScale(true);
+    const { error } = await supabase.auth.updateUser({
+      data: { rating_scale: key },
+    });
+    if (error) {
+      console.error(error);
+    } else {
+      await refreshUser();
+    }
+    setSavingScale(false);
+    setShowScalePicker(false);
   };
 
   return (
@@ -77,16 +118,83 @@ export default function RatingModal({ open, onClose, onRate, onRemove, currentRa
         </Typography>
         
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-          <StyledRating
-            name="movie-rating"
-            value={value}
-            onChange={handleRatingChange}
-            max={10}
-            size="large"
-          />
-          <Typography variant="body2" sx={{ mt: 1, color: '#ffffffff' , fontWeight:'bold' }}>
-            {value ? `${value}/10` : 'No rating'}
-          </Typography>
+          {isCustom ? (
+            <>
+              <input
+                type="number"
+                step="any"
+                value={customValue}
+                onChange={(e) => setCustomValue(e.target.value)}
+                autoFocus
+                style={{
+                  width: 120,
+                  padding: '8px 10px',
+                  background: '#111',
+                  color: 'white',
+                  border: '1px solid #666',
+                  borderRadius: 6,
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                }}
+              />
+              <Typography variant="body2" sx={{ mt: 1, color: '#ffffffff' , fontWeight:'bold' }}>
+                {customValid ? `${customNumber}` : 'No rating'}
+              </Typography>
+            </>
+          ) : (
+            <>
+              <StyledRating
+                name="movie-rating"
+                value={value}
+                onChange={handleRatingChange}
+                max={scale.max}
+                precision={scale.step}
+                size="large"
+              />
+              <Typography variant="body2" sx={{ mt: 1, color: '#ffffffff' , fontWeight:'bold' }}>
+                {value ? `${value}/${scale.max}` : 'No rating'}
+              </Typography>
+            </>
+          )}
+
+          {showScalePicker ? (
+            <select
+              value={scaleKey}
+              onChange={handleScaleChange}
+              disabled={savingScale}
+              autoFocus
+              style={{
+                marginTop: 8,
+                padding: '4px 8px',
+                background: '#111',
+                color: 'white',
+                border: '1px solid #666',
+                borderRadius: 6,
+                fontSize: 13,
+              }}
+            >
+              {Object.entries(RATING_SCALES).map(([key, s]) => (
+                <option key={key} value={key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Button
+              size="small"
+              onClick={() => setShowScalePicker(true)}
+              sx={{
+                mt: 1,
+                color: '#888',
+                textTransform: 'none',
+                fontSize: 12,
+                '&:hover': { color: '#bbb', backgroundColor: 'transparent' },
+              }}
+            >
+              Change rating scale ({scale.label})
+            </Button>
+          )}
         </Box>
         
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between', alignItems:'center' }}>
@@ -125,10 +233,10 @@ export default function RatingModal({ open, onClose, onRate, onRemove, currentRa
             )}
           </Box>
           
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={handleSubmit}
-            disabled={!value}
+            disabled={isCustom ? !customValid : !value}
             sx={{ 
               backgroundColor: '#ff0000ff',
               '&:hover': { backgroundColor: '#cc0000' },

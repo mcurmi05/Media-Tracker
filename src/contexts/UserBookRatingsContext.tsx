@@ -93,6 +93,10 @@ export const UserBookRatingsProvider = ({ children }) => {
           book_rating: newRating,
           previous_rating: existing.book_rating ?? null,
           updated_at: new Date().toISOString(),
+          rating_history: [
+            ...(existing.rating_history ?? []),
+            { rating: newRating, at: new Date().toISOString() },
+          ],
         });
         setBookRatings((prev) =>
           prev.map((r) =>
@@ -113,6 +117,9 @@ export const UserBookRatingsProvider = ({ children }) => {
           book_id: bookId,
           book_rating: newRating,
           ranking: maxRanking + 1,
+          rating_history: [
+            { rating: newRating, at: new Date().toISOString() },
+          ],
         });
         setBookRatings((prev) => [newRow, ...prev]);
       } catch (err) {

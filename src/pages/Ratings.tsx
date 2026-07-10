@@ -673,6 +673,7 @@ function Ratings() {
                       ratingDateUnknown={item.data.date_unknown}
                       posterEditable={item.data.movie_object?.tmdb_id != null}
                       posterEntryId={item.data.movie_entry_id}
+                      ratingHistory={item.data.rating_history}
                       rankNumber={
                         Number(item.data.rating) === 10
                           ? item.data.ranking
@@ -729,6 +730,7 @@ function Ratings() {
                     ratingDateUnknown={rating.date_unknown}
                     posterEditable={rating.movie_object?.tmdb_id != null}
                     posterEntryId={rating.movie_entry_id}
+                    ratingHistory={rating.rating_history}
                     rankNumber={
                       Number(rating.rating) === 10 ? rating.ranking : null
                     }

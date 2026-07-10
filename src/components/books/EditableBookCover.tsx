@@ -16,10 +16,16 @@ export default function EditableBookCover({
   imgProps = {},
   alt,
 }) {
-  const { coverFor } = useCovers();
+  const { coverFor, coverForHardcover } = useCovers();
   const [showEdit, setShowEdit] = useState(false);
+  // Fall back to the hardcover-keyed lookup so an override still applies when
+  // this row references a different media_entries id than the one the cover
+  // was saved under.
   const src =
-    coverFor(entryId) || coverImage || "/images/placeholderimage.jpg";
+    coverFor(entryId) ||
+    coverForHardcover(hardcoverId) ||
+    coverImage ||
+    "/images/placeholderimage.jpg";
   const editable = entryId != null && hardcoverId != null;
 
   return (

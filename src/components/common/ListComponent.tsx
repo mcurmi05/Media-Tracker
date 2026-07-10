@@ -3,6 +3,7 @@ import "../../styles/media/MovieCard.css";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PosterEditModal from "../media/PosterEditModal";
+import RatingHistoryModal from "./RatingHistoryModal";
 import { useCovers } from "../../contexts/UserCoversContext";
 import MovieRatingStar from "../media/MovieRatingStar";
 import ReleaseAndRunTime from "../media/ReleaseAndRunTime";
@@ -33,14 +34,22 @@ function ListComponent({
   belowRank = null,
   posterEditable = false,
   posterEntryId = null,
+  ratingHistory = null,
 }) {
   const navigate = useNavigate();
-  const { coverFor } = useCovers();
+  const { coverFor, coverForTmdb } = useCovers();
   // Self-managed cover edit modal, so any page (log, ratings, watchlist, ...)
   // gets it for free just by passing posterEditable + posterEntryId.
   const [showPosterEdit, setShowPosterEdit] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   // A user's per-title override wins over the shared/entry poster everywhere.
-  const displayImage = coverFor(posterEntryId) ?? movie_object.primaryImage;
+  // Fall back to the tmdb-keyed lookup so an override still applies when this
+  // row references a different media_entries id than the one the cover was
+  // saved under.
+  const displayImage =
+    coverFor(posterEntryId) ??
+    coverForTmdb(movie_object.media_type, movie_object.tmdb_id) ??
+    movie_object.primaryImage;
 
   const detailHandlers = makeNavHandlers(
     navigate,
@@ -253,6 +262,38 @@ function ListComponent({
                   )}
                 </span>
               ) : null}
+              {ratingHistory?.length > 0 && (
+                <button
+                  type="button"
+                  title="Rating history"
+                  onClick={() => setShowHistory(true)}
+                  style={{
+                    border: "none",
+                    background: "none",
+                    color: "#888",
+                    cursor: "pointer",
+                    padding: 0,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    outline: "none",
+                  }}
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" />
+                  </svg>
+                </button>
+              )}
               {/* Rank badge (mobile slot - to the right of the date text) */}
               {showRankBadge && (
                 <span className="rank-badge-slot rank-badge-slot-date">
@@ -309,6 +350,14 @@ function ListComponent({
           title={movie_object.primaryTitle}
           currentImage={movie_object.primaryImage}
           onClose={() => setShowPosterEdit(false)}
+        />
+      )}
+      {showHistory && (
+        <RatingHistoryModal
+          open={showHistory}
+          title={movie_object.primaryTitle}
+          history={ratingHistory}
+          onClose={() => setShowHistory(false)}
         />
       )}
     </div>

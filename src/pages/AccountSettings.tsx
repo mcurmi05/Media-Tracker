@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../services/supabase-client";
 import { useAuth } from "../contexts/AuthContext";
 import { getDisplayName, getAvatarUrl } from "../utils/profile";
+import { RATING_SCALES, getRatingScaleKey } from "../utils/ratingScale";
 import { Spinner } from "../components/layout/Loader";
 import "../styles/pages/AccountSettings.css";
 
@@ -33,6 +34,11 @@ export default function AccountSettings() {
   const [savingEmail, setSavingEmail] = useState(false);
   const [emailStatus, setEmailStatus] = useState(null);
 
+  // ---- rating scale ----
+  const [ratingScale, setRatingScale] = useState(() => getRatingScaleKey(user));
+  const [savingRatingScale, setSavingRatingScale] = useState(false);
+  const [ratingScaleStatus, setRatingScaleStatus] = useState(null);
+
   // ---- password ----
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
@@ -52,6 +58,7 @@ export default function AccountSettings() {
   useEffect(() => {
     setEmail(user?.email || "");
     setDisplayName(getDisplayName(user));
+    setRatingScale(getRatingScaleKey(user));
   }, [user]);
 
   // Wait for auth to resolve; bounce signed-out visitors to sign in.
@@ -190,6 +197,22 @@ export default function AccountSettings() {
     );
   };
 
+  const saveRatingScale = async (e) => {
+    e.preventDefault();
+    setSavingRatingScale(true);
+    setRatingScaleStatus(null);
+    const { error } = await supabase.auth.updateUser({
+      data: { rating_scale: ratingScale },
+    });
+    setSavingRatingScale(false);
+    setRatingScaleStatus(
+      error
+        ? { kind: "error", text: error.message }
+        : { kind: "success", text: "Rating scale updated." },
+    );
+    if (!error) refreshUser();
+  };
+
   const savePassword = async (e) => {
     e.preventDefault();
     if (!currentPassword) {
@@ -324,6 +347,38 @@ export default function AccountSettings() {
             {savingEmail ? <Spinner /> : "Update email"}
           </button>
           <Status status={emailStatus} />
+        </form>
+      </section>
+
+      {/* rating scale */}
+      <section className="acct-card">
+        <h2 className="acct-card-title">Rating scale</h2>
+        <form className="acct-form" onSubmit={saveRatingScale}>
+          <div className="acct-field">
+            <label className="acct-label" htmlFor="acct-rating-scale">
+              Scale used when rating movies, TV and books
+            </label>
+            <select
+              id="acct-rating-scale"
+              className="acct-input"
+              value={ratingScale}
+              onChange={(e) => setRatingScale(e.target.value)}
+            >
+              {Object.entries(RATING_SCALES).map(([key, scale]) => (
+                <option key={key} value={key}>
+                  {scale.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            className="acct-btn"
+            type="submit"
+            disabled={savingRatingScale}
+          >
+            {savingRatingScale ? <Spinner /> : "Save rating scale"}
+          </button>
+          <Status status={ratingScaleStatus} />
         </form>
       </section>
 

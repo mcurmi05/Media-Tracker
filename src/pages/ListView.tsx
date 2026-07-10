@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useCovers } from "../contexts/UserCoversContext";
 import { bookDetailsRouteForBook } from "../utils/goodreads";
 import {
   getListWithItems,
@@ -16,6 +17,7 @@ import "../styles/pages/Lists.css";
 
 function ListItemCard({ item, isOwner, onRemove, removing }) {
   const navigate = useNavigate();
+  const { coverForTmdb, coverForHardcover } = useCovers();
   const d = item.item_data || {};
 
   const goTo = () => {
@@ -32,7 +34,11 @@ function ListItemCard({ item, isOwner, onRemove, removing }) {
   };
 
   const title = item.media_type === "book" ? d.title : d.primaryTitle;
-  const image = item.media_type === "book" ? d.cover_image : d.primaryImage;
+  // The user's per-title cover override wins over the stored list item image.
+  const image =
+    item.media_type === "book"
+      ? coverForHardcover(d.hardcover_id) || d.cover_image
+      : coverForTmdb(d.media_type, d.tmdb_id) || d.primaryImage;
   const year = item.media_type === "book" ? d.release_year : d.startYear;
   const subtitle = item.media_type === "book" ? d.author : null;
 

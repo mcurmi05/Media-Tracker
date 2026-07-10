@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { getPopularMovies, getPopularTV } from "../services/api";
 import { useCache } from "../contexts/PopularMoviesCacheContext";
+import { useCovers } from "../contexts/UserCoversContext";
 import { useImdbRating, useImdbRatings } from "../contexts/ImdbRatingsContext";
 import {
   useLetterboxdRating,
@@ -123,6 +124,10 @@ function Trending() {
   } = useCache();
   const { ratings: imdbRatings } = useImdbRatings();
   const { ratings: lbRatings } = useLetterboxdRatings();
+  const { coverForTmdb } = useCovers();
+  // The user's per-title cover override wins over the TMDB poster.
+  const posterOf = (mo) =>
+    coverForTmdb(mo.media_type, mo.tmdb_id) || mo.primaryImage;
 
   const navigate = useNavigate();
 
@@ -383,7 +388,7 @@ function Trending() {
                 <div className="tf-content">
                   <img
                     className="tf-poster"
-                    src={mo.primaryImage || "/images/placeholderimage.jpg"}
+                    src={posterOf(mo) || "/images/placeholderimage.jpg"}
                     onError={(e) => { e.target.onerror = null; e.target.src = "/images/placeholderimage.jpg"; }}
                     alt={mo.primaryTitle}
                   />
@@ -419,7 +424,7 @@ function Trending() {
                 <span className="trending-rank">#{rank}</span>
                 <img
                   className="trending-thumb"
-                  src={mo.primaryImage || "/images/placeholderimage.jpg"}
+                  src={posterOf(mo) || "/images/placeholderimage.jpg"}
                   onError={(e) => { e.target.onerror = null; e.target.src = "/images/placeholderimage.jpg"; }}
                   alt={mo.primaryTitle}
                 />

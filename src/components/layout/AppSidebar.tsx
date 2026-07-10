@@ -12,6 +12,7 @@ import {
   LogIn,
   Clapperboard,
   ChevronsUpDown,
+  Compass,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSearch } from "../../contexts/SearchContext";
@@ -42,6 +43,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const discoverItems = [
   { title: "Home", url: "/", icon: Home, authOnly: false },
   { title: "Trending", url: "/trending", icon: TrendingUp, authOnly: false },
+  { title: "Discovery", url: "/discovery", icon: Compass, authOnly: true },
 ];
 
 const libraryItems = [

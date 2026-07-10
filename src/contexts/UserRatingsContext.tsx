@@ -34,6 +34,7 @@ export const UserRatingsProvider = ({ children }) => {
       rating: rating,
       movie_object: movie,
       created_at: new Date().toISOString(),
+      rating_history: [{ rating, at: new Date().toISOString() }],
     };
     setUserRatings((prev) => [...prev, newRating]);
   };
@@ -59,6 +60,10 @@ export const UserRatingsProvider = ({ children }) => {
           previous_rating: previousRating,
           movie_object: movie,
           updated_at: new Date().toISOString(),
+          rating_history: [
+            ...(rating.rating_history ?? []),
+            { rating: newRating, at: new Date().toISOString() },
+          ],
         };
         if (isBecomingTen && !Number.isInteger(rating.ranking)) {
           next.ranking = maxRank + 1; // default to bottom

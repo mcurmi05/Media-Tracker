@@ -58,12 +58,26 @@ export const updateUserRating = async (
   newRating,
   previousRating = null,
 ) => {
+  // Append this change to the row's rating_history so the full set/change
+  // timeline survives (created_at/updated_at only keep first and last).
+  const { data: current } = await supabase
+    .from("user_ratings")
+    .select("rating_history")
+    .eq("user_id", userId)
+    .eq("entry_id", movieEntryId)
+    .maybeSingle();
+  const now = new Date().toISOString();
+  const history = [
+    ...(current?.rating_history ?? []),
+    { rating: newRating, at: now },
+  ];
   const { data, error } = await supabase
     .from("user_ratings")
     .update({
       rating: newRating,
       previous_rating: previousRating,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
+      rating_history: history,
     })
     .eq("user_id", userId)
     .eq("entry_id", movieEntryId);

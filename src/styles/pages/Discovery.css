@@ -1,0 +1,331 @@
+.dv-page {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.dv-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 16px;
+}
+
+.dv-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 22px;
+}
+
+.dv-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  margin: 4px 0 10px;
+}
+
+/* seed slots */
+.dv-seeds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.dv-seed {
+  position: relative;
+  width: 92px;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--input);
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+}
+.dv-seed img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dv-seed-title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 2px 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dv-seed-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.dv-seed-remove:hover {
+  background: var(--brand, #e23030);
+}
+.dv-seed-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  border: 1px dashed #555;
+  background: transparent;
+  cursor: pointer;
+}
+.dv-seed-add:hover {
+  color: var(--foreground);
+  border-color: var(--muted-foreground);
+}
+
+/* filters */
+.dv-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.dv-filter label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+  margin-bottom: 4px;
+}
+.dv-filter select,
+.dv-filter input {
+  background: #101010;
+  border: 1px solid #2e2e2e;
+  border-radius: 8px;
+  color: var(--foreground);
+  padding: 6px 8px;
+  font-size: 0.84rem;
+  outline: none;
+}
+.dv-filter select {
+  cursor: pointer;
+}
+.dv-filter input {
+  width: 74px;
+}
+.dv-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dv-range-dash {
+  color: var(--muted-foreground);
+}
+
+/* genre chips */
+.dv-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+.dv-genre {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  padding: 4px 11px;
+  cursor: pointer;
+}
+.dv-genre:hover {
+  border-color: var(--muted-foreground);
+  color: var(--foreground);
+}
+.dv-genre.is-on {
+  border-color: var(--brand, #e23030);
+  color: var(--foreground);
+  background: rgba(226, 48, 48, 0.12);
+}
+
+.dv-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+.dv-clear {
+  background: none;
+  border: none;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.dv-clear:hover {
+  color: var(--foreground);
+}
+.dv-go {
+  background: var(--brand, #e23030);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 9px 26px;
+  cursor: pointer;
+}
+.dv-go:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* results */
+.dv-empty {
+  color: var(--muted-foreground);
+  text-align: center;
+  padding: 24px 0;
+}
+.dv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 14px;
+}
+.dv-result {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dv-result-poster {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--input);
+}
+.dv-result-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 180ms ease;
+}
+.dv-result:hover .dv-result-poster img {
+  transform: scale(1.05);
+}
+.dv-result-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #f5c518;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+.dv-result-flag {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.8);
+  color: var(--brand, #e23030);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dv-seen-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 26px 0 12px;
+}
+.dv-result-title {
+  font-size: 0.82rem;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dv-result-year {
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+}
+
+/* seed picker modal list */
+.dv-picker-note {
+  color: var(--muted-foreground);
+  font-size: 0.86rem;
+  margin: 6px 0;
+}
+.dv-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 48vh;
+  overflow-y: auto;
+}
+.dv-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 5px;
+  cursor: pointer;
+  text-align: left;
+}
+.dv-picker-row:hover {
+  background: #202020;
+  border-color: var(--border);
+}
+.dv-picker-row img {
+  width: 34px;
+  height: 51px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.dv-picker-title {
+  color: var(--foreground);
+  font-size: 0.88rem;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dv-picker-sub {
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .dv-seed {
+    width: 74px;
+  }
+  .dv-grid {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  }
+}

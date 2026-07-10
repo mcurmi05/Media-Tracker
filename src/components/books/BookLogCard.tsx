@@ -347,6 +347,7 @@ const BookLogCard = ({ bookLog }) => {
                           />
                           <p
                             className="user-rating-number"
+                            data-len={Math.min(String(currentRating).length, 5)}
                             onClick={() => setShowRatingModal(true)}
                             style={{ cursor: "pointer" }}
                           >

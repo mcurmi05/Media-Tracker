@@ -34,6 +34,7 @@ import Watchlist from "./pages/Watchlist";
 import AccountSettings from "./pages/AccountSettings";
 import Lists from "./pages/Lists";
 import ListView from "./pages/ListView";
+import Discovery from "./pages/Discovery";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -84,6 +85,7 @@ function App() {
                           path="/trending"
                           element={<Trending></Trending>}
                         ></Route>
+                        <Route path="/discovery" element={<Discovery />} />
                         <Route
                           path="/search"
                           element={<Search></Search>}

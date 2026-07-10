@@ -144,6 +144,7 @@ export function toMovieRatingRow(row, movieObject) {
     date_unknown: row.date_unknown,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    rating_history: row.rating_history ?? [],
     movie_object: movieObject,
   };
 }
@@ -159,6 +160,7 @@ export function toBookRatingRow(row) {
     date_unknown: row.date_unknown,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    rating_history: row.rating_history ?? [],
     book_entries: entryToBookObject(row.entry),
   };
 }
@@ -171,6 +173,7 @@ export function bookRatingUpdatesToRating(updates) {
   if ("ranking" in updates) out.ranking = updates.ranking;
   if ("date_unknown" in updates) out.date_unknown = updates.date_unknown;
   if ("book_id" in updates) out.entry_id = updates.book_id;
+  if ("rating_history" in updates) out.rating_history = updates.rating_history;
   return out;
 }
 

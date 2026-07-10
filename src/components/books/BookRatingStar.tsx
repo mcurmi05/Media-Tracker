@@ -50,7 +50,11 @@ function BookRatingStar({ book }) {
               src="/images/user-rating-star2.png"
               onClick={handleClick}
             />
-            <p className="user-rating-number" onClick={handleClick}>
+            <p
+              className="user-rating-number"
+              data-len={Math.min(String(rating).length, 5)}
+              onClick={handleClick}
+            >
               {rating}
             </p>
           </>
