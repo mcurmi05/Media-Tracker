@@ -7,6 +7,7 @@ import {
   getMyLists,
   getSavedLists,
   getListItemPreviews,
+  getListSaveCounts,
   createList,
   setListMagic,
   bulkAddListItems,
@@ -43,7 +44,7 @@ const SORT_OPTIONS = [
   { value: "items", label: "Most items" },
 ];
 
-function ListCard({ list, previews, saved }) {
+function ListCard({ list, previews, saved, saveCount = 0 }) {
   const { coverForTmdb, coverForHardcover } = useCovers();
   const count = itemCount(list);
 
@@ -84,7 +85,30 @@ function ListCard({ list, previews, saved }) {
       </div>
       <div className="list-card-body">
         <h3 className="list-card-title">{list.title}</h3>
-        <p className="list-card-owner">by {list.owner_name || "Unknown"}</p>
+        <p className="list-card-owner">
+          by {list.owner_name || "Unknown"}
+          <span
+            className="list-saves"
+            title={`Saved by ${saveCount} ${saveCount === 1 ? "person" : "people"}`}
+          >
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            {saveCount}
+          </span>
+        </p>
         {list.description && (
           <p className="list-card-desc">{list.description}</p>
         )}
@@ -134,6 +158,7 @@ export default function Lists() {
   const [myLists, setMyLists] = useState([]);
   const [savedLists, setSavedLists] = useState([]);
   const [previews, setPreviews] = useState(new Map());
+  const [saveCounts, setSaveCounts] = useState(new Map());
   const [dataLoading, setDataLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -163,8 +188,14 @@ export default function Lists() {
         setMyLists(mine);
         setSavedLists(saved);
         const ids = [...new Set([...mine, ...saved].map((l) => l.id))];
-        const prev = await getListItemPreviews(ids);
-        if (active) setPreviews(prev);
+        const [prev, counts] = await Promise.all([
+          getListItemPreviews(ids),
+          getListSaveCounts(ids).catch(() => new Map()),
+        ]);
+        if (active) {
+          setPreviews(prev);
+          setSaveCounts(counts);
+        }
       } catch (err) {
         console.error("Failed to load lists:", err);
       } finally {
@@ -405,6 +436,7 @@ export default function Lists() {
                   list={list}
                   previews={previews.get(list.id) || []}
                   saved={savedIds.has(list.id)}
+                  saveCount={saveCounts.get(list.id) || 0}
                 />
               ))}
             </div>

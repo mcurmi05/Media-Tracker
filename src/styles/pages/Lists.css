@@ -316,6 +316,21 @@
   white-space: nowrap;
 }
 
+/* Download icon + save count, shown beside the author's name. */
+.list-saves {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lv-owner .list-saves {
+  font-size: 0.85rem;
+}
+
 /* ---------- modal (shared: create, edit, add-to-list) ---------- */
 
 .lists-modal-overlay {

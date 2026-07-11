@@ -281,6 +281,19 @@ export async function isListSaved(userId, listId) {
   return !!data;
 }
 
+// Map of list_id -> save count (author's own saves excluded), from the
+// list_save_counts view (see docs/list-save-counts.sql). Lists with no saves
+// simply have no row.
+export async function getListSaveCounts(listIds) {
+  if (!listIds.length) return new Map();
+  const { data, error } = await supabase
+    .from("list_save_counts")
+    .select("list_id, save_count")
+    .in("list_id", listIds);
+  if (error) throw error;
+  return new Map((data ?? []).map((r) => [r.list_id, r.save_count]));
+}
+
 export async function saveList(userId, listId) {
   const { error } = await supabase
     .from("saved_lists")

@@ -13,6 +13,7 @@ import {
   getBookByHardcoverId,
 } from "../services/api";
 import { findOrCreateBookEntry } from "../services/ratingsfromtable";
+import { getDisplayName } from "../utils/profile";
 import {
   getListWithItems,
   updateList,
@@ -28,6 +29,8 @@ import {
   setListMagic,
   bulkAddListItems,
   bulkRemoveListItems,
+  getListSaveCounts,
+  createList,
 } from "../services/lists";
 import {
   computeMagicSnapshots,
@@ -280,6 +283,8 @@ export default function ListView() {
 
   const [saved, setSaved] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
+  const [saveCount, setSaveCount] = useState(0);
+  const [duplicating, setDuplicating] = useState(false);
   const [removingId, setRemovingId] = useState(null);
   const [copied, setCopied] = useState(false);
 
@@ -342,6 +347,9 @@ export default function ListView() {
           setList(data);
           setEditTitle(data.title);
           setEditDesc(data.description || "");
+          getListSaveCounts([data.id])
+            .then((m) => active && setSaveCount(m.get(data.id) || 0))
+            .catch(() => {});
           // Magic lists have no meaningful hand-picked order (syncs just
           // append), so default their view to release date.
           if (data.magic) {
@@ -626,6 +634,38 @@ export default function ListView() {
     }
   };
 
+  // Copy this list (items, description, magic rules) into a brand new list
+  // owned by the current user, then jump to it for editing.
+  const handleDuplicate = async () => {
+    if (!isAuthenticated) {
+      navigate("/signin");
+      return;
+    }
+    if (duplicating) return;
+    setDuplicating(true);
+    try {
+      const copy = await createList(user.id, {
+        title: `${list.title} (copy)`,
+        description: list.description || "",
+        ownerName: getDisplayName(user),
+      });
+      if (list.magic) await setListMagic(copy.id, list.magic);
+      await bulkAddListItems(
+        copy.id,
+        list.items.map((it) => ({
+          media_type: it.media_type,
+          item_data: it.item_data,
+        })),
+        0,
+      );
+      navigate(`/lists/${copy.id}`);
+    } catch (err) {
+      console.error("Failed to duplicate list:", err);
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -788,7 +828,32 @@ export default function ListView() {
             </>
           )}
         </div>
-        {list.owner_name && <p className="lv-owner">by {list.owner_name}</p>}
+        {list.owner_name && (
+          <p className="lv-owner">
+            by {list.owner_name}
+            <span
+              className="list-saves"
+              title={`Saved by ${saveCount} ${saveCount === 1 ? "person" : "people"}`}
+            >
+              <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+              {saveCount}
+            </span>
+          </p>
+        )}
         {list.description && <p className="lv-desc">{list.description}</p>}
         <p className="lv-count">
           <span
@@ -861,6 +926,15 @@ export default function ListView() {
         <div className="lv-actions">
           <button className="lv-btn" onClick={copyLink}>
             {copied ? "Link copied!" : "Copy share link"}
+          </button>
+
+          <button
+            className="lv-btn"
+            onClick={handleDuplicate}
+            disabled={duplicating}
+            title="Copy this list into a new list you own and can edit"
+          >
+            {duplicating ? <Spinner /> : "Duplicate"}
           </button>
 
           {isOwner ? (
