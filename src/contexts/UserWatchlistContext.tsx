@@ -130,7 +130,9 @@ export const UserWatchlistProvider = ({ children }) => {
           setUserWatchlist(watchlist);
           setUserWatchlistLoaded(true);
         } catch (err) {
-          setUserWatchlistLoaded(false);
+          // Mark loaded even on failure so pages gated on this flag (home,
+          // magic lists) don't hang forever on one bad fetch.
+          setUserWatchlistLoaded(true);
           console.log(err);
         }
         try {

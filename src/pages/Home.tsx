@@ -1015,6 +1015,120 @@ export default function Home() {
     );
   }
 
+  // Brand new account with nothing tracked yet: a welcome + getting-started
+  // layout instead of a dashboard full of empty sections.
+  const libraryEmpty =
+    userLogs.length === 0 &&
+    bookLogs.length === 0 &&
+    userRatings.length === 0 &&
+    bookRatings.length === 0 &&
+    userWatchlist.length === 0 &&
+    userBookTbr.length === 0;
+
+  if (libraryEmpty) {
+    const starters = [
+      {
+        icon: "/images/search.png",
+        title: "Search",
+        desc: "Find any movie, TV show or book and add it to your library.",
+        to: "/search",
+      },
+      {
+        icon: "/images/log.png",
+        title: "Log",
+        desc: "Record what you've watched or read, with dates and seasons.",
+        to: "/log",
+      },
+      {
+        icon: "/images/ratings.png",
+        title: "Rate & rank",
+        desc: "Score everything you've seen and rank your favourites.",
+        to: "/ratings",
+      },
+      {
+        icon: "/images/watchlist-navbar.png",
+        title: "Watchlist & TBR",
+        desc: "Keep a queue of what to watch and read next.",
+        to: "/watchlist",
+      },
+      {
+        icon: "/images/trending.png",
+        title: "Trending",
+        desc: "Browse what everyone is watching right now.",
+        to: "/trending",
+      },
+      {
+        icon: "/images/lists.png",
+        title: "Lists",
+        desc: "Build shareable lists to send to friends.",
+        to: "/lists",
+      },
+    ];
+    return (
+      <div className="home-page">
+        <header className="hp-header">
+          <button
+            type="button"
+            className="hp-avatar"
+            onClick={() => navigate("/account")}
+            aria-label="Account settings"
+            title="Account settings"
+            {...PRESS_HANDLERS}
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="hp-avatar-img" />
+            ) : (
+              (displayName[0] || "?").toUpperCase()
+            )}
+          </button>
+          <div>
+            <div className="hp-hello">{displayName}</div>
+          </div>
+        </header>
+
+        <div className="hp-welcome">
+          <h1 className="hp-welcome-title">Welcome to your library</h1>
+          <p className="hp-welcome-sub">
+            Track the movies, TV shows and books you watch and read. Once you
+            start logging, this page fills up with your stats, favourites and
+            recent activity.
+          </p>
+        </div>
+
+        <div className="hp-welcome-grid">
+          {starters.map((s) => (
+            <button
+              key={s.title}
+              type="button"
+              className="hp-welcome-card"
+              onClick={() => navigate(s.to)}
+              {...PRESS_HANDLERS}
+            >
+              <img src={s.icon} alt="" aria-hidden="true" />
+              <span className="hp-welcome-card-title">{s.title}</span>
+              <span className="hp-welcome-card-desc">{s.desc}</span>
+            </button>
+          ))}
+        </div>
+
+        <Section label="What's Trending?" panel>
+          <div className="hp-sub-label">Movies</div>
+          <CoverStrip
+            tiles={trendingMovies}
+            loading={!popularMoviesLoaded}
+            empty="No trending movies."
+          />
+          <div className="hp-sub-label">TV Shows</div>
+          <CoverStrip
+            tiles={trendingTV}
+            loading={!popularTVLoaded}
+            empty="No trending TV."
+          />
+        </Section>
+      </div>
+    );
+  }
+
   return (
     <div className="home-page">
       <header className="hp-header">

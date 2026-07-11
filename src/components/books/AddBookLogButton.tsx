@@ -1,5 +1,5 @@
 import "../../styles/media/AddLog.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useBookLogs } from "../../contexts/UserBookLogsContext";
@@ -7,7 +7,10 @@ import { findOrCreateBookEntry } from "../../services/ratingsfromtable";
 import { getBookInfo } from "../../utils/bookInfo";
 import LogModal from "../media/LogModal";
 
-export default function AddBookLogButton({ book }) {
+// autoStart runs the create-log flow immediately on mount with no icon —
+// used by the command palette, which closes itself and hands the flow over
+// here. onDone fires when the flow ends either way (confirm or cancel).
+export default function AddBookLogButton({ book, autoStart = false, onDone }) {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { bookLogs, createBookLog, deleteBookLog } = useBookLogs();
@@ -33,11 +36,7 @@ export default function AddBookLogButton({ book }) {
     );
   });
 
-  async function onClick() {
-    if (!isAuthenticated) {
-      navigate("/signin");
-      return;
-    }
+  async function createLog() {
     if (creating) return;
     setCreating(true);
     try {
@@ -58,16 +57,37 @@ export default function AddBookLogButton({ book }) {
       setEditing({ logId: newLog.id, book: newLog });
     } catch (err) {
       console.error("Error creating book log:", err);
+      if (autoStart) onDone?.();
     } finally {
       setCreating(false);
     }
   }
+
+  function onClick() {
+    if (!isAuthenticated) {
+      navigate("/signin");
+      return;
+    }
+    createLog();
+  }
+
+  useEffect(() => {
+    if (!autoStart) return;
+    if (!isAuthenticated) {
+      onDone?.();
+      navigate("/signin");
+      return;
+    }
+    createLog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Confirm: keep the log, go to the Log page with its title prefilled in the
   // search so the user lands right on what they just added.
   function onConfirm() {
     const title = getBookInfo(book).title || "";
     setEditing(null);
+    onDone?.();
     navigate("/log", { state: { searchTerm: title } });
   }
 
@@ -75,6 +95,7 @@ export default function AddBookLogButton({ book }) {
   async function onCancel() {
     const logId = editing?.logId;
     setEditing(null);
+    onDone?.();
     if (!logId) return;
     try {
       await deleteBookLog(logId);
@@ -85,15 +106,17 @@ export default function AddBookLogButton({ book }) {
 
   return (
     <>
-      <div className="white-highlight">
-        <img
-          src="/images/addlog.png"
-          className="addlog-icon"
-          onClick={onClick}
-          title={alreadyLogged ? "Already logged - add another" : "Add to log"}
-          style={{ opacity: alreadyLogged ? 0.5 : 1 }}
-        />
-      </div>
+      {!autoStart && (
+        <div className="white-highlight">
+          <img
+            src="/images/addlog.png"
+            className="addlog-icon"
+            onClick={onClick}
+            title={alreadyLogged ? "Already logged - add another" : "Add to log"}
+            style={{ opacity: alreadyLogged ? 0.5 : 1 }}
+          />
+        </div>
+      )}
 
       {editing && (
         <LogModal

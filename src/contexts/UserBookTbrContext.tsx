@@ -72,7 +72,9 @@ export const UserBookTbrProvider = ({ children }) => {
           setUserBookTbr(tbr);
           setUserBookTbrLoaded(true);
         } catch (err) {
-          setUserBookTbrLoaded(false);
+          // Mark loaded even on failure so pages gated on this flag (home,
+          // magic lists) don't hang forever on one bad fetch.
+          setUserBookTbrLoaded(true);
           console.error(err);
         }
       }

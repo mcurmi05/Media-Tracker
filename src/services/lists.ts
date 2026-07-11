@@ -77,6 +77,28 @@ export async function getSavedLists(userId) {
     .map((row) => ({ ...row.lists, saved_at: row.saved_at }));
 }
 
+// The first few item snapshots of each list, for the cover previews on the
+// Lists landing page. One query for the whole set; trimmed per list here.
+export async function getListItemPreviews(listIds, perList = 4) {
+  if (!listIds.length) return new Map();
+  const { data, error } = await supabase
+    .from("list_items")
+    .select("list_id, media_type, item_data")
+    .in("list_id", listIds)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  const map = new Map();
+  (data ?? []).forEach((row) => {
+    const arr = map.get(row.list_id) || [];
+    if (arr.length < perList) {
+      arr.push(row);
+      map.set(row.list_id, arr);
+    }
+  });
+  return map;
+}
+
 // A single list plus its items, ordered for display. Public — works for
 // anonymous visitors. Returns null if the list doesn't exist.
 export async function getListWithItems(listId) {
@@ -158,6 +180,48 @@ export async function removeListItem(itemId) {
     .from("list_items")
     .delete()
     .eq("id", itemId);
+  if (error) throw error;
+}
+
+/* ---------- magic lists ---------- */
+
+// Persist a list's magic config ({ enabled, combinator, rules }) or null to
+// turn a magic list back into a plain one. Lives in the lists.magic jsonb
+// column (see docs/magic-lists.sql).
+export async function setListMagic(listId, magic) {
+  const { data, error } = await supabase
+    .from("lists")
+    .update({ magic, updated_at: new Date().toISOString() })
+    .eq("id", listId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// Bulk insert for magic syncs — one round trip instead of one per item.
+export async function bulkAddListItems(listId, snapshots, startPosition = 0) {
+  if (!snapshots.length) return [];
+  const rows = snapshots.map((s, i) => ({
+    list_id: listId,
+    media_type: s.media_type,
+    item_data: s.item_data,
+    position: startPosition + i,
+  }));
+  const { data, error } = await supabase
+    .from("list_items")
+    .insert(rows)
+    .select();
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function bulkRemoveListItems(itemIds) {
+  if (!itemIds.length) return;
+  const { error } = await supabase
+    .from("list_items")
+    .delete()
+    .in("id", itemIds);
   if (error) throw error;
 }
 

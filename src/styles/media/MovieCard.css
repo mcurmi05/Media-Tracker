@@ -44,7 +44,8 @@
   background: #22c55e;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
   z-index: 3;
-  pointer-events: none;
+  /* Clickable: jumps to the log page pre-filtered to this title. */
+  cursor: pointer;
 }
 .poster-logged-tick::after {
   content: "";

@@ -21,6 +21,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+.cal-views {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 6px;
 }
 .cal-today {
   background: transparent;
@@ -100,10 +107,20 @@
 .cal-cell-today {
   border-color: var(--brand);
 }
+/* Day numbers are buttons that drill into the week view. */
 .cal-daynum {
   font-size: 0.78rem;
   color: var(--muted-foreground);
   font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  align-self: flex-start;
+  border-radius: 4px;
+}
+.cal-daynum:hover {
+  color: var(--foreground);
 }
 .cal-cell-today .cal-daynum {
   color: var(--brand);
@@ -149,6 +166,171 @@
   text-align: center;
   line-height: 1.25;
   padding: 1px 0;
+}
+
+/* ---------- week view: one row per day, full event detail ---------- */
+
+.cal-week {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cal-week-day {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.cal-week-day-today {
+  border-color: var(--brand);
+}
+.cal-week-day-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.cal-week-day-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+.cal-week-day-today .cal-week-day-name {
+  color: var(--brand);
+}
+.cal-week-day-date {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.cal-week-today-pill {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: var(--brand);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.cal-week-empty {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+  padding: 2px 0 4px;
+}
+.cal-week-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cal-week-event {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  max-width: 100%;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.cal-week-event:hover {
+  border-color: var(--muted-foreground);
+}
+.cal-week-event img {
+  width: 44px;
+  height: 66px;
+  object-fit: cover;
+  border-radius: 5px;
+  display: block;
+  flex-shrink: 0;
+}
+.cal-week-event-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cal-week-event-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+.cal-week-event-meta {
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+}
+
+/* ---------- year view: 12 mini heatmap months ---------- */
+
+.cal-year {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.cal-mini-month {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 150ms ease;
+}
+.cal-mini-month:hover {
+  border-color: var(--muted-foreground);
+}
+.cal-mini-month-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.cal-mini-month-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.cal-mini-month-count {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.cal-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.cal-mini-day {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--input);
+}
+.cal-mini-day-blank {
+  background: transparent;
+}
+/* Heatmap levels: brand red brightening with the number of logs that day. */
+.cal-mini-day-l1 {
+  background: color-mix(in srgb, var(--brand) 35%, var(--input));
+}
+.cal-mini-day-l2 {
+  background: color-mix(in srgb, var(--brand) 65%, var(--input));
+}
+.cal-mini-day-l3 {
+  background: var(--brand);
+}
+.cal-mini-day-today {
+  box-shadow: inset 0 0 0 1.5px var(--foreground);
 }
 
 @media (max-width: 700px) {

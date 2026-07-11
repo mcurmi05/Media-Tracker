@@ -27,6 +27,25 @@
   margin: -20px 0 0;
 }
 
+.lists-header-actions {
+  position: absolute;
+  right: 0;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.lists-header-actions .lists-create-btn {
+  position: static;
+}
+
+.lists-magic-btn {
+  background-color: #5b3fa8;
+}
+
+.lists-magic-btn:hover {
+  background-color: #6c4cc4;
+}
+
 .lists-create-btn {
   position: absolute;
   right: 0;
@@ -97,6 +116,51 @@
   padding: 1.5rem 0;
 }
 
+/* Full empty state for accounts with no lists at all. */
+.lists-empty-panel {
+  width: 100%;
+  max-width: 440px;
+  margin: 2rem auto;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: center;
+  background-color: var(--surface, #2a2929);
+  border: 1px solid var(--app-border-strong, rgba(255, 255, 255, 0.12));
+  border-radius: 14px;
+}
+
+.lists-empty-panel img {
+  width: 42px;
+  height: 42px;
+  opacity: 0.55;
+}
+
+.lists-empty-panel h2 {
+  margin: 0.2rem 0 0;
+  font-size: 1.15rem;
+}
+
+.lists-empty-panel p {
+  margin: 0 0 0.6rem;
+  font-size: 0.88rem;
+  color: var(--text-dim, rgba(255, 255, 255, 0.65));
+  line-height: 1.5;
+}
+
+.lists-empty-cta {
+  position: static;
+}
+
+.lists-empty-ctas {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .lists-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -107,8 +171,7 @@
 .list-card {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding: 1rem 1.1rem;
+  overflow: hidden;
   background-color: var(--surface, #2a2929);
   border: 1px solid var(--app-border-strong, rgba(255, 255, 255, 0.12));
   border-radius: 12px;
@@ -124,10 +187,62 @@
   transform: translateY(-2px);
 }
 
+/* Collage of the first few item covers across the top of the card. */
+.list-card-covers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background-color: #1a1a1a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.list-card-cover,
+.list-card-cover-empty {
+  aspect-ratio: 2 / 3;
+  min-width: 0;
+  background-color: #1f1e1e;
+}
+
+.list-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 180ms ease;
+}
+
+.list-card:hover .list-card-cover img {
+  transform: scale(1.05);
+}
+
+/* Lists with no items yet: one dimmed icon spanning the collage strip. */
+.list-card-covers-blank {
+  grid-column: 1 / -1;
+  aspect-ratio: 8 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list-card-covers-blank img {
+  width: 34px;
+  height: 34px;
+  opacity: 0.3;
+}
+
+.list-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem 0.5rem;
+}
+
 .list-card-title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .list-card-owner {
@@ -146,11 +261,59 @@
   overflow: hidden;
 }
 
-.list-card-count {
+.list-card-foot {
   margin-top: auto;
-  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1rem 0.85rem;
+  font-size: 0.78rem;
   color: var(--text-dim, rgba(255, 255, 255, 0.5));
+}
+
+.list-card-count {
   font-variant-numeric: tabular-nums;
+}
+
+.list-card-saved {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background-color: rgba(40, 200, 100, 0.15);
+  color: #8affb0;
+}
+
+.list-card-magic {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background-color: rgba(139, 92, 246, 0.18);
+  color: #c4b0ff;
+  white-space: nowrap;
+}
+
+/* Magic badge with its scope tag stacked underneath. */
+.list-card-magic-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.list-card-scope-library {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.list-card-updated {
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 /* ---------- modal (shared: create, edit, add-to-list) ---------- */
@@ -305,8 +468,13 @@
   background-color: #333232;
 }
 
+/* Added rows stay clickable — they act as a shortcut to the list. */
 .lists-modal-row.is-added {
-  cursor: default;
+  cursor: pointer;
+}
+
+.lists-modal-row-added {
+  margin-right: 6px;
 }
 
 .lists-modal-row-title {
@@ -328,6 +496,46 @@
 
 /* ---------- single list view ---------- */
 
+.lv-page {
+  position: relative;
+}
+
+/* Back to /lists, pinned top-left (promote.png points up; rotate to left). */
+.lv-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background-color: var(--surface, #2a2929);
+  border: 1px solid var(--app-border-strong, rgba(255, 255, 255, 0.15));
+  border-radius: var(--app-radius-sm, 8px);
+  cursor: pointer;
+  outline: none;
+  transition: background-color 150ms ease, border-color 150ms ease,
+    transform 160ms var(--ease-out);
+}
+
+.lv-back:hover {
+  background-color: var(--surface-hover, #333232);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.lv-back:active {
+  transform: scale(0.95);
+}
+
+.lv-back img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  transform: rotate(-90deg);
+}
+
 .lv-header {
   width: 100%;
   text-align: center;
@@ -337,6 +545,37 @@
 .lv-title {
   margin: 0 0 0.3rem;
   font-size: 1.8rem;
+}
+
+.lv-title-editable {
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.lv-title-editable:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Inline rename input, sized to sit exactly where the h1 does. */
+.lv-title-input {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto 0.3rem;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  background-color: #2a2929;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  outline: none;
+}
+
+.lv-title-input:focus {
+  border-color: var(--accent, #e50914);
 }
 
 .lv-owner {
@@ -404,105 +643,681 @@
   border-color: rgba(229, 9, 20, 0.5);
 }
 
-.li-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
-  width: 100%;
+/* ---------- delete confirmation ---------- */
+
+.lists-confirm-text {
+  margin: 0 0 1.1rem;
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
 }
 
-.li-card {
-  position: relative;
+.lists-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.lists-confirm-delete {
+  background-color: rgba(229, 9, 20, 0.8);
+  border-color: transparent;
+}
+
+.lists-confirm-delete:hover:not(:disabled) {
+  background-color: var(--app-accent, #e50914);
+  border-color: transparent;
+}
+
+/* ---------- magic lists ---------- */
+
+.lv-magic {
+  max-width: 600px;
+  margin: 0 auto 1rem;
+  padding: 0.8rem 1rem;
   background-color: var(--surface, #2a2929);
-  border: 1px solid var(--app-border-strong, rgba(255, 255, 255, 0.1));
+  border: 1px solid rgba(139, 92, 246, 0.35);
   border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  text-align: left;
+}
+
+.lv-magic-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+
+.lv-magic-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.lv-magic-chip {
+  font-size: 0.74rem;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.lv-magic-chip-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.lv-magic-join {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  align-self: center;
+  color: #c4b0ff;
+}
+
+.lv-magic-join-or {
+  color: #ffd9a8;
+}
+
+.lv-magic-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.lv-btn-sm {
+  padding: 0.32rem 0.7rem;
+  font-size: 0.78rem;
+}
+
+/* Rule builder modal — wider than the base list modal to fit rule rows. */
+.magic-modal {
+  max-width: 660px;
+}
+
+.magic-form select,
+.magic-form input {
+  font-family: inherit;
+}
+
+.magic-rule select,
+.magic-value {
+  height: 36px;
+  padding: 0 8px;
+  font-size: 0.85rem;
+  color: #fff;
+  background-color: #2a2929;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* The form scrolls (not the rules box) so the person-picker dropdown isn't
+   clipped by a nested scroll container; overflow-x stays hidden because
+   overflow-y:auto would otherwise force it to auto and any 1px spill draws a
+   horizontal scrollbar. */
+.magic-form {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+.magic-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+/* join | NOT | field | op | value | ✕ — the two flexible columns share
+   leftover space so long labels ("Director / creator") never get clipped. */
+.magic-rule {
+  display: grid;
+  grid-template-columns: 46px auto minmax(0, 1.3fr) 86px minmax(0, 1fr) 26px;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+/* AND/OR chain toggle at the start of each rule row (blank on the first). */
+.magic-form .magic-join {
+  height: 36px;
+  padding: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #c4b0ff;
+  background-color: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 140ms ease, color 140ms ease,
+    border-color 140ms ease;
+}
+
+.magic-form .magic-join:hover {
+  background-color: rgba(139, 92, 246, 0.28);
+}
+
+.magic-form .magic-join-or {
+  color: #ffd9a8;
+  background-color: rgba(240, 150, 40, 0.14);
+  border-color: rgba(240, 150, 40, 0.45);
+}
+
+.magic-form .magic-join-or:hover {
+  background-color: rgba(240, 150, 40, 0.28);
+}
+
+.magic-form .magic-join-first {
+  background: none;
+  border: none;
+  cursor: default;
+}
+
+.magic-rule select,
+.magic-value {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Fields whose only operator is folded into their label ("Cast contains")
+   drop the op column entirely. */
+.magic-rule-noop {
+  grid-template-columns: 46px auto minmax(0, 1.1fr) minmax(0, 1.2fr) 26px;
+}
+
+@media (max-width: 560px) {
+  /* stack: join+NOT+field on top, op+value+remove below */
+  .magic-rule,
+  .magic-rule-noop {
+    grid-template-columns: 44px auto minmax(0, 1fr) 26px;
+  }
+  .magic-rule > select:first-of-type {
+    grid-column: 3 / 5;
+  }
+  .magic-op {
+    grid-column: 1 / 3;
+  }
+  .magic-rule-noop > .magic-value,
+  .magic-rule-noop > .magic-person {
+    grid-column: 1 / 4;
+  }
+}
+
+.magic-form .magic-not {
+  flex: 0 0 auto;
+  height: 34px;
+  padding: 0 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.45);
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: color 140ms ease, border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.magic-form .magic-not:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.magic-form .magic-not-on {
+  color: #fff;
+  background-color: rgba(229, 9, 20, 0.35);
+  border-color: rgba(229, 9, 20, 0.7);
+}
+
+.magic-form .magic-rule-remove {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 34px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  border-radius: 6px;
+}
+
+.magic-form .magic-rule-remove:hover:not(:disabled) {
+  color: #fff;
+}
+
+.magic-form .magic-rule-remove:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.magic-form .magic-add-rule {
+  align-self: flex-start;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+  background-color: var(--surface, #2a2929);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.magic-form .magic-add-rule:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.magic-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.7rem 0.8rem;
+  background-color: #232222;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.magic-preview-note {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-dim, rgba(255, 255, 255, 0.6));
+}
+
+.magic-preview-error {
+  color: #ff9d9d;
+}
+
+/* Person picker for director/actor rules. */
+.magic-person {
+  position: relative;
+  min-width: 0;
+}
+
+.magic-person .magic-value-unset {
+  border-color: rgba(229, 9, 20, 0.55);
+}
+
+.magic-person-pop {
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.magic-person-note {
+  color: var(--text-dim, rgba(255, 255, 255, 0.6));
+  cursor: default;
+}
+
+/* Person select button in a rule row: thumb + name once picked. */
+.magic-form .magic-person-select {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.85rem;
   overflow: hidden;
+}
+
+.magic-form .magic-person-select:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.magic-form .magic-person-select-empty {
+  color: #898888;
+}
+
+.magic-person-thumb {
+  width: 22px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background-color: #1a1a1a;
+}
+
+.magic-person-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Person pick modal: search + rows with headshots. */
+.person-pick-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #fff;
+  background-color: #2a2929;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  outline: none;
+  margin-bottom: 0.75rem;
   transition: border-color 150ms ease;
 }
 
-.li-card:hover {
-  border-color: rgba(255, 255, 255, 0.3);
+.person-pick-input:focus {
+  border-color: var(--accent, #e50914);
 }
 
-.li-card-main {
+.person-pick-results {
   display: flex;
-  gap: 0.8rem;
-  width: 100%;
-  padding: 0.7rem;
-  background: none;
-  border: none;
-  text-align: left;
-  cursor: pointer;
-  outline: none;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow-y: auto;
+  min-height: 120px;
 }
 
-.li-poster {
-  width: 60px;
-  height: 90px;
+.person-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.7rem 0.45rem 0.45rem;
+  background-color: #2a2929;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.person-pick-row:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: #333232;
+}
+
+.person-pick-row img {
+  width: 40px;
+  height: 54px;
   object-fit: cover;
   border-radius: 6px;
   flex-shrink: 0;
   background-color: #1a1a1a;
 }
 
-.li-info {
+.person-pick-info {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 2px;
   min-width: 0;
 }
 
-.li-title {
-  margin: 0;
-  font-size: 0.95rem;
+.person-pick-name {
+  font-size: 0.92rem;
   font-weight: 600;
-  color: #fff;
 }
 
-.li-subtitle,
-.li-year {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--text-dim, rgba(255, 255, 255, 0.6));
+.person-pick-sub {
+  font-size: 0.75rem;
+  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.li-type {
-  margin-top: auto;
-  align-self: flex-start;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.75);
+.magic-pick-label {
+  display: block;
 }
 
-.li-remove {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 24px;
-  height: 24px;
+.magic-pick-sub {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-dim, rgba(255, 255, 255, 0.5));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
+}
+
+/* Title row: heading plus the owner's pencil (opens name/description edit). */
+.lv-title-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.55);
-  color: #fff;
+  gap: 6px;
+}
+
+.lv-title-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
   border: none;
   border-radius: 6px;
-  font-size: 12px;
   cursor: pointer;
   outline: none;
   transition: background-color 150ms ease;
 }
 
-.li-remove:hover:not(:disabled) {
-  background-color: rgba(229, 9, 20, 0.85);
+.lv-title-edit:hover {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
-.li-remove:disabled {
+.lv-title-edit img {
+  width: 15px;
+  height: 15px;
+  opacity: 0.65;
+}
+
+.lv-title-edit:hover img {
+  opacity: 1;
+}
+
+/* Library / Global scope toggle. */
+.magic-scope {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.magic-form .magic-scope-btn {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  background-color: #2a2929;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 140ms ease, color 140ms ease,
+    border-color 140ms ease;
+}
+
+.magic-form .magic-scope-btn:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.magic-form .magic-scope-btn-active {
+  color: #fff;
+  background-color: rgba(139, 92, 246, 0.25);
+  border-color: rgba(139, 92, 246, 0.7);
+}
+
+.magic-scope-hint {
+  font-size: 0.72rem;
+  color: var(--text-dim, rgba(255, 255, 255, 0.5));
+  flex: 1 1 100%;
+}
+
+.lv-magic-global {
+  background-color: rgba(240, 150, 40, 0.16);
+  color: #ffd9a8;
+}
+
+.lv-magic-syncing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-dim, rgba(255, 255, 255, 0.6));
+}
+
+.magic-preview-count {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.magic-preview-covers {
+  display: flex;
+  gap: 0.35rem;
+  overflow: hidden;
+}
+
+.magic-preview-covers img {
+  width: 34px;
+  height: 51px;
+  object-fit: cover;
+  border-radius: 4px;
+  background-color: #1a1a1a;
+}
+
+.magic-hint {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--text-dim, rgba(255, 255, 255, 0.5));
+  line-height: 1.45;
+}
+
+/* ---------- add-items search panel (list owner) ---------- */
+
+.lv-add-panel {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto 1.5rem;
+  padding: 1rem;
+  background-color: var(--surface, #2a2929);
+  border: 1px solid var(--app-border-strong, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lv-add-search {
+  width: 100%;
+}
+
+.lv-add-search .toolbar-input {
+  width: 100%;
+}
+
+.lv-add-loading {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 0;
+}
+
+.lv-add-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.lv-add-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.8rem 0.45rem 0.45rem;
+  background-color: #232222;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.lv-add-row:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: #333232;
+}
+
+.lv-add-row:disabled {
+  cursor: default;
+}
+
+.lv-add-poster {
+  width: 38px;
+  height: 57px;
+  object-fit: cover;
+  border-radius: 5px;
+  flex-shrink: 0;
+  background-color: #1a1a1a;
+}
+
+.lv-add-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lv-add-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lv-add-sub {
+  font-size: 0.78rem;
+  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+  text-transform: capitalize;
+}
+
+.lv-add-action {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent, #e50914);
+}
+
+.lv-add-row.is-added .lv-add-action {
+  color: #8affb0;
+}
+
+/* ---------- per-row remove button (list owner) ---------- */
+
+.lv-item-remove {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  border-radius: 6px;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.lv-item-remove:hover:not(:disabled) {
+  color: #fff;
+  background-color: rgba(229, 9, 20, 0.55);
+}
+
+.lv-item-remove:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -512,7 +1327,8 @@
     flex-direction: column;
     gap: 0.75rem;
   }
-  .lists-create-btn {
+  .lists-create-btn,
+  .lists-header-actions {
     position: static;
   }
 }

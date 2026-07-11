@@ -68,6 +68,10 @@ function TitleStrip({ title, items, navigate, coverForTmdb }) {
   );
 }
 
+// Bios longer than this get collapsed behind a "Show more" toggle so the
+// credit strips aren't pushed below the fold.
+const BIO_COLLAPSE_CHARS = 400;
+
 function Person() {
   const { personId } = useParams();
   const navigate = useNavigate();
@@ -75,6 +79,7 @@ function Person() {
   const [person, setPerson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [bioOpen, setBioOpen] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -130,7 +135,26 @@ function Person() {
             </p>
           )}
           {person.biography && (
-            <p className="person-bio">{person.biography}</p>
+            <>
+              <p
+                className={`person-bio${
+                  person.biography.length > BIO_COLLAPSE_CHARS && !bioOpen
+                    ? " person-bio-clamped"
+                    : ""
+                }`}
+              >
+                {person.biography}
+              </p>
+              {person.biography.length > BIO_COLLAPSE_CHARS && (
+                <button
+                  type="button"
+                  className="person-bio-toggle"
+                  onClick={() => setBioOpen((v) => !v)}
+                >
+                  {bioOpen ? "Show less" : "Show more"}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

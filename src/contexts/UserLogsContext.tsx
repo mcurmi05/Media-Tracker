@@ -381,7 +381,9 @@ export const UserLogsProvider = ({ children }) => {
           setUserLogs(logs);
           setUserLogsLoaded(true);
         } catch (err) {
-          setUserLogsLoaded(false);
+          // Mark loaded even on failure so pages gated on this flag (home,
+          // magic lists) don't hang forever on one bad fetch.
+          setUserLogsLoaded(true);
           console.log(err);
         }
       }

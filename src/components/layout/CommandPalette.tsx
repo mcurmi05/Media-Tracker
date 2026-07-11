@@ -24,6 +24,11 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useSearch } from "../../contexts/SearchContext";
 import { useCovers } from "../../contexts/UserCoversContext";
 import { useLoggedLookup } from "../../hooks/useLoggedLookup";
+import AddWatchlist from "../media/AddWatchlist";
+import AddLog from "../media/AddLog";
+import AddBookWatchlist from "../books/AddBookWatchlist";
+import AddBookLogButton from "../books/AddBookLogButton";
+import AddToList from "../common/AddToList";
 import {
   CommandDialog,
   CommandEmpty,
@@ -60,12 +65,22 @@ function matches(title: string, query: string) {
   return title.toLowerCase().includes(query.trim().toLowerCase());
 }
 
+// Book titles carry "(Series, #1)" suffixes; the log search matches better
+// without them (same trick the home page uses).
+function stripSeries(title) {
+  const m = (title || "").match(/^(.*?)\s*\(([^()]+?)[,\s]*#([^()]+?)\)\s*$/);
+  return m ? m[1].trim() : title || "";
+}
+
 export default function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState("all");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  // A log/list flow taken over from a result row. The palette closes and the
+  // flow's own modal runs from here: { type: "log" | "list", item, isBook }.
+  const [pending, setPending] = useState(null);
   const { isAuthenticated, signOut } = useAuth();
   const { clearSearch } = useSearch();
   const { coverForTmdb, coverForHardcover } = useCovers();
@@ -193,10 +208,68 @@ export default function CommandPalette() {
     });
   };
 
+  // Log and add-to-list need their modals; those can't live inside the
+  // palette's dialog, so close it and run the flow from the pending slot.
+  const startFlow = (type: "log" | "list", item, isBook: boolean) => {
+    handleOpenChange(false);
+    setPending({ type, item, isBook });
+  };
+
+  const goToLogSearch = (title: string) => {
+    runCommand(() => navigate("/log", { state: { searchTerm: title } }));
+  };
+
+  // Inline quick actions on a result row. Clicks must not bubble into the
+  // CommandItem, which would select the row and navigate to the title.
+  // Icon centering/sizing lives in globals.css under .cp-row-actions —
+  // AddLog.css is unlayered so Tailwind utilities can't beat its offsets.
+  const RowActions = ({ children }) => (
+    <div
+      className="cp-row-actions ml-auto flex shrink-0 items-center"
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      {children}
+    </div>
+  );
+
   const visibleDiscover = discoverItems.filter((i) => matches(i.title, query));
   const visibleLibrary = libraryItems.filter((i) => matches(i.title, query));
 
+  const clearPending = () => setPending(null);
+
   return (
+    <>
+      {pending?.type === "log" &&
+        (pending.isBook ? (
+          <AddBookLogButton
+            key={`log-${pending.item.hardcover_id}`}
+            book={pending.item}
+            autoStart
+            onDone={clearPending}
+          />
+        ) : (
+          <AddLog
+            key={`log-${pending.item.media_type}-${pending.item.tmdb_id}`}
+            movie={pending.item}
+            autoStart
+            onDone={clearPending}
+          />
+        ))}
+      {pending?.type === "list" && (
+        <AddToList
+          key={
+            pending.isBook
+              ? `list-${pending.item.hardcover_id}`
+              : `list-${pending.item.media_type}-${pending.item.tmdb_id}`
+          }
+          movie={pending.isBook ? undefined : pending.item}
+          book={pending.isBook ? pending.item : undefined}
+          autoOpen
+          onDone={clearPending}
+        />
+      )}
     <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false}>
       <CommandInput
         placeholder="Search movies, TV, books, or jump to a page..."
@@ -284,8 +357,39 @@ export default function CommandPalette() {
                       {item.author} · Book
                     </p>
                   </div>
-                  {isLogged(item) && (
-                    <CircleCheck className="ml-auto size-4 shrink-0 text-green-500" />
+                  {isAuthenticated && (
+                    <RowActions>
+                      {isLogged(item) && (
+                        <button
+                          type="button"
+                          data-slot="palette-quick-action"
+                          className="flex cursor-pointer items-center bg-transparent p-1"
+                          title="Logged — view in log"
+                          onClick={() =>
+                            goToLogSearch(stripSeries(item.title))
+                          }
+                        >
+                          <CircleCheck className="size-4 shrink-0 text-green-500" />
+                        </button>
+                      )}
+                      <AddBookWatchlist book={item} />
+                      <div className="white-highlight" title="Add to list">
+                        <img
+                          src="/images/lists.png"
+                          className="addlog-icon"
+                          alt="Add to list"
+                          onClick={() => startFlow("list", item, true)}
+                        />
+                      </div>
+                      <div className="white-highlight" title="Add to log">
+                        <img
+                          src="/images/addlog.png"
+                          className="addlog-icon"
+                          alt="Add to log"
+                          onClick={() => startFlow("log", item, true)}
+                        />
+                      </div>
+                    </RowActions>
                   )}
                 </CommandItem>
               : <CommandItem
@@ -312,8 +416,37 @@ export default function CommandPalette() {
                       {item.media_type === "tv" ? "TV" : "Movie"}
                     </p>
                   </div>
-                  {isLogged(item) && (
-                    <CircleCheck className="ml-auto size-4 shrink-0 text-green-500" />
+                  {isAuthenticated && (
+                    <RowActions>
+                      {isLogged(item) && (
+                        <button
+                          type="button"
+                          data-slot="palette-quick-action"
+                          className="flex cursor-pointer items-center bg-transparent p-1"
+                          title="Logged — view in log"
+                          onClick={() => goToLogSearch(item.primaryTitle)}
+                        >
+                          <CircleCheck className="size-4 shrink-0 text-green-500" />
+                        </button>
+                      )}
+                      <AddWatchlist movie={item} />
+                      <div className="white-highlight" title="Add to list">
+                        <img
+                          src="/images/lists.png"
+                          className="addlog-icon"
+                          alt="Add to list"
+                          onClick={() => startFlow("list", item, false)}
+                        />
+                      </div>
+                      <div className="white-highlight" title="Add to log">
+                        <img
+                          src="/images/addlog.png"
+                          className="addlog-icon"
+                          alt="Add to log"
+                          onClick={() => startFlow("log", item, false)}
+                        />
+                      </div>
+                    </RowActions>
                   )}
                 </CommandItem>,
             )}
@@ -389,5 +522,6 @@ export default function CommandPalette() {
         </CommandGroup>
       </CommandList>
     </CommandDialog>
+    </>
   );
 }

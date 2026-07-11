@@ -55,6 +55,32 @@
   white-space: pre-line;
 }
 
+/* Collapsed state for long bios — keeps Known For etc. above the fold. */
+.person-bio-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.person-bio-toggle {
+  align-self: flex-start;
+  margin-top: 0.35rem;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: color 150ms ease;
+}
+
+.person-bio-toggle:hover {
+  color: var(--foreground);
+}
+
 .person-section {
   margin-bottom: 2rem;
 }

@@ -1,5 +1,5 @@
 import "../../styles/media/AddLog.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useLogs } from "../../contexts/UserLogsContext";
@@ -8,7 +8,10 @@ import { upsertMovie, resolveFullMovie } from "../../services/movieMetadata";
 import LogModal from "./LogModal";
 import { toLocalDateString } from "../../utils/localDate";
 
-export default function AddLog({ movie }) {
+// autoStart runs the create-log flow immediately on mount with no icon —
+// used by the command palette, which closes itself and hands the flow over
+// here. onDone fires when the flow ends either way (confirm or cancel).
+export default function AddLog({ movie, autoStart = false, onDone }) {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { addLog, removeLog } = useLogs();
@@ -41,6 +44,7 @@ export default function AddLog({ movie }) {
     setCreating(false);
     if (error) {
       console.error(error);
+      if (autoStart) onDone?.();
       return;
     }
     addLog(full.id, "", full, data[0].id);
@@ -57,11 +61,23 @@ export default function AddLog({ movie }) {
     createLog();
   }
 
+  useEffect(() => {
+    if (!autoStart) return;
+    if (!isAuthenticated) {
+      onDone?.();
+      navigate("/signin");
+      return;
+    }
+    createLog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Confirm: keep the log, go to the Log page with its title prefilled in the
   // search so the user lands right on what they just added.
   function onConfirm() {
     const title = editing?.full?.primaryTitle || "";
     setEditing(null);
+    onDone?.();
     navigate("/log", { state: { searchTerm: title } });
   }
 
@@ -69,6 +85,7 @@ export default function AddLog({ movie }) {
   async function onCancel() {
     const logId = editing?.logId;
     setEditing(null);
+    onDone?.();
     if (!logId) return;
     removeLog(logId);
     const { error } = await supabase.from("user_logs").delete().eq("id", logId);
@@ -77,14 +94,16 @@ export default function AddLog({ movie }) {
 
   return (
     <>
-      <div className="white-highlight">
-        <img
-          src="/images/addlog.png"
-          className="addlog-icon addlog-log-icon"
-          onClick={onClick}
-          title="Add to log"
-        ></img>
-      </div>
+      {!autoStart && (
+        <div className="white-highlight">
+          <img
+            src="/images/addlog.png"
+            className="addlog-icon addlog-log-icon"
+            onClick={onClick}
+            title="Add to log"
+          ></img>
+        </div>
+      )}
 
       {editing && (
         <LogModal

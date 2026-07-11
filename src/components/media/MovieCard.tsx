@@ -28,7 +28,20 @@ function MovieCard({ movie, posterOnly = false, logged = false }) {
             src={cover ? `${cover}` : "/images/placeholderimage.jpg"}
             onError={e => { e.target.onerror = null; e.target.src = "/images/placeholderimage.jpg"}}
           />
-          {logged && <span className="poster-logged-tick" title="Logged" />}
+          {logged && (
+            <span
+              className="poster-logged-tick"
+              title="Logged — view in log"
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate("/log", {
+                  state: { searchTerm: movie.primaryTitle || "" },
+                });
+              }}
+              onAuxClick={(e) => e.stopPropagation()}
+            />
+          )}
         </div>
 
         {!posterOnly && (

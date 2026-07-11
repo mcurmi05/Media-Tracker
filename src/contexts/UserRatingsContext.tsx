@@ -152,7 +152,9 @@ export const UserRatingsProvider = ({ children }) => {
           setUserRatings(ratings);
           setUserRatingsLoaded(true);
         } catch (err) {
-          setUserRatingsLoaded(false);
+          // Mark loaded even on failure so pages gated on this flag (home,
+          // magic lists) don't hang forever on one bad fetch.
+          setUserRatingsLoaded(true);
           console.log(err);
         }
       }

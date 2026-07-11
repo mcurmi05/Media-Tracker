@@ -181,6 +181,23 @@
   flex-shrink: 0;
 }
 
+/* Command palette quick actions. Unlayered on purpose: AddLog.css (also
+   unlayered) sets .addlog-icon width/margin-top and would beat any Tailwind
+   utility, so these higher-specificity rules center the icons instead. */
+.cp-row-actions .white-highlight {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+.cp-row-actions img,
+.cp-row-actions img.addlog-icon {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  object-fit: contain;
+}
+
 /* Kill the browser default blue focus outline on interactive elements. Project
    convention: no default blue focus/hover borders on selections (buttons, ticks,
    posters, links). Intentional focus rings use box-shadow/ring utilities and are

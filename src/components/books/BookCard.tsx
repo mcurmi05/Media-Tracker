@@ -77,7 +77,18 @@ function BookCard({ book: bookProp, posterOnly = false, logged = false }) {
               e.target.src = "/images/placeholderimage.jpg";
             }}
           />
-          {logged && <span className="poster-logged-tick" title="Logged" />}
+          {logged && (
+            <span
+              className="poster-logged-tick"
+              title="Logged — view in log"
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate("/log", { state: { searchTerm: mainTitle || "" } });
+              }}
+              onAuxClick={(e) => e.stopPropagation()}
+            />
+          )}
         </div>
       </div>
     );

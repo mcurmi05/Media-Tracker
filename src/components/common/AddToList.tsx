@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -18,7 +18,10 @@ import "../../styles/pages/Lists.css";
 
 // Icon button (reused on the media/book detail pages) that opens a modal for
 // adding the current item to one of the user's lists, or to a brand new list.
-export default function AddToList({ movie, book }) {
+// autoOpen opens the modal immediately on mount with no icon — used by the
+// command palette, which closes itself and hands the flow over here. onDone
+// fires when the modal is dismissed.
+export default function AddToList({ movie, book, autoOpen = false, onDone }) {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -31,8 +34,19 @@ export default function AddToList({ movie, book }) {
 
   const snapshot = book ? bookToListItem(book) : movieToListItem(movie);
 
+  const closeModal = () => {
+    setOpen(false);
+    onDone?.();
+  };
+
+  useEffect(() => {
+    if (autoOpen) openModal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openModal = async () => {
     if (!isAuthenticated) {
+      onDone?.();
       navigate("/signin");
       return;
     }
@@ -97,18 +111,20 @@ export default function AddToList({ movie, book }) {
 
   return (
     <>
-      <div className="white-highlight add-to-list-btn" title="Add to list">
-        <img src="/images/lists.png" className="addlog-icon" onClick={openModal} alt="Add to list" />
-      </div>
+      {!autoOpen && (
+        <div className="white-highlight add-to-list-btn" title="Add to list">
+          <img src="/images/lists.png" className="addlog-icon" onClick={openModal} alt="Add to list" />
+        </div>
+      )}
 
       {open && createPortal(
-        <div className="lists-modal-overlay" onClick={() => setOpen(false)}>
+        <div className="lists-modal-overlay" onClick={closeModal}>
           <div className="lists-modal" onClick={(e) => e.stopPropagation()}>
             <div className="lists-modal-head">
               <h3>Add to list</h3>
               <button
                 className="lists-modal-close"
-                onClick={() => setOpen(false)}
+                onClick={closeModal}
                 aria-label="Close"
               >
                 {String.fromCharCode(0x2715)}
@@ -137,7 +153,7 @@ export default function AddToList({ movie, book }) {
                 <div className="lists-modal-list">
                   {lists.length === 0 ? (
                     <p className="lists-modal-empty">
-                      You don't have any lists yet — create one above.
+                      You don't have any lists yet. Create one above.
                     </p>
                   ) : (
                     lists.map((list) => {
@@ -146,15 +162,30 @@ export default function AddToList({ movie, book }) {
                         <button
                           key={list.id}
                           className={`lists-modal-row${added ? " is-added" : ""}`}
-                          onClick={() => addTo(list.id)}
-                          disabled={added || busyId === list.id}
+                          // Once added, the row turns into a shortcut to the list.
+                          onClick={() => {
+                            if (added) {
+                              closeModal();
+                              navigate(`/lists/${list.id}`);
+                            } else {
+                              addTo(list.id);
+                            }
+                          }}
+                          disabled={busyId === list.id}
+                          title={added ? "Go to list" : undefined}
                         >
                           <span className="lists-modal-row-title">{list.title}</span>
                           <span className="lists-modal-row-action">
                             {busyId === list.id ? (
                               <Spinner />
                             ) : added ? (
-                              "Added ✓"
+                              <>
+                                <span className="lists-modal-row-added">
+                                  Added ✓
+                                </span>
+                                {"View list "}
+                                {String.fromCharCode(0x2192)}
+                              </>
                             ) : (
                               "Add"
                             )}
